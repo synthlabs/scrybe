@@ -1,20 +1,58 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+
+	const messageLimit = 50;
+
+	let partialText: string = 'This is an incoming subtitle';
+	let messages: string[] = ['test', 'test', 'last'];
+
+	let socket: WebSocket;
+
+	function pushMsg(msg: any) {
+		let newMsgs = [...messages, msg];
+
+		if (newMsgs.length > messageLimit) newMsgs.shift();
+
+		messages = newMsgs;
+	}
 
 	onMount(async () => {
-		const socket = new WebSocket('ws://localhost:8080/echo');
+		socket = new WebSocket('ws://localhost:8080/subtitle');
 
 		socket.onmessage = (event) => {
-			console.log(event);
+			const res = JSON.parse(event.data);
+
+			console.log(res);
+			if (res['text']) {
+				pushMsg(res['text']);
+			}
+
+			if (res['partial']) {
+				partialText = res['partial'];
+			} else {
+				partialText = '';
+			}
 		};
+	});
+
+	onDestroy(() => {
+		if (socket !== undefined) {
+			socket.close();
+		}
 	});
 </script>
 
-<div class="mx-auto flex h-full min-h-0 max-w-screen-md flex-col justify-center p-2">
-	<div class="flex flex-grow flex-col justify-end overflow-y-scroll p-2 px-4">
-		<div class="w-full py-1 text-gray-800">message 1</div>
-		<div class="w-full py-1 text-gray-800">message 2</div>
+<!-- https://play.tailwindcss.com/b33HpTdUWu -->
+<div class="mx-auto flex h-screen max-w-screen-lg flex-col">
+	<div class="flex min-h-0 flex-1 flex-col justify-end">
+		<div class="min-h-0 space-y-4 overflow-y-auto p-4">
+			{#each messages as msg}
+				<div class="w-full py-1 text-gray-800">{msg}</div>
+			{/each}
+		</div>
 	</div>
 	<div class="divider px-4"></div>
-	<div class="flex p-2 px-4 pb-4 text-gray-400">This is an incoming subtitle</div>
+	<div class="min-h-12 flex-none p-2 px-4 pb-4 text-gray-400">
+		{partialText}
+	</div>
 </div>
