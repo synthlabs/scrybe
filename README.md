@@ -14,3 +14,4 @@ A toy program for caputuring subtitles from a live stream.
 - [ ] Bundle
   - [ ] Webpage in dev env
   - [ ] desktop app
+  - [ ] chrome extension
