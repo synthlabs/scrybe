@@ -23,3 +23,9 @@ go.work
 /env
 /vosk-*
 /transcribe
+
+rust/target
+rust/Cargo.lock
+rust/.cargo/
+rust/recorded.wav
+
