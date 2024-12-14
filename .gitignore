@@ -28,4 +28,5 @@ rust/target
 rust/Cargo.lock
 rust/.cargo/
 rust/recorded.wav
-
+rust/samples/*.wav
+rust/models/*.bin

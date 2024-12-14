@@ -7,4 +7,7 @@ edition = "2021"
 anyhow = "1.0"
 cpal = "0.15.3"
 hound = "3.5.1"
+samplerate = "0.2.4"
 clap = { version = "4.5.4", features = ["derive", "string"] }
+whisper-rs = { version = "0.13.2", features = ["vulkan"]}
+whisper-rs-sys = "0.11.1"
