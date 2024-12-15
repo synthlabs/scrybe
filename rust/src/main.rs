@@ -7,86 +7,11 @@ use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+use whisper_rs::{
+    FullParams, SamplingStrategy, SegmentCallbackData, WhisperContext, WhisperContextParameters,
+};
 
-fn convert_wav() -> Result<(), anyhow::Error> {
-    println!("converting");
-    // "ffmpeg", "-v", "verbose", "-f", "s32le", "-ar", "48000", "-ac", "2", "-i", "-", "-f", "mp3", "-"
-    let mut cmd = Command::new("ffmpeg");
-
-    let cmd = cmd
-        .stderr(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stdin(Stdio::null())
-        .args([
-            "-v",
-            "verbose",
-            "-i",
-            "recorded.wav",
-            "-f",
-            "s16le",
-            "-ar",
-            "16000",
-            "-ac",
-            "1",
-            "-",
-        ]);
-
-    let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: 16000,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    };
-
-    let mut pid = cmd.spawn()?;
-
-    let child_stderr = pid.stderr.take().unwrap();
-    let _stderr_thread = thread::spawn(move || {
-        let stderr_lines = BufReader::new(child_stderr).lines();
-        for line in stderr_lines {
-            let line = line.unwrap();
-            println!("{}", line);
-        }
-    });
-
-    let mut child_stdout = pid.stdout.take().unwrap();
-    let stdout_thread = thread::spawn(move || {
-        let mut buffer = Vec::new();
-        child_stdout
-            .read_to_end(&mut buffer)
-            .expect("failed to read buffer");
-    });
-
-    println!("spawned");
-    if !pid.wait()?.success() {
-        bail!("unable to convert file: args: {:?}", cmd.get_args());
-    }
-
-    println!("waiting for stdout");
-    stdout_thread.join().unwrap();
-
-    // pid.stdout.unwrap().read_to_end(&mut buffer)?;
-
-    // // ... later in code
-
-    // println!("{:?}", buffer);
-
-    println!("done");
-    Ok(())
-}
-
-#[derive(Parser, Debug)]
-#[command(version, about = "CPAL record_wav example", long_about = None)]
-struct Opt {
-    /// The audio device to use
-    #[arg(short, long, default_value_t = String::from("default"))]
-    device: String,
-}
-
-fn record_wav() -> Result<(), anyhow::Error> {
-    let opt = Opt::parse();
-
+fn transcribe() -> Result<(), anyhow::Error> {
     // Use ScreenCaptureKit host
     #[cfg(target_os = "macos")]
     let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
@@ -117,21 +42,39 @@ fn record_wav() -> Result<(), anyhow::Error> {
 
     println!("Default config: {:?}", config);
 
-    // The WAV file we're recording to.
-    const PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/recorded.wav");
+    let model_file_path = fs::read_dir("./models")
+        .expect("failed to read './models' folder")
+        .filter_map(|entry| {
+            let entry = entry.expect("failed to read entry");
+            let path = entry.path();
+            if path.is_file() {
+                let extension = path.extension().and_then(|s| s.to_str());
+                if extension == Some("bin") {
+                    Some(path)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .next()
+        .expect("no model file found")
+        .to_str()
+        .expect("invalid model file path")
+        .to_string();
 
-    // let spec = wav_spec_from_config(&config);
+    let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
 
-    // 16KHZ 32bit float mono
-    let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: 16000,
-        bits_per_sample: 32,
-        sample_format: hound::SampleFormat::Float,
-    };
+    println!("Model path {}", model_file_path);
 
-    let writer = hound::WavWriter::create(PATH, spec)?;
-    let writer = Arc::new(Mutex::new(Some(writer)));
+    let mut params = WhisperContextParameters::default();
+    params.use_gpu = true;
+
+    println!("creating whisper context");
+
+    let ctx = WhisperContext::new_with_params(model_file_path.as_str(), params)
+        .expect("failed to load model");
 
     println!("Begin recording...");
 
@@ -178,15 +121,56 @@ fn record_wav() -> Result<(), anyhow::Error> {
 
     stream.play()?;
 
-    // Let recording go for roughly three seconds.
-    std::thread::sleep(std::time::Duration::from_secs(30));
-    drop(stream);
-    writer.lock().unwrap().take().unwrap().finalize()?;
-    println!("Recording {} complete!", PATH);
-    Ok(())
-}
+    loop {
+        println!("recording");
+        // Let recording go for roughly 5 seconds.
+        std::thread::sleep(std::time::Duration::from_secs(5));
 
-// ... [rest of the functions remain the same] ...
+        println!("copying buffer");
+        let mut samples: Vec<f32> = Vec::new();
+        if let Ok(mut guard) = writer.lock() {
+            samples.append(&mut guard);
+        }
+        println!("processing");
+
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        params.set_suppress_blank(false);
+        params.set_print_special(false);
+        params.set_print_progress(true);
+        params.set_token_timestamps(true);
+        params.set_split_on_word(true);
+        params.set_tdrz_enable(false);
+        params.set_translate(false);
+        params.set_language(Some("auto"));
+        params.set_duration_ms(6000);
+
+        let mut state = ctx.create_state().expect("failed to create state");
+        match state.full(params, &samples[..]) {
+            Ok(_) => {}
+            Err(err) => {
+                println!("failed to run model {}", err);
+                continue;
+            }
+        };
+
+        let num_segments = state
+            .full_n_segments()
+            .expect("failed to get number of segments");
+        for i in 0..num_segments {
+            let segment = state
+                .full_get_segment_text(i)
+                .expect("failed to get segment");
+            let start_timestamp = state
+                .full_get_segment_t0(i)
+                .expect("failed to get segment start timestamp");
+            let end_timestamp = state
+                .full_get_segment_t1(i)
+                .expect("failed to get segment end timestamp");
+            println!("[{} - {}]: {}", start_timestamp, end_timestamp, segment);
+            // TODO: format those as json
+        }
+    }
+}
 
 fn sample_format(format: cpal::SampleFormat) -> hound::SampleFormat {
     if format.is_float() {
@@ -205,8 +189,6 @@ fn wav_spec_from_config(config: &cpal::SupportedStreamConfig) -> hound::WavSpec 
     }
 }
 
-type WavWriterHandle = Arc<Mutex<Option<hound::WavWriter<BufWriter<File>>>>>;
-
 pub fn audio_resample(data: &[f32], from_rate: u32, sample_rate: u32, channels: u16) -> Vec<f32> {
     use samplerate::{convert, ConverterType};
     convert(
@@ -219,8 +201,12 @@ pub fn audio_resample(data: &[f32], from_rate: u32, sample_rate: u32, channels: 
     .unwrap_or_default()
 }
 
-fn write_input_data<T, U>(input: &[T], writer: &WavWriterHandle, sample_rate: u32, channels: u16)
-where
+fn write_input_data<T, U>(
+    input: &[T],
+    writer: &Arc<Mutex<Vec<f32>>>,
+    sample_rate: u32,
+    channels: u16,
+) where
     T: Sample,
     U: Sample + hound::Sample + FromSample<T>,
 {
@@ -233,15 +219,11 @@ where
     // Resample the stereo audio to the desired sample rate
     let resampled_stereo: Vec<f32> = audio_resample(&samples, sample_rate, 16000, channels);
 
-    let resampled_mono = whisper_rs::convert_stereo_to_mono_audio(&resampled_stereo).unwrap();
+    let mut resampled_mono = whisper_rs::convert_stereo_to_mono_audio(&resampled_stereo).unwrap();
 
     // Write the mono data to the WAV file
-    if let Ok(mut guard) = writer.try_lock() {
-        if let Some(writer) = guard.as_mut() {
-            for &sample in resampled_mono.iter() {
-                writer.write_sample(sample).ok();
-            }
-        }
+    if let Ok(mut guard) = writer.lock() {
+        guard.append(&mut resampled_mono);
     }
 }
 
@@ -315,107 +297,6 @@ fn iterate_devices() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-// ugly hack because the callback for new segment is not safe
-extern "C" fn whisper_on_segment(
-    _ctx: *mut whisper_rs_sys::whisper_context,
-    state: *mut whisper_rs_sys::whisper_state,
-    _n_new: std::os::raw::c_int,
-    _user_data: *mut std::os::raw::c_void,
-) {
-    let last_segment = unsafe { whisper_rs_sys::whisper_full_n_segments_from_state(state) } - 1;
-    let ret =
-        unsafe { whisper_rs_sys::whisper_full_get_segment_text_from_state(state, last_segment) };
-    if ret.is_null() {
-        panic!("Failed to get segment text")
-    }
-    let c_str = unsafe { std::ffi::CStr::from_ptr(ret) };
-    let r_str = c_str.to_str().expect("invalid segment text");
-    println!("-> Segment ({}) text: {}", last_segment, r_str)
-}
-
-fn transcribe() -> Result<(), anyhow::Error> {
-    println!("transcribing");
-
-    let audio_file_path = "recorded.wav";
-    let model_file_path = fs::read_dir("./models")
-        .expect("failed to read './models' folder")
-        .filter_map(|entry| {
-            let entry = entry.expect("failed to read entry");
-            let path = entry.path();
-            if path.is_file() {
-                let extension = path.extension().and_then(|s| s.to_str());
-                if extension == Some("bin") {
-                    Some(path)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        })
-        .next()
-        .expect("no model file found")
-        .to_str()
-        .expect("invalid model file path")
-        .to_string();
-
-    println!("{} {}", audio_file_path, model_file_path);
-
-    let mut params = WhisperContextParameters::default();
-    params.use_gpu = true;
-
-    let ctx = WhisperContext::new_with_params(model_file_path.as_str(), params)
-        .expect("failed to load model");
-
-    // let bar = ProgressBar::new(100);
-
-    let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-
-    unsafe {
-        params.set_new_segment_callback(Some(whisper_on_segment));
-    }
-    params.set_progress_callback_safe(|progress| println!("Progress: {}", progress));
-
-    params.set_tdrz_enable(true);
-    params.set_translate(true);
-    params.set_language(Some("en"));
-
-    let samples: Vec<f32> = hound::WavReader::open(audio_file_path)
-        .unwrap()
-        .into_samples::<f32>()
-        .map(|x| x.unwrap())
-        .collect();
-
-    let mut state = ctx.create_state().expect("failed to create state");
-    state
-        .full(params, &samples[..])
-        .expect("failed to run model");
-
-    let num_segments = state
-        .full_n_segments()
-        .expect("failed to get number of segments");
-    for i in 0..num_segments {
-        let segment = state
-            .full_get_segment_text(i)
-            .expect("failed to get segment");
-        let start_timestamp = state
-            .full_get_segment_t0(i)
-            .expect("failed to get segment start timestamp");
-        let end_timestamp = state
-            .full_get_segment_t1(i)
-            .expect("failed to get segment end timestamp");
-        println!("[{} - {}]: {}", start_timestamp, end_timestamp, segment);
-        // TODO: format those as json
-    }
-
-    println!("Finished");
-
-    Ok(())
-}
-
 fn main() -> Result<(), anyhow::Error> {
-    // record_wav()
-    // convert_wav()
-    // iterate_devices()
     transcribe()
 }
