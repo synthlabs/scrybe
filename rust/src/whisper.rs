@@ -1,0 +1,91 @@
+use core::fmt;
+
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+pub struct WhisperSegment {
+    _index: i128,
+    start_timestamp: i64,
+    end_timestamp: i64,
+    text: String,
+}
+
+impl fmt::Display for WhisperSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}-{}] {}",
+            self.start_timestamp, self.end_timestamp, self.text
+        )
+    }
+}
+
+pub struct WhisperManager {
+    ctx: WhisperContext,
+    last_prompt: String,
+    segment_index: i128,
+}
+
+impl WhisperManager {
+    pub fn new(model_path: &str, use_gpu: bool) -> Result<Self, anyhow::Error> {
+        let mut params = WhisperContextParameters::default();
+        params.use_gpu = use_gpu;
+
+        let ctx = WhisperContext::new_with_params(model_path, params)?;
+
+        Ok(WhisperManager {
+            ctx,
+            last_prompt: "".to_owned(),
+            segment_index: 0,
+        })
+    }
+
+    pub fn process_samples(
+        &mut self,
+        samples: Vec<f32>,
+    ) -> Result<Vec<WhisperSegment>, anyhow::Error> {
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        params.set_suppress_blank(false);
+        params.set_print_special(false);
+        params.set_print_progress(true);
+        params.set_token_timestamps(true);
+        params.set_single_segment(false);
+        params.set_split_on_word(true);
+        params.set_tdrz_enable(true);
+        params.set_translate(false);
+        params.set_language(Some("auto"));
+        if !self.last_prompt.is_empty() {
+            params.set_initial_prompt(&self.last_prompt.clone());
+        }
+
+        let mut state = self.ctx.create_state().expect("failed to create state");
+        state.full(params, &samples[..])?;
+
+        let mut segments: Vec<WhisperSegment> = Vec::new();
+        let num_segments = state.full_n_segments()?;
+        for i in 0..num_segments {
+            let segment = state.full_get_segment_text(i)?;
+            let start_timestamp = state.full_get_segment_t0(i)?;
+            let end_timestamp = state.full_get_segment_t1(i)?;
+            segments.push(WhisperSegment {
+                _index: self.segment_index,
+                start_timestamp,
+                end_timestamp,
+                text: segment.clone(),
+            });
+            self.last_prompt = segment.clone();
+            self.segment_index += 1;
+            // TODO: format those as json
+
+            if state.full_get_segment_speaker_turn_next(i) {
+                segments.push(WhisperSegment {
+                    _index: 0,
+                    start_timestamp: 0,
+                    end_timestamp: 0,
+                    text: "<Speaker change>".to_owned(),
+                });
+            }
+        }
+
+        Ok(segments)
+    }
+}

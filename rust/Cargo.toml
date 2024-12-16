@@ -1,13 +1,23 @@
 [package]
-name = "scribe"
+name = "scrybe"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-cpal = "0.15.3"
+# cpal = "0.15.3"
+cpal = { path = "../../cpal" }
 hound = "3.5.1"
 samplerate = "0.2.4"
 clap = { version = "4.5.4", features = ["derive", "string"] }
-whisper-rs = { version = "0.13.2", features = ["vulkan"]}
+whisper-rs = { version = "0.13.2"}
 whisper-rs-sys = "0.11.1"
+
+[features]
+default = []
+coreml = ["whisper-rs/coreml"]
+cuda = ["whisper-rs/cuda"]
+openblas = ["whisper-rs/openblas"]
+metal = ["whisper-rs/metal"]
+rocm = ["whisper-rs/hipblas"]
+vulkan = ["whisper-rs/vulkan"]
