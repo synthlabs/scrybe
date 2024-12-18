@@ -1,7 +1,14 @@
 use core::fmt;
+use std::time::SystemTime;
 
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+#[derive(serde::Serialize, Clone)]
+pub struct Batch {
+    pub segments: Vec<WhisperSegment>,
+}
+
+#[derive(serde::Serialize, Clone)]
 pub struct WhisperSegment {
     _index: i128,
     start_timestamp: i64,
@@ -46,19 +53,28 @@ impl WhisperManager {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
         params.set_suppress_blank(false);
         params.set_print_special(false);
-        params.set_print_progress(true);
+        params.set_print_progress(false);
         params.set_token_timestamps(true);
         params.set_single_segment(false);
         params.set_split_on_word(true);
-        params.set_tdrz_enable(true);
+        params.set_tdrz_enable(false);
         params.set_translate(false);
-        params.set_language(Some("auto"));
+        params.set_language(Some("en"));
         if !self.last_prompt.is_empty() {
             params.set_initial_prompt(&self.last_prompt.clone());
         }
 
+        let start = SystemTime::now();
+
         let mut state = self.ctx.create_state().expect("failed to create state");
         state.full(params, &samples[..])?;
+
+        let end = SystemTime::now();
+
+        println!(
+            "Inference took {}ms",
+            end.duration_since(start).unwrap().as_millis()
+        );
 
         let mut segments: Vec<WhisperSegment> = Vec::new();
         let num_segments = state.full_n_segments()?;
@@ -72,7 +88,13 @@ impl WhisperManager {
                 end_timestamp,
                 text: segment.clone(),
             });
-            self.last_prompt = segment.clone();
+
+            let new_prompt = segment.clone();
+            if new_prompt != self.last_prompt {
+                self.last_prompt = new_prompt;
+            } else {
+                self.last_prompt = "".to_owned();
+            }
             self.segment_index += 1;
             // TODO: format those as json
 

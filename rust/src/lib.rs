@@ -1,5 +1,5 @@
-mod audio;
-mod whisper;
+pub mod audio;
+pub mod whisper;
 
 use audio::AudioManager;
 use cpal::traits::{DeviceTrait, HostTrait};
@@ -146,8 +146,4 @@ fn _iterate_devices() -> Result<(), anyhow::Error> {
     }
 
     Ok(())
-}
-
-fn main() -> Result<(), anyhow::Error> {
-    transcribe()
 }

@@ -1,7 +1,11 @@
 [package]
-name = "scrybe_lib"
+name = "scrybe_core"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+name = "scrybe_core"
+path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0"
@@ -12,6 +16,7 @@ samplerate = "0.2.4"
 clap = { version = "4.5.4", features = ["derive", "string"] }
 whisper-rs = { version = "0.13.2"}
 whisper-rs-sys = "0.11.1"
+serde = {version = "1.0.216", features = ["derive"]}
 
 [features]
 default = []
