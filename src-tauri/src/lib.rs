@@ -8,6 +8,7 @@ use std::{
     thread,
 };
 use tauri::{AppHandle, Emitter};
+use warp::Filter;
 
 static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
 
@@ -80,9 +81,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
-            let _handler = thread::spawn(move || {
+            let _subtitle_handle = tauri::async_runtime::spawn(async move {
                 println!("{:#?}", app_handle.config());
                 subtitle(app_handle);
+            });
+
+            let _server_handle = tauri::async_runtime::spawn(async move {
+                // Match any request and return hello world!
+                let routes = warp::any().map(|| "Hello, World!");
+
+                warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
             });
 
             Ok(())

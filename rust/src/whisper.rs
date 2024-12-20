@@ -58,11 +58,11 @@ impl WhisperManager {
         params.set_single_segment(false);
         params.set_split_on_word(true);
         params.set_tdrz_enable(false);
-        params.set_translate(false);
+        params.set_translate(true);
         params.set_language(Some("en"));
-        if !self.last_prompt.is_empty() {
-            params.set_initial_prompt(&self.last_prompt.clone());
-        }
+        // if !self.last_prompt.is_empty() {
+        //     params.set_initial_prompt(&self.last_prompt.clone());
+        // }
 
         let start = SystemTime::now();
 
