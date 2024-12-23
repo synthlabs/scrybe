@@ -1,5 +1,5 @@
 use core::fmt;
-use std::time::SystemTime;
+use std::{sync::Mutex, time::SystemTime};
 
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
@@ -26,10 +26,24 @@ impl fmt::Display for WhisperSegment {
     }
 }
 
+#[derive(serde::Serialize, Clone, Default)]
+pub struct Params {
+    translate: bool,
+    suppress_blanks: bool,
+    print_special: bool,
+    print_progress: bool,
+    token_timestamps: bool,
+    single_segment: bool,
+    split_on_word: bool,
+    tdrz_enable: bool,
+    language: String,
+}
+
 pub struct WhisperManager {
     ctx: WhisperContext,
     last_prompt: String,
     segment_index: i128,
+    params: Mutex<Params>,
 }
 
 impl WhisperManager {
@@ -43,7 +57,13 @@ impl WhisperManager {
             ctx,
             last_prompt: "".to_owned(),
             segment_index: 0,
+            params: Params::default().into(),
         })
+    }
+
+    pub fn set_params(&mut self, new_params: Params) {
+        let mut params = self.params.lock().unwrap();
+        *params = new_params;
     }
 
     pub fn process_samples(
@@ -51,15 +71,20 @@ impl WhisperManager {
         samples: Vec<f32>,
     ) -> Result<Vec<WhisperSegment>, anyhow::Error> {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        params.set_suppress_blank(false);
-        params.set_print_special(false);
-        params.set_print_progress(false);
-        params.set_token_timestamps(true);
-        params.set_single_segment(false);
-        params.set_split_on_word(true);
-        params.set_tdrz_enable(false);
-        params.set_translate(true);
-        params.set_language(Some("en"));
+        let language;
+        {
+            let prefs = self.params.lock().unwrap();
+            language = prefs.language.clone();
+            params.set_suppress_blank(prefs.suppress_blanks);
+            params.set_print_special(prefs.print_special);
+            params.set_print_progress(prefs.print_progress);
+            params.set_token_timestamps(prefs.token_timestamps);
+            params.set_single_segment(prefs.single_segment);
+            params.set_split_on_word(prefs.split_on_word);
+            params.set_tdrz_enable(prefs.tdrz_enable);
+            params.set_translate(prefs.translate);
+            params.set_language(Some(language.as_str()));
+        }
         // if !self.last_prompt.is_empty() {
         //     params.set_initial_prompt(&self.last_prompt.clone());
         // }

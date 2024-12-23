@@ -37,7 +37,7 @@
     });
 </script>
 
-<div class="mx-auto flex h-screen max-w-screen-lg flex-col container">
+<div class="mx-auto flex max-w-screen-lg flex-col container">
     <div class="flex min-h-0 flex-1 flex-col">
         <div class="min-h-0 space-y-1 overflow-y-hidden p-2">
             {#each batches as batch}

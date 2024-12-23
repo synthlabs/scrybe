@@ -43,6 +43,10 @@
             icon: Settings2,
             items: [
                 {
+                    title: "Audio",
+                    url: "/settings#audio",
+                },
+                {
                     title: "Whisper",
                     url: "/settings#whisper",
                 },

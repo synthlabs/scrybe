@@ -13,6 +13,10 @@
     };
 
     class Config {
+        audio_device = $state("default");
+        audio_format = $state("default");
+        language = $state("auto");
+        #store!: Store;
         toggles: { [key: string]: ConfigToggle } = $state({
             translate: {
                 label: "Translate",
@@ -70,8 +74,6 @@
                 value: false,
             },
         });
-        language = $state("auto");
-        #store!: Store;
 
         async init() {
             this.#store = await load("config.json", { autoSave: true });
@@ -109,6 +111,61 @@
 </script>
 
 <div class="container space-y-4 pb-4">
+    <div>
+        <h3 class="text-lg font-medium" id="audio">Audio</h3>
+        <p class="text-muted-foreground text-sm">
+            Set the audio device and audio recording properties for Scrybe.
+        </p>
+    </div>
+    <Separator />
+    <div class="space-y-4">
+        <div class="max-w-48 space-y-2 pb-4">
+            <Label
+                id="audio_device-label"
+                for="audio_device"
+                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+                Device
+            </Label>
+            <Select.Root
+                type="single"
+                bind:value={cfg.audio_device}
+                name="audio_device"
+            >
+                <Select.Trigger>
+                    {cfg.audio_device ? cfg.audio_device : "auto"}
+                </Select.Trigger>
+                <Select.Content>
+                    <Select.Item value="auto" label="auto" />
+                    <Select.Item value="en" label="en" />
+                    <Select.Item value="ru" label="ru" />
+                </Select.Content>
+            </Select.Root>
+        </div>
+        <div class="max-w-48 space-y-2 pb-4">
+            <Label
+                id="audio_format-label"
+                for="audio_format"
+                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+                Recording Format
+            </Label>
+            <Select.Root
+                type="single"
+                bind:value={cfg.audio_format}
+                name="audio_format"
+            >
+                <Select.Trigger>
+                    {cfg.audio_format ? cfg.audio_format : "auto"}
+                </Select.Trigger>
+                <Select.Content>
+                    <Select.Item value="auto" label="auto" />
+                    <Select.Item value="en" label="en" />
+                    <Select.Item value="ru" label="ru" />
+                </Select.Content>
+            </Select.Root>
+        </div>
+    </div>
     <div>
         <h3 class="text-lg font-medium" id="whisper">Whisper</h3>
         <p class="text-muted-foreground text-sm">
