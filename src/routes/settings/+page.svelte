@@ -1,116 +1,111 @@
 <script lang="ts">
-    import { listen } from "@tauri-apps/api/event";
-    import { Checkbox } from "$lib/components/ui/checkbox/index.ts";
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { Switch } from "$lib/components/ui/switch/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
+    import { load, Store } from "@tauri-apps/plugin-store";
 
-    type Config = {
-        suppress_blanks: boolean;
-        print_special: boolean;
-        print_progress: boolean;
-        token_timestamps: boolean;
-        single_segment: boolean;
-        split_on_word: boolean;
-        tdrz_enable: boolean;
-        translate: boolean;
-        language: string;
+    type ConfigToggle = {
+        label: string;
+        description: string;
+        key: string;
+        value: boolean;
     };
 
-    type Batch = {
-        segments: WhisperSegment[];
-    };
-
-    type WhisperSegment = {
-        _index: number;
-        start_time: number;
-        end_time: number;
-        text: string;
-    };
-
-    const languages = ["en", "ru"];
-
-    let batches = $state([] as Batch[]);
-
-    let language = $state("");
-    let toggles = $state({
-        translate: {
-            label: "Translate",
-            description: "Translate the recorded audio to english",
-            value: false,
-        },
-        suppress_blanks: {
-            label: "Suppress Blanks",
-            description:
-                "By disabling this, blank [BLNK] special tokens will be included in the output",
-            value: true,
-        },
-        print_special: {
-            label: "Print Special",
-            description:
-                "Enable the internal whisper special tokens in the output",
-            value: false,
-        },
-        print_progress: {
-            label: "Print Progress",
-            description:
-                "Hook into the progress callbacks for the whisper model",
-            value: false,
-        },
-        token_timestamps: {
-            label: "Token Timestamps",
-            description:
-                "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
-            value: true,
-        },
-        single_segment: {
-            label: "Single Segment",
-            description:
-                "Reduces the output of each transcript iteration to a single text segment",
-            value: false,
-        },
-        split_on_word: {
-            label: "Split on word",
-            description:
-                "An internal whisper setting for splitting new tokens based on words",
-            value: true,
-        },
-        tdrz_enable: {
-            label: "TDRZ",
-            description:
-                "Enable diarization which identifies the different speakers in the audio (currently unstable)",
-            value: false,
-        },
-    });
-
-    $effect(() => {
-        let config: Config = {
-            suppress_blanks: toggles.suppress_blanks.value,
-            print_special: toggles.print_special.value,
-            print_progress: toggles.print_progress.value,
-            token_timestamps: toggles.token_timestamps.value,
-            single_segment: toggles.single_segment.value,
-            split_on_word: toggles.split_on_word.value,
-            tdrz_enable: toggles.tdrz_enable.value,
-            translate: toggles.translate.value,
-            language: language,
-        };
-        console.log(config);
-    });
-
-    let subscribe = async () => {
-        const unlisten = await listen<Batch>("new_batch", (event) => {
-            // event.event is the event name (useful if you want to use a single callback fn for multiple event types)
-            // event.payload is the payload object
-            batches.push(event.payload);
-            if (batches.length > 15) {
-                batches.shift();
-            }
+    class Config {
+        toggles: { [key: string]: ConfigToggle } = $state({
+            translate: {
+                label: "Translate",
+                description: "Translate the recorded audio to english",
+                key: "translate",
+                value: false,
+            },
+            suppress_blanks: {
+                label: "Suppress Blanks",
+                description:
+                    "By disabling this, blank [BLNK] special tokens will be included in the output",
+                key: "suppress_blanks",
+                value: false,
+            },
+            print_special: {
+                label: "Print Special",
+                description:
+                    "Enable the internal whisper special tokens in the output",
+                key: "print_special",
+                value: false,
+            },
+            print_progress: {
+                label: "Print Progress",
+                description:
+                    "Hook into the progress callbacks for the whisper model",
+                key: "print_progress",
+                value: false,
+            },
+            token_timestamps: {
+                label: "Token Timestamps",
+                description:
+                    "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
+                key: "token_timestamps",
+                value: false,
+            },
+            single_segment: {
+                label: "Single Segment",
+                description:
+                    "Reduces the output of each transcript iteration to a single text segment",
+                key: "single_segment",
+                value: false,
+            },
+            split_on_word: {
+                label: "Split on word",
+                description:
+                    "An internal whisper setting for splitting new tokens based on words",
+                key: "split_on_word",
+                value: false,
+            },
+            tdrz_enable: {
+                label: "TDRZ",
+                description:
+                    "Enable diarization which identifies the different speakers in the audio (currently unstable)",
+                key: "tdrz",
+                value: false,
+            },
         });
-    };
+        language = $state("auto");
+        #store!: Store;
 
-    subscribe();
+        async init() {
+            this.#store = await load("config.json", { autoSave: true });
+
+            this.language = await this.get_store_value(
+                "language",
+                this.language,
+            );
+            for (const [key, value] of Object.entries(this.toggles)) {
+                this.toggles[key].value = await this.get_store_value(
+                    key,
+                    value.value,
+                );
+            }
+            $effect.root(() => {
+                $effect(() => {
+                    console.log("DEBUG: config changed, syncing...");
+                    this.#store.set("language", { value: this.language });
+                    for (const [name, toggle] of Object.entries(this.toggles)) {
+                        this.#store.set(toggle.key, { value: toggle.value });
+                    }
+                });
+            });
+        }
+
+        async get_store_value<T>(key: string, default_val: T): Promise<T> {
+            return (
+                (await this.#store.get<{ value: T }>(key))?.value || default_val
+            );
+        }
+    }
+
+    let cfg = new Config();
+    cfg.init();
 </script>
 
 <div class="container space-y-4 pb-4">
@@ -130,9 +125,13 @@
             >
                 Language
             </Label>
-            <Select.Root type="single" bind:value={language} name="language">
+            <Select.Root
+                type="single"
+                bind:value={cfg.language}
+                name="language"
+            >
                 <Select.Trigger>
-                    {language ? language : "auto"}
+                    {cfg.language ? cfg.language : "auto"}
                 </Select.Trigger>
                 <Select.Content>
                     <Select.Item value="auto" label="auto" />
@@ -141,7 +140,7 @@
                 </Select.Content>
             </Select.Root>
         </div>
-        {#each Object.entries(toggles) as [name, setting]}
+        {#each Object.entries(cfg.toggles) as [name, setting]}
             <div
                 class="space-y-2 flex flex-row items-center justify-between rounded-lg border p-4 max-w-lg"
             >
