@@ -4,6 +4,7 @@
     import { Switch } from "$lib/components/ui/switch/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import { load, Store } from "@tauri-apps/plugin-store";
+    import { invoke } from "@tauri-apps/api/core";
 
     type ConfigToggle = {
         label: string;
@@ -95,6 +96,18 @@
                     for (const [name, toggle] of Object.entries(this.toggles)) {
                         this.#store.set(toggle.key, { value: toggle.value });
                     }
+
+                    invoke("set_params", {
+                        translate: this.toggles.translate.value,
+                        suppress_blanks: this.toggles.suppress_blanks.value,
+                        print_special: this.toggles.print_special.value,
+                        print_progress: this.toggles.print_progress.value,
+                        token_timestamps: this.toggles.token_timestamps.value,
+                        single_segment: this.toggles.single_segment.value,
+                        split_on_word: this.toggles.split_on_word.value,
+                        tdrz_enable: this.toggles.tdrz_enable.value,
+                        language: this.language,
+                    });
                 });
             });
         }

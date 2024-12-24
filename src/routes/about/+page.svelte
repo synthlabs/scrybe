@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Github from "lucide-svelte/icons/github";
     import { Separator } from "$lib/components/ui/separator/index.ts";
 </script>
 
@@ -13,6 +14,10 @@
     </div>
     <Separator />
     <div class="space-y-4">
-        <a href="https://github.com/xjerod/scrybe">Github</a>
+        <a
+            href="https://github.com/xjerod/scrybe"
+            class="flex flex-row items-baseline gap-2"
+            target="_blank"><Github /> Github</a
+        >
     </div>
 </div>

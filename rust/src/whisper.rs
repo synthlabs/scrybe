@@ -28,15 +28,15 @@ impl fmt::Display for WhisperSegment {
 
 #[derive(serde::Serialize, Clone, Default)]
 pub struct Params {
-    translate: bool,
-    suppress_blanks: bool,
-    print_special: bool,
-    print_progress: bool,
-    token_timestamps: bool,
-    single_segment: bool,
-    split_on_word: bool,
-    tdrz_enable: bool,
-    language: String,
+    pub translate: bool,
+    pub suppress_blanks: bool,
+    pub print_special: bool,
+    pub print_progress: bool,
+    pub token_timestamps: bool,
+    pub single_segment: bool,
+    pub split_on_word: bool,
+    pub tdrz_enable: bool,
+    pub language: String,
 }
 
 pub struct WhisperManager {
