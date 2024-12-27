@@ -4,6 +4,8 @@
     import Settings2 from "lucide-svelte/icons/settings-2";
     import Bot from "lucide-svelte/icons/bot";
     import Fan from "lucide-svelte/icons/fan";
+    import Play from "lucide-svelte/icons/play";
+    import Pause from "lucide-svelte/icons/pause";
     import Projector from "lucide-svelte/icons/projector";
 
     import { page } from "$app/state";
@@ -11,6 +13,7 @@
     import AppSidebar from "$lib/components/app-sidebar.svelte";
     import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.ts";
     import { Separator } from "$lib/components/ui/separator/index.ts";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
 
     import "../app.css";
@@ -83,6 +86,16 @@
                         {/each}
                     </Breadcrumb.List>
                 </Breadcrumb.Root>
+            </div>
+            <div class="flex flex-grow"></div>
+            <div class="flex gap-2 text-muted-foreground text-sm">
+                Not Listening
+            </div>
+            <div class="flex gap-2 px-4">
+                <Button variant="outline" size="icon">
+                    <Play />
+                    <!-- <Pause /> -->
+                </Button>
             </div>
         </header>
         <div class="overflow-x-hidden overflow-y-scroll">
