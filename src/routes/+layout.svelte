@@ -26,11 +26,11 @@
             url: "/",
             icon: House,
         },
-        {
-            title: "Models",
-            url: "/models",
-            icon: Bot,
-        },
+        // {
+        //     title: "Models",
+        //     url: "/models",
+        //     icon: Bot,
+        // },
         {
             title: "Overlay",
             url: "/overlay",
@@ -44,6 +44,10 @@
                 {
                     title: "Audio",
                     url: "/settings#audio",
+                },
+                {
+                    title: "Model",
+                    url: "/settings#model",
                 },
                 {
                     title: "Whisper",

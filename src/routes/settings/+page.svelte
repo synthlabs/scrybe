@@ -1,12 +1,14 @@
 <script lang="ts">
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Separator } from "$lib/components/ui/separator/index.ts";
+    import { Input } from "$lib/components/ui/input/index.ts";
     import { Switch } from "$lib/components/ui/switch/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import { load, Store } from "@tauri-apps/plugin-store";
     import { invoke } from "@tauri-apps/api/core";
     import AudioDevice from "$lib/components/audio-device.svelte";
     import RecordingFormats from "$lib/components/recording-formats.svelte";
+    import { open } from "@tauri-apps/plugin-dialog";
 
     type ConfigToggle = {
         label: string;
@@ -19,6 +21,7 @@
         audio_device = $state("default");
         audio_format = $state("default");
         language = $state("auto");
+        model_file = $state("");
         #store!: Store;
         toggles: { [key: string]: ConfigToggle } = $state({
             translate: {
@@ -121,11 +124,36 @@
         }
     }
 
+    let file_input: HTMLInputElement = $state({} as HTMLInputElement);
+    const select_file = async (event: { preventDefault: () => void }) => {
+        event.preventDefault();
+        console.log("selecting file");
+        const selected = await open({
+            directory: false,
+            multiple: false,
+            filters: [{ name: "Model File", extensions: ["bin"] }],
+        });
+        if (Array.isArray(selected) || selected === null) {
+            // user selected multiple directories
+        } else {
+            // user selected a single file
+            console.log(selected);
+            if (file_input.files) {
+                let file: File = new File([], selected);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                file_input.files = dataTransfer.files;
+            }
+        }
+    };
+
     let cfg = new Config();
     cfg.init();
+
+    $inspect(cfg.model_file);
 </script>
 
-<div class="container space-y-4 pb-4">
+<div class="container space-y-4 pb-4 gap-y-4">
     <div>
         <h3 class="text-lg font-medium" id="audio">Audio</h3>
         <p class="text-muted-foreground text-sm">
@@ -136,6 +164,21 @@
     <div class="space-y-4">
         <AudioDevice />
         <RecordingFormats />
+    </div>
+    <div>
+        <h3 class="text-lg font-medium" id="model">Model</h3>
+        <p class="text-muted-foreground text-sm">The model file to use.</p>
+    </div>
+    <Separator />
+    <div class="space-y-4 pb-4">
+        <Label for="model-input" class="">Model</Label>
+        <Input
+            id="model-input"
+            type="file"
+            class="file:text-muted-foreground file:hover:cursor-pointer"
+            bind:ref={file_input}
+            onclick={select_file}
+        />
     </div>
     <div>
         <h3 class="text-lg font-medium" id="whisper">Whisper</h3>

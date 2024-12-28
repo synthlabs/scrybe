@@ -6,9 +6,10 @@
     let {
         ref = $bindable(null),
         value = $bindable(),
+        files = $bindable(),
         class: className,
         ...restProps
-    }: WithElementRef<HTMLInputAttributes> = $props();
+    } = $props();
 </script>
 
 <input
