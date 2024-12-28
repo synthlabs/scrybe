@@ -7,15 +7,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tauri::{AppHandle, Emitter, Manager, State};
+use ts_rs::TS;
 use warp::Filter;
 
 static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command(rename_all = "snake_case")]
 fn set_params(
@@ -47,13 +42,18 @@ fn set_params(
 }
 
 #[tauri::command]
-fn stop_subtitles(app_state: State<'_, Mutex<AppState>>) {
+fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
+    app_state.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn stop_transcribe(app_state: State<'_, Mutex<AppState>>) {
     let mut state = app_state.lock().unwrap();
     state.running = false;
 }
 
 #[tauri::command]
-async fn start_subtitles(
+async fn start_transcribe(
     app: AppHandle,
     wm_state: State<'_, Mutex<WhisperManager>>,
     app_state: State<'_, Mutex<AppState>>,
@@ -62,8 +62,7 @@ async fn start_subtitles(
     let mut audio_manager =
         AudioManager::new(writer.clone()).expect("unable to create audio manager");
 
-    #[allow(irrefutable_let_patterns)]
-    if let mut state = app_state.lock().unwrap() {
+    if let Ok(mut state) = app_state.lock() {
         state.running = true;
     }
 
@@ -73,8 +72,8 @@ async fn start_subtitles(
 
     loop {
         println!("checking running status");
-        #[allow(irrefutable_let_patterns)]
-        if let state = app_state.lock().unwrap() {
+
+        if let Ok(state) = app_state.lock() {
             if !state.running {
                 println!("stopping");
                 break;
@@ -120,9 +119,18 @@ async fn start_subtitles(
     Ok(())
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, Clone, TS)]
+#[ts(export)]
 struct AppState {
     pub running: bool,
+    pub current_device: AudioDevice,
+}
+
+#[derive(Debug, Default, serde::Serialize, Clone, TS)]
+#[ts(export)]
+struct AudioDevice {
+    pub name: String,
+    pub id: String,
 }
 
 pub fn main() {
@@ -160,10 +168,10 @@ pub fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
-            greet,
+            get_appstate,
             set_params,
-            start_subtitles,
-            stop_subtitles
+            start_transcribe,
+            stop_transcribe
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

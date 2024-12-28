@@ -5,6 +5,8 @@
     import * as Select from "$lib/components/ui/select/index.ts";
     import { load, Store } from "@tauri-apps/plugin-store";
     import { invoke } from "@tauri-apps/api/core";
+    import AudioDevice from "$lib/components/audio-device.svelte";
+    import RecordingFormats from "$lib/components/recording-formats.svelte";
 
     type ConfigToggle = {
         label: string;
@@ -132,52 +134,8 @@
     </div>
     <Separator />
     <div class="space-y-4">
-        <div class="max-w-48 space-y-2 pb-4">
-            <Label
-                id="audio_device-label"
-                for="audio_device"
-                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-                Device
-            </Label>
-            <Select.Root
-                type="single"
-                bind:value={cfg.audio_device}
-                name="audio_device"
-            >
-                <Select.Trigger>
-                    {cfg.audio_device ? cfg.audio_device : "auto"}
-                </Select.Trigger>
-                <Select.Content>
-                    <Select.Item value="auto" label="auto" />
-                    <Select.Item value="en" label="en" />
-                    <Select.Item value="ru" label="ru" />
-                </Select.Content>
-            </Select.Root>
-        </div>
-        <div class="max-w-48 space-y-2 pb-4">
-            <Label
-                id="audio_format-label"
-                for="audio_format"
-                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-                Recording Format
-            </Label>
-            <Select.Root
-                type="single"
-                bind:value={cfg.audio_format}
-                name="audio_format"
-            >
-                <Select.Trigger>
-                    {cfg.audio_format ? cfg.audio_format : "auto"}
-                </Select.Trigger>
-                <Select.Content>
-                    <Select.Item value="auto" label="auto" />
-                    <Select.Item value="en" label="en" />
-                    <Select.Item value="ru" label="ru" />
-                </Select.Content>
-            </Select.Root>
-        </div>
+        <AudioDevice />
+        <RecordingFormats />
     </div>
     <div>
         <h3 class="text-lg font-medium" id="whisper">Whisper</h3>
