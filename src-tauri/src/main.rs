@@ -13,7 +13,7 @@ use warp::Filter;
 static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
 
 #[tauri::command(rename_all = "snake_case")]
-fn set_params(
+async fn set_params(
     state: State<'_, Mutex<WhisperManager>>,
     translate: bool,
     suppress_blanks: bool,
@@ -24,11 +24,10 @@ fn set_params(
     split_on_word: bool,
     tdrz_enable: bool,
     language: String,
-) {
+) -> Result<(), ()> {
     let mut whisper_manager = state.lock().unwrap();
 
-    println!("setting params");
-    whisper_manager.set_params(Params {
+    let params = Params {
         translate,
         suppress_blanks,
         print_special,
@@ -38,7 +37,10 @@ fn set_params(
         split_on_word,
         tdrz_enable,
         language,
-    });
+    };
+    println!("setting params: {:?}", params);
+    whisper_manager.set_params(params);
+    Ok(())
 }
 
 #[tauri::command]
@@ -73,15 +75,15 @@ async fn start_transcribe(
     loop {
         println!("checking running status");
 
+        println!("waiting");
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
         if let Ok(state) = app_state.lock() {
             if !state.running {
                 println!("stopping");
                 break;
             }
         }
-
-        println!("recording");
-        std::thread::sleep(std::time::Duration::from_secs(2));
 
         let mut samples: Vec<f32> = Vec::new();
         println!("copying buffer");

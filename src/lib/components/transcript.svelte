@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Separator } from "$lib/components/ui/separator/index.ts";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onDestroy } from "svelte";
 
@@ -22,9 +23,10 @@
         un_sub = await listen<Batch>("new_batch", (event) => {
             // event.event is the event name (useful if you want to use a single callback fn for multiple event types)
             // event.payload is the payload object
-            batches.push(event.payload);
+            batches.unshift(event.payload);
+
             if (batches.length > 15) {
-                batches.shift();
+                batches.pop();
             }
         });
     };
@@ -35,20 +37,16 @@
         console.log("unsubbing");
         un_sub();
     });
-
-    const subtitles = Array.from({ length: 50 }).map(
-        (_, i, a) => `subtitle ${a.length - i}`,
-    );
 </script>
 
 <div class="pb-6">
     {#each batches as batch}
-        <div class="divider p-2"></div>
         {#each batch.segments as segment (segment._index)}
             <div class="w-full text-wrap">
                 {segment.start_time}
                 {segment.text}
             </div>
         {/each}
+        <Separator class="my-2" />
     {/each}
 </div>

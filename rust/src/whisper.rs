@@ -26,7 +26,7 @@ impl fmt::Display for WhisperSegment {
     }
 }
 
-#[derive(serde::Serialize, Clone, Default)]
+#[derive(serde::Serialize, Clone, Default, Debug)]
 pub struct Params {
     pub translate: bool,
     pub suppress_blanks: bool,
@@ -84,6 +84,8 @@ impl WhisperManager {
             params.set_tdrz_enable(prefs.tdrz_enable);
             params.set_translate(prefs.translate);
             params.set_language(Some(language.as_str()));
+
+            println!("params: {:#?}", prefs);
         }
         // if !self.last_prompt.is_empty() {
         //     params.set_initial_prompt(&self.last_prompt.clone());

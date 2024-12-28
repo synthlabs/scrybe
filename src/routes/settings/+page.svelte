@@ -73,7 +73,7 @@
                 label: "TDRZ",
                 description:
                     "Enable diarization which identifies the different speakers in the audio (currently unstable)",
-                key: "tdrz",
+                key: "tdrz_enable",
                 value: false,
             },
         });
