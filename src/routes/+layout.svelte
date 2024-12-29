@@ -73,24 +73,25 @@
 <Sidebar.Provider>
     <AppSidebar {user} {navMain} {navSecondary} />
     <Sidebar.Inset>
-        <header class="flex h-16 shrink-0 items-center gap-2">
-            <div class="flex items-center gap-2 px-4">
-                <Sidebar.Trigger class="-ml-1" />
-                <Separator orientation="vertical" class="mr-2 h-4" />
-                <Breadcrumb.Root>
-                    <Breadcrumb.List>
-                        {#each breadcrubms as crumb}
-                            <Breadcrumb.Item>
-                                <Breadcrumb.Page>{crumb}</Breadcrumb.Page>
-                            </Breadcrumb.Item>
-                        {/each}
-                    </Breadcrumb.List>
-                </Breadcrumb.Root>
-            </div>
+        <header
+            class="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b pl-4"
+        >
+            <Sidebar.Trigger class="-ml-1" />
+            <Separator orientation="vertical" class="mr-2 h-4" />
+            <Breadcrumb.Root>
+                <Breadcrumb.List>
+                    {#each breadcrubms as crumb}
+                        <Breadcrumb.Item>
+                            <Breadcrumb.Page>{crumb}</Breadcrumb.Page>
+                        </Breadcrumb.Item>
+                    {/each}
+                </Breadcrumb.List>
+            </Breadcrumb.Root>
             <div class="flex flex-grow"></div>
+            <Separator orientation="vertical" class="mr-2 h-4" />
             <TranscriptControls />
         </header>
-        <div class="container flex flex-grow">
+        <div class="container flex flex-grow py-6">
             {@render children?.()}
         </div>
     </Sidebar.Inset>

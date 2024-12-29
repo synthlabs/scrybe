@@ -2,6 +2,7 @@
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { Input } from "$lib/components/ui/input/index.ts";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import { Switch } from "$lib/components/ui/switch/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import { load, Store } from "@tauri-apps/plugin-store";
@@ -84,6 +85,10 @@
         async init() {
             this.#store = await load("config.json", { autoSave: true });
 
+            this.model_file = await this.get_store_value(
+                "model_file",
+                this.model_file,
+            );
             this.language = await this.get_store_value(
                 "language",
                 this.language,
@@ -98,6 +103,7 @@
                 $effect(() => {
                     console.log("DEBUG: config changed, syncing...");
                     this.#store.set("language", { value: this.language });
+                    this.#store.set("model_file", { value: this.model_file });
                     for (const [name, toggle] of Object.entries(this.toggles)) {
                         this.#store.set(toggle.key, { value: toggle.value });
                     }
@@ -124,7 +130,6 @@
         }
     }
 
-    let file_input: HTMLInputElement = $state({} as HTMLInputElement);
     const select_file = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
         console.log("selecting file");
@@ -135,15 +140,11 @@
         });
         if (Array.isArray(selected) || selected === null) {
             // user selected multiple directories
+            console.log("error");
         } else {
             // user selected a single file
             console.log(selected);
-            if (file_input.files) {
-                let file: File = new File([], selected);
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                file_input.files = dataTransfer.files;
-            }
+            cfg.model_file = selected;
         }
     };
 
@@ -153,7 +154,7 @@
     $inspect(cfg.model_file);
 </script>
 
-<div class="container space-y-4 pb-4 gap-y-4">
+<div class="space-y-4 pb-4 w-full max-w-2xl mx-auto">
     <div>
         <h3 class="text-lg font-medium" id="audio">Audio</h3>
         <p class="text-muted-foreground text-sm">
@@ -167,18 +168,29 @@
     </div>
     <div>
         <h3 class="text-lg font-medium" id="model">Model</h3>
-        <p class="text-muted-foreground text-sm">The model file to use.</p>
+        <p class="text-muted-foreground text-sm">
+            Configure advanced properties for the model being used.
+        </p>
     </div>
     <Separator />
     <div class="space-y-4 pb-4">
-        <Label for="model-input" class="">Model</Label>
-        <Input
-            id="model-input"
-            type="file"
-            class="file:text-muted-foreground file:hover:cursor-pointer"
-            bind:ref={file_input}
-            onclick={select_file}
-        />
+        <div class="flex flex-col w-full gap-y-2 max-w-lg">
+            <Label for="model-input" class="">Location</Label>
+            <div class="flex flex-row gap-2">
+                <Button type="button" onclick={select_file}>Choose File</Button>
+                <Input
+                    type="text"
+                    id="model-input"
+                    placeholder="Model Path"
+                    class=""
+                    bind:value={cfg.model_file}
+                    disabled
+                />
+            </div>
+            <p class="text-muted-foreground text-sm">
+                Enter the full path to the model file to use
+            </p>
+        </div>
     </div>
     <div>
         <h3 class="text-lg font-medium" id="whisper">Whisper</h3>

@@ -7,6 +7,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_store::StoreExt;
 use ts_rs::TS;
 use warp::Filter;
 
@@ -147,11 +148,16 @@ pub fn main() {
         .setup(|app| {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
-            println!("Model path {}", MODEL_PATH);
+
+            let config_store = app.store("config.json")?;
+
+            let binding = config_store.get("model_file").unwrap_or(MODEL_PATH.into());
+            let model_path = binding["value"].as_str().expect("invalid model path");
+            println!("Model path {}", model_path);
 
             println!("creating whisper context");
 
-            let whisper_manager = WhisperManager::new(MODEL_PATH, true).unwrap();
+            let whisper_manager = WhisperManager::new(model_path, true).unwrap();
 
             app.manage(Mutex::new(whisper_manager));
             app.manage(Mutex::new(AppState::default()));

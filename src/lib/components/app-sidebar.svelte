@@ -32,11 +32,12 @@
         user,
         navMain,
         navSecondary,
+        variant,
         ...restProps
     }: Props = $props();
 </script>
 
-<Sidebar.Root bind:ref variant="inset" {...restProps}>
+<Sidebar.Root bind:ref {variant} {...restProps}>
     <Sidebar.Content>
         <NavMain items={navMain} />
         <NavSecondary items={navSecondary} class="mt-auto" />
