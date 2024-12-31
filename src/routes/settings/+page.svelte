@@ -22,7 +22,8 @@
         audio_device = $state("default");
         audio_format = $state("default");
         language = $state("auto");
-        model_file = $state("");
+        model_path = $state("");
+        audio_buffer_size = $state(0);
         #store!: Store;
         toggles: { [key: string]: ConfigToggle } = $state({
             translate: {
@@ -85,13 +86,17 @@
         async init() {
             this.#store = await load("config.json", { autoSave: true });
 
-            this.model_file = await this.get_store_value(
-                "model_file",
-                this.model_file,
+            this.model_path = await this.get_store_value(
+                "model_path",
+                this.model_path,
             );
             this.language = await this.get_store_value(
                 "language",
                 this.language,
+            );
+            this.audio_buffer_size = await this.get_store_value(
+                "audio_buffer_size",
+                this.audio_buffer_size,
             );
             for (const [key, value] of Object.entries(this.toggles)) {
                 this.toggles[key].value = await this.get_store_value(
@@ -103,7 +108,10 @@
                 $effect(() => {
                     console.log("DEBUG: config changed, syncing...");
                     this.#store.set("language", { value: this.language });
-                    this.#store.set("model_file", { value: this.model_file });
+                    this.#store.set("model_path", { value: this.model_path });
+                    this.#store.set("audio_buffer_size", {
+                        value: this.audio_buffer_size,
+                    });
                     for (const [name, toggle] of Object.entries(this.toggles)) {
                         this.#store.set(toggle.key, { value: toggle.value });
                     }
@@ -144,14 +152,14 @@
         } else {
             // user selected a single file
             console.log(selected);
-            cfg.model_file = selected;
+            cfg.model_path = selected;
         }
     };
 
     let cfg = new Config();
     cfg.init();
 
-    $inspect(cfg.model_file);
+    $inspect(cfg.model_path);
 </script>
 
 <div class="space-y-4 pb-4 w-full max-w-2xl mx-auto">
@@ -165,6 +173,21 @@
     <div class="space-y-4">
         <AudioDevice />
         <RecordingFormats />
+        <div class="max-w-72 space-y-2 pb-4">
+            <Label
+                id="audio_buffer_size-label"
+                for="audio_buffer_size"
+                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+                Audio Buffer Size
+            </Label>
+            <Input
+                type="number"
+                id="audio_buffer_size"
+                class="max-w-24"
+                bind:value={cfg.audio_buffer_size}
+            />
+        </div>
     </div>
     <div>
         <h3 class="text-lg font-medium" id="model">Model</h3>
@@ -183,7 +206,7 @@
                     id="model-input"
                     placeholder="Model Path"
                     class=""
-                    bind:value={cfg.model_file}
+                    bind:value={cfg.model_path}
                     disabled
                 />
             </div>

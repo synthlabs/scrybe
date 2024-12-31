@@ -2,11 +2,12 @@ use scrybe_core::{
     audio::AudioManager,
     whisper::{Batch, Params, WhisperManager},
 };
+use serde::Deserialize;
 use std::{
     env,
     sync::{Arc, Mutex},
 };
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
 use ts_rs::TS;
 use warp::Filter;
@@ -50,6 +51,12 @@ fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
 }
 
 #[tauri::command]
+fn update_apptstate(app_state: State<'_, Mutex<AppState>>, audio_buffer_size: u64) {
+    let mut state = app_state.lock().unwrap();
+    state.audio_buffer_size = audio_buffer_size;
+}
+
+#[tauri::command]
 fn stop_transcribe(app_state: State<'_, Mutex<AppState>>) {
     let mut state = app_state.lock().unwrap();
     state.running = false;
@@ -76,15 +83,19 @@ async fn start_transcribe(
     loop {
         println!("checking running status");
 
-        println!("waiting");
-        std::thread::sleep(std::time::Duration::from_secs(2));
-
+        let mut duration = 0;
         if let Ok(state) = app_state.lock() {
+            println!("app state syncing");
             if !state.running {
                 println!("stopping");
                 break;
             }
+            duration = state.audio_buffer_size.try_into().unwrap_or(2);
+            println!("duration {}", duration);
         }
+
+        println!("waiting for {}s", duration);
+        std::thread::sleep(std::time::Duration::from_secs(duration));
 
         let mut samples: Vec<f32> = Vec::new();
         println!("copying buffer");
@@ -127,6 +138,7 @@ async fn start_transcribe(
 struct AppState {
     pub running: bool,
     pub current_device: AudioDevice,
+    pub audio_buffer_size: u64,
 }
 
 #[derive(Debug, Default, serde::Serialize, Clone, TS)]
@@ -134,6 +146,22 @@ struct AppState {
 struct AudioDevice {
     pub name: String,
     pub id: String,
+}
+
+fn get_config<T>(handle: &mut App, key: &str, default_val: T) -> T
+where
+    T: for<'a> Deserialize<'a>,
+{
+    let config_store = handle
+        .store("config.json")
+        .expect("unable to get config store");
+
+    if let std::option::Option::Some(binding) = config_store.get(key) {
+        println!("{} - {}", key, binding["value"]);
+        return serde_json::from_value(binding["value"].clone()).unwrap();
+    } else {
+        default_val
+    }
 }
 
 pub fn main() {
@@ -149,18 +177,19 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
 
-            let config_store = app.store("config.json")?;
-
-            let binding = config_store.get("model_file").unwrap_or(MODEL_PATH.into());
-            let model_path = binding["value"].as_str().expect("invalid model path");
+            let model_path = get_config(app, "model_path", MODEL_PATH.to_owned());
             println!("Model path {}", model_path);
 
             println!("creating whisper context");
 
-            let whisper_manager = WhisperManager::new(model_path, true).unwrap();
+            let whisper_manager = WhisperManager::new(model_path.as_str(), true).unwrap();
+
+            let audio_buffer_size: u64 = get_config(app, "audio_buffer_size", 2);
+            let mut initial_state = AppState::default();
+            initial_state.audio_buffer_size = audio_buffer_size;
 
             app.manage(Mutex::new(whisper_manager));
-            app.manage(Mutex::new(AppState::default()));
+            app.manage(Mutex::new(initial_state));
 
             let _server_handle = tauri::async_runtime::spawn(async move {
                 // Match any request and return hello world!
@@ -178,6 +207,7 @@ pub fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             get_appstate,
+            update_apptstate,
             set_params,
             start_transcribe,
             stop_transcribe
