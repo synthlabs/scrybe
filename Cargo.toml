@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "rust",
+    "rust/core", "rust/gen",
+    "rust/macros",
     "src-tauri",
 ]

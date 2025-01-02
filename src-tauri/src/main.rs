@@ -1,7 +1,11 @@
+use rust_embed::RustEmbed;
+
 use scrybe_core::{
     audio::AudioManager,
+    types::AppState,
     whisper::{Batch, Params, WhisperManager},
 };
+
 use serde::Deserialize;
 use std::{
     env,
@@ -9,10 +13,13 @@ use std::{
 };
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
-use ts_rs::TS;
 use warp::Filter;
 
-static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
+static MODEL_PATH: &str = "../rust/core/models/ggml-large-v3-turbo-q8_0.bin";
+
+#[derive(RustEmbed)]
+#[folder = "../build"]
+struct Static;
 
 #[tauri::command(rename_all = "snake_case")]
 async fn set_params(
@@ -133,21 +140,6 @@ async fn start_transcribe(
     Ok(())
 }
 
-#[derive(Debug, Default, serde::Serialize, Clone, TS)]
-#[ts(export)]
-struct AppState {
-    pub running: bool,
-    pub current_device: AudioDevice,
-    pub audio_buffer_size: u64,
-}
-
-#[derive(Debug, Default, serde::Serialize, Clone, TS)]
-#[ts(export)]
-struct AudioDevice {
-    pub name: String,
-    pub id: String,
-}
-
 fn get_config<T>(handle: &mut App, key: &str, default_val: T) -> T
 where
     T: for<'a> Deserialize<'a>,
@@ -192,10 +184,18 @@ pub fn main() {
             app.manage(Mutex::new(initial_state));
 
             let _server_handle = tauri::async_runtime::spawn(async move {
-                // Match any request and return hello world!
-                let routes = warp::any().map(|| "Hello, World!");
+                let static_files = warp::path("app")
+                    .and(warp::get())
+                    .and(warp_embed::embed(&Static))
+                    .boxed();
+                let cors = warp::cors()
+                    .allow_any_origin()
+                    .allow_methods(vec!["GET", "POST"])
+                    .allow_headers(vec!["Content-Type"]);
 
-                warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+                warp::serve(static_files.with(cors))
+                    .run(([127, 0, 0, 1], 3030))
+                    .await;
             });
 
             Ok(())

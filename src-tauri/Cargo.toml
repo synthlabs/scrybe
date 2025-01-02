@@ -30,12 +30,13 @@ rust-embed = "8.5.0"
 ts-rs = "10.1.0"
 tauri-plugin-dialog = "2"
 
-scrybe_core = { path = "../rust" }
+scrybe_core = { path = "../rust/core" }
+scrybe_macros = { path = "../rust/macros" }
 
 # Windows
 [target.'cfg(windows)'.dependencies]
-scrybe_core = { path = "../rust", features = [] }
+scrybe_core = { path = "../rust/core", features = [] }
 
 # macOS
 [target.'cfg(target_os = "macos")'.dependencies]
-scrybe_core = { path = "../rust", features = ["coreml", "metal"] }
+scrybe_core = { path = "../rust/core", features = ["coreml", "metal"] }
