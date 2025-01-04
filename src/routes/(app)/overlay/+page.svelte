@@ -1,20 +1,69 @@
 <script lang="ts">
+    import AlignLeft from "lucide-svelte/icons/align-left";
+    import AlignCenter from "lucide-svelte/icons/align-center";
+    import AlignRight from "lucide-svelte/icons/align-right";
+    import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
     import { Separator } from "$lib/components/ui/separator/index.ts";
+    import { Label } from "$lib/components/ui/label/index.ts";
+    import { Input } from "$lib/components/ui/input/index.ts";
+    import { cn } from "$lib/utils";
+
+    let text_align: "left" | "center" | "right" = $state("left");
 </script>
 
-<div class="space-y-4 pb-4 w-full mx-auto">
+<div class="mx-auto w-full space-y-4 pb-4">
     <div>
         <h3 class="text-lg font-medium" id="audio">Overlay</h3>
-        <p class="text-muted-foreground text-sm">
+        <p class="text-sm text-muted-foreground">
             Manage the look of the subtitles that will be shown on the overlay.
         </p>
     </div>
     <Separator />
     <div class="space-y-4">
-        <div class="w-full h-32 bg-checkered border-2 border-primary">
-            this is a test
+        <div class="bg-checkered h-32 w-full border-2 border-primary">
+            <TextOverlay justify={text_align}></TextOverlay>
         </div>
-        <div class="">controls</div>
+        <div class="flex flex-col gap-2 pt-4">
+            <Label
+                id="align-label"
+                for="align"
+                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+                Align
+            </Label>
+            <div id="align" class="row flex flex-row">
+                <button
+                    class={cn(
+                        "rounded-md rounded-r-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
+                        text_align == "left" ? "bg-accent" : "bg-secondary",
+                    )}
+                    onclick={() => (text_align = "left")}
+                    type="button"
+                >
+                    <AlignLeft />
+                </button>
+                <button
+                    class={cn(
+                        "rounded-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
+                        text_align == "center" ? "bg-accent" : "bg-secondary",
+                    )}
+                    onclick={() => (text_align = "center")}
+                    type="button"
+                >
+                    <AlignCenter />
+                </button>
+                <button
+                    class={cn(
+                        "rounded-md rounded-l-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
+                        text_align == "right" ? "bg-accent" : "bg-secondary",
+                    )}
+                    onclick={() => (text_align = "right")}
+                    type="button"
+                >
+                    <AlignRight />
+                </button>
+            </div>
+        </div>
         <div class="">url</div>
     </div>
 </div>
@@ -22,8 +71,8 @@
 <style>
     .bg-checkered {
         background-image: linear-gradient(
-                rgba(0, 0, 0, 0.5),
-                rgba(0, 0, 0, 0.5)
+                rgba(0, 0, 0, 0.25),
+                rgba(0, 0, 0, 0.25)
             ),
             url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23F0F0F0' d='M0 0h8v8H0zm8 8h8v8H8z'/%3E%3C/svg%3E");
         background-size: 16px 16px;

@@ -162,10 +162,10 @@
     $inspect(cfg.model_path);
 </script>
 
-<div class="space-y-4 pb-4 w-full max-w-2xl mx-auto">
+<div class="mx-auto w-full max-w-2xl space-y-4 pb-4">
     <div>
-        <h3 class="text-lg font-medium" id="audio">Audio</h3>
-        <p class="text-muted-foreground text-sm">
+        <h3 class="scroll-mt-20 text-lg font-medium" id="audio">Audio</h3>
+        <p class="text-sm text-muted-foreground">
             Set the audio device and audio recording properties for Scrybe.
         </p>
     </div>
@@ -190,14 +190,14 @@
         </div>
     </div>
     <div>
-        <h3 class="text-lg font-medium" id="model">Model</h3>
-        <p class="text-muted-foreground text-sm">
+        <h3 class="scroll-mt-20 text-lg font-medium" id="model">Model</h3>
+        <p class="text-sm text-muted-foreground">
             Configure advanced properties for the model being used.
         </p>
     </div>
     <Separator />
     <div class="space-y-4 pb-4">
-        <div class="flex flex-col w-full gap-y-2 max-w-lg">
+        <div class="flex w-full max-w-lg flex-col gap-y-2">
             <Label for="model-input" class="">Location</Label>
             <div class="flex flex-row gap-2">
                 <Button type="button" onclick={select_file}>Choose File</Button>
@@ -210,14 +210,14 @@
                     disabled
                 />
             </div>
-            <p class="text-muted-foreground text-sm">
+            <p class="text-sm text-muted-foreground">
                 Enter the full path to the model file to use
             </p>
         </div>
     </div>
     <div>
-        <h3 class="text-lg font-medium" id="whisper">Whisper</h3>
-        <p class="text-muted-foreground text-sm">
+        <h3 class="scroll-mt-20 text-lg font-medium" id="whisper">Whisper</h3>
+        <p class="text-sm text-muted-foreground">
             Configure different parameters for the Whisper model.
         </p>
     </div>
@@ -248,7 +248,7 @@
         </div>
         {#each Object.entries(cfg.toggles) as [name, setting]}
             <div
-                class="space-y-2 flex flex-row items-center justify-between rounded-lg border p-4 max-w-lg"
+                class="flex max-w-lg flex-row items-center justify-between space-y-2 rounded-lg border p-4"
             >
                 <div>
                     <Label
@@ -258,7 +258,7 @@
                     >
                         {setting.label}
                     </Label>
-                    <div class="text-muted-foreground text-sm">
+                    <div class="text-sm text-muted-foreground">
                         {setting.description}
                     </div>
                 </div>

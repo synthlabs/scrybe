@@ -1,1 +1,5 @@
-<div class="w-full h-full bg-red-400">test</div>
+<script lang="ts">
+    import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
+</script>
+
+<TextOverlay />

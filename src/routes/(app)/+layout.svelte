@@ -73,7 +73,7 @@
     <AppSidebar {user} {navMain} {navSecondary} />
     <Sidebar.Inset>
         <header
-            class="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b pl-4"
+            class="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background pl-4"
         >
             <Sidebar.Trigger class="-ml-1" />
             <Separator orientation="vertical" class="mr-2 h-4" />
