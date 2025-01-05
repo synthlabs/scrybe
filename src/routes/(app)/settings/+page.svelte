@@ -10,6 +10,7 @@
     import AudioDevice from "$lib/components/audio-device.svelte";
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
+    import { onMount } from "svelte";
 
     type ConfigToggle = {
         label: string;
@@ -157,9 +158,12 @@
     };
 
     let cfg = new Config();
-    cfg.init();
 
     $inspect(cfg.model_path);
+
+    onMount(() => {
+        cfg.init();
+    });
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">

@@ -2,7 +2,7 @@ use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::AppState,
+    types::{AppState, OverlayConfig},
     whisper::{Batch, Params, WhisperManager},
 };
 
@@ -57,7 +57,24 @@ fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
     app_state.lock().unwrap().clone()
 }
 
+#[tauri::command(rename_all = "snake_case")]
+fn set_appstate(app_state: State<'_, Mutex<AppState>>, new_state: AppState) {
+    let mut current_state = app_state.lock().unwrap();
+    *current_state = new_state;
+}
+
 #[tauri::command]
+fn get_overlay_config(app_state: State<'_, Mutex<AppState>>) -> OverlayConfig {
+    app_state.lock().unwrap().clone().overlay_config
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn set_overlay_config(app_state: State<'_, Mutex<AppState>>, new_config: OverlayConfig) {
+    let mut current_state = app_state.lock().unwrap();
+    (*current_state).overlay_config = new_config;
+}
+
+#[tauri::command(rename_all = "snake_case")]
 fn update_apptstate(app_state: State<'_, Mutex<AppState>>, audio_buffer_size: u64) {
     let mut state = app_state.lock().unwrap();
     state.audio_buffer_size = audio_buffer_size;
@@ -206,7 +223,10 @@ pub fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
+            set_appstate,
             get_appstate,
+            get_overlay_config,
+            set_overlay_config,
             update_apptstate,
             set_params,
             start_transcribe,
