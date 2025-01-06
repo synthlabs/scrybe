@@ -7,42 +7,32 @@
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Input } from "$lib/components/ui/input/index.ts";
     import { cn } from "$lib/utils";
+    import { SyncedStore } from "$lib/store.svelte";
     import type { OverlayConfig } from "$bindings/OverlayConfig";
+    import { DefaultAppState } from "$bindings/defaults";
     import { invoke } from "@tauri-apps/api/core";
     import { onMount } from "svelte";
     import { load, Store } from "@tauri-apps/plugin-store";
+    import type { AppState } from "$bindings/AppState";
 
-    let text_align: "left" | "center" | "right" | "" = $state("left");
+    // let config: OverlayConfig = $state();
+    let store = new SyncedStore<AppState>("appstate.json", DefaultAppState);
+    store.init();
 
-    let config: OverlayConfig = $state({
-        name: "overlay",
-        id: "test",
-        text_alignment: "",
-    });
+    // onMount(async () => {
+    //     // const store = await load("overlay.json", { autoSave: true });
+    //     // config.text_alignment = await get_store_value(
+    //     //     store,
+    //     //     "text_alignment",
+    //     //     config.text_alignment,
+    //     // );
 
-    async function get_store_value<T>(
-        store: Store,
-        key: string,
-        default_val: T,
-    ): Promise<T> {
-        return (await store.get<{ value: T }>(key))?.value || default_val;
-    }
+    //     let cfg = (await invoke("get_overlay_config")) as OverlayConfig;
+    //     // config.object = cfg;
+    //     console.log(cfg);
+    // });
 
-    onMount(async () => {
-        // const store = await load("overlay.json", { autoSave: true });
-        // config.text_alignment = await get_store_value(
-        //     store,
-        //     "text_alignment",
-        //     config.text_alignment,
-        // );
-
-        let cfg = (await invoke("get_overlay_config")) as OverlayConfig;
-        config = cfg;
-    });
-
-    $effect(() => {
-        invoke("set_overlay_config", { new_config: config });
-    });
+    $inspect(store.object);
 </script>
 
 <div class="mx-auto w-full space-y-4 pb-4">
@@ -55,7 +45,7 @@
     <Separator />
     <div class="space-y-4">
         <div class="bg-checkered h-32 w-full border-2 border-primary">
-            <TextOverlay justify={config.text_alignment || "left"}
+            <TextOverlay justify={store.object.overlay_config.text_alignment}
             ></TextOverlay>
         </div>
         <div class="flex flex-col gap-2 pt-4">
@@ -70,11 +60,12 @@
                 <button
                     class={cn(
                         "rounded-md rounded-r-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                        config.text_alignment == "left"
+                        store.object.overlay_config.text_alignment == "left"
                             ? "bg-accent"
                             : "bg-secondary",
                     )}
-                    onclick={() => (config.text_alignment = "left")}
+                    onclick={() =>
+                        (store.object.overlay_config.text_alignment = "left")}
                     type="button"
                 >
                     <AlignLeft />
@@ -82,11 +73,12 @@
                 <button
                     class={cn(
                         "rounded-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                        config.text_alignment == "center"
+                        store.object.overlay_config.text_alignment == "center"
                             ? "bg-accent"
                             : "bg-secondary",
                     )}
-                    onclick={() => (config.text_alignment = "center")}
+                    onclick={() =>
+                        (store.object.overlay_config.text_alignment = "center")}
                     type="button"
                 >
                     <AlignCenter />
@@ -94,11 +86,12 @@
                 <button
                     class={cn(
                         "rounded-md rounded-l-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                        config.text_alignment == "right"
+                        store.object.overlay_config.text_alignment == "right"
                             ? "bg-accent"
                             : "bg-secondary",
                     )}
-                    onclick={() => (config.text_alignment = "right")}
+                    onclick={() =>
+                        (store.object.overlay_config.text_alignment = "right")}
                     type="button"
                 >
                     <AlignRight />

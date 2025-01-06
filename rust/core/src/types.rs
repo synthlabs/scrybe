@@ -5,6 +5,7 @@ use ts_rs::TS;
 pub struct AppState {
     pub running: bool,
     pub current_device: AudioDevice,
+    #[ts(type = "number")]
     pub audio_buffer_size: u64,
     pub overlay_config: OverlayConfig,
 }
@@ -21,5 +22,6 @@ pub struct AudioDevice {
 pub struct OverlayConfig {
     pub name: String,
     pub id: String,
+    #[ts(type = "\"left\" | \"center\" | \"right\"")]
     pub text_alignment: String,
 }

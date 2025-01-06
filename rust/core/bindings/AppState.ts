@@ -2,4 +2,4 @@
 import type { AudioDevice } from "./AudioDevice";
 import type { OverlayConfig } from "./OverlayConfig";
 
-export type AppState = { running: boolean, current_device: AudioDevice, audio_buffer_size: bigint, overlay_config: OverlayConfig, };
+export type AppState = { running: boolean, current_device: AudioDevice, audio_buffer_size: number, overlay_config: OverlayConfig, };
