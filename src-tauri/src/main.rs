@@ -180,16 +180,17 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
 
-            let model_path = get_config(app, "appstate.json", "model_path", MODEL_PATH.to_owned());
-            println!("Model path {}", model_path);
+            let initial_state: AppState =
+                get_config(app, "appstate.json", "object", AppState::default());
+
+            // let initial_state: AppState = serde_json::from_str(&appstate_json).unwrap();
+
+            println!("Model path {}", initial_state.model_path);
 
             println!("creating whisper context");
 
-            let whisper_manager = WhisperManager::new(model_path.as_str(), true).unwrap();
-
-            let mut initial_state = AppState::default();
-            initial_state.running = false;
-            initial_state.model_path = model_path;
+            let whisper_manager =
+                WhisperManager::new(initial_state.model_path.clone().as_str(), true).unwrap();
 
             app.manage(Mutex::new(whisper_manager));
             app.manage(Mutex::new(initial_state));
