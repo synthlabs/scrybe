@@ -2,20 +2,21 @@ use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::{AppState, OverlayConfig},
-    whisper::{Batch, Params, WhisperManager},
+    types::{AppState, WhisperParams},
+    whisper::{Batch, WhisperManager},
 };
 
 use serde::Deserialize;
 use std::{
     env,
     sync::{Arc, Mutex},
+    time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
 use warp::Filter;
 
-static MODEL_PATH: &str = "../rust/core/models/ggml-large-v3-turbo-q8_0.bin";
+static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
 
 #[derive(RustEmbed)]
 #[folder = "../build"]
@@ -36,7 +37,7 @@ async fn set_params(
 ) -> Result<(), ()> {
     let mut whisper_manager = state.lock().unwrap();
 
-    let params = Params {
+    let params = WhisperParams {
         translate,
         suppress_blanks,
         print_special,
@@ -54,30 +55,25 @@ async fn set_params(
 
 #[tauri::command]
 fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
+    println!(
+        "{:?} get_appstate",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    );
     app_state.lock().unwrap().clone()
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn set_appstate(app_state: State<'_, Mutex<AppState>>, new_state: AppState) {
+fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_value: AppState) {
+    println!("{:?} set_appstate", SystemTime::now());
     let mut current_state = app_state.lock().unwrap();
-    *current_state = new_state;
-}
+    new_value.generation += 1;
+    *current_state = new_value.clone();
 
-#[tauri::command]
-fn get_overlay_config(app_state: State<'_, Mutex<AppState>>) -> OverlayConfig {
-    app_state.lock().unwrap().clone().overlay_config
-}
-
-#[tauri::command(rename_all = "snake_case")]
-fn set_overlay_config(app_state: State<'_, Mutex<AppState>>, new_config: OverlayConfig) {
-    let mut current_state = app_state.lock().unwrap();
-    (*current_state).overlay_config = new_config;
-}
-
-#[tauri::command(rename_all = "snake_case")]
-fn update_apptstate(app_state: State<'_, Mutex<AppState>>, audio_buffer_size: u64) {
-    let mut state = app_state.lock().unwrap();
-    state.audio_buffer_size = audio_buffer_size;
+    app.emit("appstate_update", current_state.clone())
+        .expect("unable to emit state");
 }
 
 #[tauri::command]
@@ -157,13 +153,11 @@ async fn start_transcribe(
     Ok(())
 }
 
-fn get_config<T>(handle: &mut App, key: &str, default_val: T) -> T
+fn get_config<T>(handle: &mut App, file: &str, key: &str, default_val: T) -> T
 where
     T: for<'a> Deserialize<'a>,
 {
-    let config_store = handle
-        .store("config.json")
-        .expect("unable to get config store");
+    let config_store = handle.store(file).expect("unable to get config store");
 
     if let std::option::Option::Some(binding) = config_store.get(key) {
         println!("{} - {}", key, binding["value"]);
@@ -186,16 +180,16 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
 
-            let model_path = get_config(app, "model_path", MODEL_PATH.to_owned());
+            let model_path = get_config(app, "appstate.json", "model_path", MODEL_PATH.to_owned());
             println!("Model path {}", model_path);
 
             println!("creating whisper context");
 
             let whisper_manager = WhisperManager::new(model_path.as_str(), true).unwrap();
 
-            let audio_buffer_size: u64 = get_config(app, "audio_buffer_size", 2);
             let mut initial_state = AppState::default();
-            initial_state.audio_buffer_size = audio_buffer_size;
+            initial_state.running = false;
+            initial_state.model_path = model_path;
 
             app.manage(Mutex::new(whisper_manager));
             app.manage(Mutex::new(initial_state));
@@ -225,9 +219,6 @@ pub fn main() {
         .invoke_handler(tauri::generate_handler![
             set_appstate,
             get_appstate,
-            get_overlay_config,
-            set_overlay_config,
-            update_apptstate,
             set_params,
             start_transcribe,
             stop_transcribe

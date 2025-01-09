@@ -3,6 +3,8 @@ use std::{sync::Mutex, time::SystemTime};
 
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+use crate::types::WhisperParams;
+
 #[derive(serde::Serialize, Clone)]
 pub struct Batch {
     pub segments: Vec<WhisperSegment>,
@@ -26,24 +28,11 @@ impl fmt::Display for WhisperSegment {
     }
 }
 
-#[derive(serde::Serialize, Clone, Default, Debug)]
-pub struct Params {
-    pub translate: bool,
-    pub suppress_blanks: bool,
-    pub print_special: bool,
-    pub print_progress: bool,
-    pub token_timestamps: bool,
-    pub single_segment: bool,
-    pub split_on_word: bool,
-    pub tdrz_enable: bool,
-    pub language: String,
-}
-
 pub struct WhisperManager {
     ctx: WhisperContext,
     last_prompt: String,
     segment_index: i128,
-    params: Mutex<Params>,
+    params: Mutex<WhisperParams>,
 }
 
 impl WhisperManager {
@@ -57,11 +46,11 @@ impl WhisperManager {
             ctx,
             last_prompt: "".to_owned(),
             segment_index: 0,
-            params: Params::default().into(),
+            params: WhisperParams::default().into(),
         })
     }
 
-    pub fn set_params(&mut self, new_params: Params) {
+    pub fn set_params(&mut self, new_params: WhisperParams) {
         let mut params = self.params.lock().unwrap();
         *params = new_params;
     }

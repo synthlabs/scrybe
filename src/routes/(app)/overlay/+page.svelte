@@ -8,15 +8,14 @@
     import { Input } from "$lib/components/ui/input/index.ts";
     import { cn } from "$lib/utils";
     import { SyncedStore } from "$lib/store.svelte";
-    import type { OverlayConfig } from "$bindings/OverlayConfig";
     import { DefaultAppState } from "$bindings/defaults";
+    import type { OverlayConfig } from "$bindings/OverlayConfig";
     import { invoke } from "@tauri-apps/api/core";
     import { onMount } from "svelte";
     import { load, Store } from "@tauri-apps/plugin-store";
     import type { AppState } from "$bindings/AppState";
 
-    // let config: OverlayConfig = $state();
-    let store = new SyncedStore<AppState>("appstate.json", DefaultAppState);
+    let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
 
     // onMount(async () => {
@@ -31,8 +30,6 @@
     //     // config.object = cfg;
     //     console.log(cfg);
     // });
-
-    $inspect(store.object);
 </script>
 
 <div class="mx-auto w-full space-y-4 pb-4">

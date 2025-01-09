@@ -11,6 +11,12 @@
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
     import { onMount } from "svelte";
+    import { SyncedStore } from "$lib/store.svelte";
+    import { DefaultAppState } from "$bindings/defaults";
+    import type { AppState } from "$bindings/AppState";
+
+    let store = new SyncedStore<AppState>("appstate", DefaultAppState);
+    store.init();
 
     type ConfigToggle = {
         label: string;
@@ -19,125 +25,55 @@
         value: boolean;
     };
 
-    class Config {
-        audio_device = $state("default");
-        audio_format = $state("default");
-        language = $state("auto");
-        model_path = $state("");
-        audio_buffer_size = $state(0);
-        #store!: Store;
-        toggles: { [key: string]: ConfigToggle } = $state({
-            translate: {
-                label: "Translate",
-                description: "Translate the recorded audio to english",
-                key: "translate",
-                value: false,
-            },
-            suppress_blanks: {
-                label: "Suppress Blanks",
-                description:
-                    "By disabling this, blank [BLNK] special tokens will be included in the output",
-                key: "suppress_blanks",
-                value: false,
-            },
-            print_special: {
-                label: "Print Special",
-                description:
-                    "Enable the internal whisper special tokens in the output",
-                key: "print_special",
-                value: false,
-            },
-            print_progress: {
-                label: "Print Progress",
-                description:
-                    "Hook into the progress callbacks for the whisper model",
-                key: "print_progress",
-                value: false,
-            },
-            token_timestamps: {
-                label: "Token Timestamps",
-                description:
-                    "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
-                key: "token_timestamps",
-                value: false,
-            },
-            single_segment: {
-                label: "Single Segment",
-                description:
-                    "Reduces the output of each transcript iteration to a single text segment",
-                key: "single_segment",
-                value: false,
-            },
-            split_on_word: {
-                label: "Split on word",
-                description:
-                    "An internal whisper setting for splitting new tokens based on words",
-                key: "split_on_word",
-                value: false,
-            },
-            tdrz_enable: {
-                label: "TDRZ",
-                description:
-                    "Enable diarization which identifies the different speakers in the audio (currently unstable)",
-                key: "tdrz_enable",
-                value: false,
-            },
-        });
-
-        async init() {
-            this.#store = await load("config.json", { autoSave: true });
-
-            this.model_path = await this.get_store_value(
-                "model_path",
-                this.model_path,
-            );
-            this.language = await this.get_store_value(
-                "language",
-                this.language,
-            );
-            this.audio_buffer_size = await this.get_store_value(
-                "audio_buffer_size",
-                this.audio_buffer_size,
-            );
-            for (const [key, value] of Object.entries(this.toggles)) {
-                this.toggles[key].value = await this.get_store_value(
-                    key,
-                    value.value,
-                );
-            }
-            $effect.root(() => {
-                $effect(() => {
-                    console.log("DEBUG: config changed, syncing...");
-                    this.#store.set("language", { value: this.language });
-                    this.#store.set("model_path", { value: this.model_path });
-                    this.#store.set("audio_buffer_size", {
-                        value: this.audio_buffer_size,
-                    });
-                    for (const [name, toggle] of Object.entries(this.toggles)) {
-                        this.#store.set(toggle.key, { value: toggle.value });
-                    }
-
-                    invoke("set_params", {
-                        translate: this.toggles.translate.value,
-                        suppress_blanks: this.toggles.suppress_blanks.value,
-                        print_special: this.toggles.print_special.value,
-                        print_progress: this.toggles.print_progress.value,
-                        token_timestamps: this.toggles.token_timestamps.value,
-                        single_segment: this.toggles.single_segment.value,
-                        split_on_word: this.toggles.split_on_word.value,
-                        tdrz_enable: this.toggles.tdrz_enable.value,
-                        language: this.language,
-                    });
-                });
-            });
-        }
-
-        async get_store_value<T>(key: string, default_val: T): Promise<T> {
-            return (
-                (await this.#store.get<{ value: T }>(key))?.value || default_val
-            );
-        }
-    }
+    let toggles = {
+        translate: {
+            label: "Translate",
+            description: "Translate the recorded audio to english",
+            key: "translate",
+        },
+        suppress_blanks: {
+            label: "Suppress Blanks",
+            description:
+                "By disabling this, blank [BLNK] special tokens will be included in the output",
+            key: "suppress_blanks",
+        },
+        print_special: {
+            label: "Print Special",
+            description:
+                "Enable the internal whisper special tokens in the output",
+            key: "print_special",
+        },
+        print_progress: {
+            label: "Print Progress",
+            description:
+                "Hook into the progress callbacks for the whisper model",
+            key: "print_progress",
+        },
+        token_timestamps: {
+            label: "Token Timestamps",
+            description:
+                "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
+            key: "token_timestamps",
+        },
+        single_segment: {
+            label: "Single Segment",
+            description:
+                "Reduces the output of each transcript iteration to a single text segment",
+            key: "single_segment",
+        },
+        split_on_word: {
+            label: "Split on word",
+            description:
+                "An internal whisper setting for splitting new tokens based on words",
+            key: "split_on_word",
+        },
+        tdrz_enable: {
+            label: "TDRZ",
+            description:
+                "Enable diarization which identifies the different speakers in the audio (currently unstable)",
+            key: "tdrz_enable",
+        },
+    };
 
     const select_file = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
@@ -153,17 +89,9 @@
         } else {
             // user selected a single file
             console.log(selected);
-            cfg.model_path = selected;
+            store.object.model_path = selected;
         }
     };
-
-    let cfg = new Config();
-
-    $inspect(cfg.model_path);
-
-    onMount(() => {
-        cfg.init();
-    });
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">
@@ -189,7 +117,7 @@
                 type="number"
                 id="audio_buffer_size"
                 class="max-w-24"
-                bind:value={cfg.audio_buffer_size}
+                bind:value={store.object.audio_buffer_size}
             />
         </div>
     </div>
@@ -210,7 +138,7 @@
                     id="model-input"
                     placeholder="Model Path"
                     class=""
-                    bind:value={cfg.model_path}
+                    bind:value={store.object.model_path}
                     disabled
                 />
             </div>
@@ -237,11 +165,13 @@
             </Label>
             <Select.Root
                 type="single"
-                bind:value={cfg.language}
+                bind:value={store.object.whisper_params.language}
                 name="language"
             >
                 <Select.Trigger>
-                    {cfg.language ? cfg.language : "auto"}
+                    {store.object.whisper_params.language
+                        ? store.object.whisper_params.language
+                        : "auto"}
                 </Select.Trigger>
                 <Select.Content>
                     <Select.Item value="auto" label="auto" />
@@ -250,7 +180,7 @@
                 </Select.Content>
             </Select.Root>
         </div>
-        {#each Object.entries(cfg.toggles) as [name, setting]}
+        {#each Object.entries(toggles) as [name, setting]}
             <div
                 class="flex max-w-lg flex-row items-center justify-between space-y-2 rounded-lg border p-4"
             >
@@ -269,7 +199,7 @@
                 <div class="px-2">
                     <Switch
                         id={name}
-                        bind:checked={setting.value}
+                        bind:checked={store.object.whisper_params[setting.key]}
                         aria-labelledby="{name}-label"
                     />
                 </div>
