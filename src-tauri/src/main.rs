@@ -7,6 +7,7 @@ use scrybe_core::{
 };
 
 use serde::Deserialize;
+use serde_json::json;
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -65,11 +66,17 @@ fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
 
 #[tauri::command(rename_all = "snake_case")]
 fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_value: AppState) {
-    println!("{:?} set_appstate", SystemTime::now());
+    println!(
+        "{:?} set_appstate",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    );
     let mut current_state = app_state.lock().unwrap();
     new_value.generation += 1;
 
-    if (new_value.model_path != current_state.model_path) {
+    if new_value.model_path != current_state.model_path {
         setup_whisper_manager(&app, new_value.clone());
     }
 
@@ -80,9 +87,11 @@ fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_v
 }
 
 #[tauri::command]
-fn stop_transcribe(app_state: State<'_, Mutex<AppState>>) {
+fn stop_transcribe(app: AppHandle, app_state: State<'_, Mutex<AppState>>) {
     let mut state = app_state.lock().unwrap();
     state.running = false;
+    app.emit("appstate_update", state.clone())
+        .expect("unable to emit state");
 }
 
 #[tauri::command]
@@ -97,6 +106,8 @@ async fn start_transcribe(
 
     if let Ok(mut state) = app_state.lock() {
         state.running = true;
+        app.emit("appstate_update", state.clone())
+            .expect("unable to emit state");
     }
 
     println!("Begin recording...");
@@ -198,8 +209,13 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
 
-            let initial_state: AppState =
+            let mut initial_state: AppState =
                 get_config(app, "appstate.json", "object", AppState::default());
+            initial_state.running = false;
+
+            app.store("appstate.json")
+                .expect("unable to load store")
+                .set("object", json!({ "value": initial_state.clone() }));
 
             setup_whisper_manager(app.handle(), initial_state.clone());
 

@@ -10,13 +10,25 @@
     import AudioDevice from "$lib/components/audio-device.svelte";
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$bindings/defaults";
     import type { AppState } from "$bindings/AppState";
+    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
+
+    $inspect(store.object);
+
+    let un_sub: UnlistenFn;
+
+    onDestroy(() => {
+        console.log("unsubbing - settings page");
+        if (un_sub) {
+            un_sub();
+        }
+    });
 
     type ConfigToggle = {
         label: string;
@@ -91,6 +103,15 @@
             store.object.model_path = selected;
         }
     };
+
+    let subscribe = async () => {
+        console.log("subbing to appstate running only updates");
+        un_sub = await listen<AppState>("appstate_update", (event) => {
+            store.object.running = event.payload.running;
+        });
+    };
+
+    subscribe();
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">
