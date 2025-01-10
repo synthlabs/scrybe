@@ -31,7 +31,6 @@ ts-rs = "10.1.0"
 tauri-plugin-dialog = "2"
 
 scrybe_core = { path = "../rust/core" }
-scrybe_macros = { path = "../rust/macros" }
 
 # Windows
 [target.'cfg(windows)'.dependencies]

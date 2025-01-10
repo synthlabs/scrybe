@@ -6,7 +6,7 @@
 <div class="container space-y-4 pb-4">
     <div>
         <h3 class="text-lg font-medium" id="whisper">Scrybe</h3>
-        <p class="text-muted-foreground text-sm">
+        <p class="text-sm text-muted-foreground">
             A toy subtitle program useful for providing subtitles to currently
             playing audio, or for integrating with OBS to provide subtitles to
             your stream.
