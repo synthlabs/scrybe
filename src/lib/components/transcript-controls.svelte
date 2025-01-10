@@ -11,13 +11,19 @@
     import { DefaultAppState } from "$bindings/defaults";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
+    store.sync = false;
     store.init();
 
     let debounce = $state(false);
+    let disabled_state = $derived(debounce || store.object.model_path === "");
+
+    let un_sub: UnlistenFn;
 
     onDestroy(() => {
         console.log("unsubbing - transcript controls");
-        store.unsub();
+        if (un_sub) {
+            un_sub();
+        }
     });
 
     const toggle_transcripts = () => {
@@ -33,6 +39,15 @@
         }
         setTimeout(() => (debounce = false), 1000);
     };
+
+    let subscribe = async () => {
+        console.log("subbing to appstate updates");
+        un_sub = await listen<AppState>("appstate_update", (event) => {
+            store.object = event.payload;
+        });
+    };
+
+    subscribe();
 </script>
 
 <div class="flex gap-2 text-sm text-muted-foreground">
@@ -47,7 +62,7 @@
         variant="outline"
         size="icon"
         onclick={toggle_transcripts}
-        disabled={debounce}
+        disabled={disabled_state}
     >
         {#if store.object.running}
             <LoaderCircle class="animate-spin text-primary" />

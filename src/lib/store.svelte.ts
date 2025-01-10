@@ -5,9 +5,9 @@ import { load, Store } from "@tauri-apps/plugin-store";
 export class SyncedStore<T extends { generation: number }> {
     name: string;
     autosave: boolean = true;
+    sync: boolean = true;
     object: T = $state({} as T);
     #store!: Store;
-    #un_sub?: UnlistenFn;
 
     constructor(name: string, object: T) {
         this.name = name;
@@ -21,19 +21,15 @@ export class SyncedStore<T extends { generation: number }> {
 
         this.object = await this.get_store_value("object", this.object);
 
-        $effect.root(() => {
-            $effect(() => {
-                console.log("DEBUG [SyncedStore]: syncing...");
-                this.#store.set("object", { value: this.object });
+        if (this.sync) {
+            $effect.root(() => {
+                $effect(() => {
+                    console.log("DEBUG [SyncedStore]: syncing...");
+                    this.#store.set("object", { value: this.object });
 
-                invoke(`set_${this.name}`, { new_value: this.object });
+                    invoke(`set_${this.name}`, { new_value: this.object });
+                });
             });
-        });
-    }
-
-    unsub() {
-        if (this.#un_sub) {
-            this.#un_sub();
         }
     }
 

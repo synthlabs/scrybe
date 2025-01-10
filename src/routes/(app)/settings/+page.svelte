@@ -22,10 +22,9 @@
         label: string;
         description: string;
         key: string;
-        value: boolean;
     };
 
-    let toggles = {
+    let toggles: { [key: string]: ConfigToggle } = {
         translate: {
             label: "Translate",
             description: "Translate the recorded audio to english",

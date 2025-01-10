@@ -16,8 +16,6 @@ use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
 use warp::Filter;
 
-static MODEL_PATH: &str = "../rust/models/ggml-large-v3-turbo-q8_0.bin";
-
 #[derive(RustEmbed)]
 #[folder = "../build"]
 struct Static;
@@ -70,6 +68,11 @@ fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_v
     println!("{:?} set_appstate", SystemTime::now());
     let mut current_state = app_state.lock().unwrap();
     new_value.generation += 1;
+
+    if (new_value.model_path != current_state.model_path) {
+        setup_whisper_manager(&app, new_value.clone());
+    }
+
     *current_state = new_value.clone();
 
     app.emit("appstate_update", current_state.clone())
@@ -167,6 +170,21 @@ where
     }
 }
 
+fn setup_whisper_manager(app: &AppHandle, state: AppState) {
+    if state.model_path == "" {
+        println!("empty model path, skipping manager creation");
+        return;
+    }
+
+    println!("Model path {}", state.model_path);
+
+    println!("creating whisper context");
+
+    let whisper_manager = WhisperManager::new(state.model_path.clone().as_str(), true).unwrap();
+
+    app.manage(Mutex::new(whisper_manager));
+}
+
 pub fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -183,16 +201,8 @@ pub fn main() {
             let initial_state: AppState =
                 get_config(app, "appstate.json", "object", AppState::default());
 
-            // let initial_state: AppState = serde_json::from_str(&appstate_json).unwrap();
+            setup_whisper_manager(app.handle(), initial_state.clone());
 
-            println!("Model path {}", initial_state.model_path);
-
-            println!("creating whisper context");
-
-            let whisper_manager =
-                WhisperManager::new(initial_state.model_path.clone().as_str(), true).unwrap();
-
-            app.manage(Mutex::new(whisper_manager));
             app.manage(Mutex::new(initial_state));
 
             let _server_handle = tauri::async_runtime::spawn(async move {
