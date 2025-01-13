@@ -64,14 +64,14 @@ impl WhisperManager {
         {
             let prefs = self.params.lock().unwrap();
             language = prefs.language.clone();
-            params.set_suppress_blank(prefs.suppress_blanks);
-            params.set_print_special(prefs.print_special);
-            params.set_print_progress(prefs.print_progress);
-            params.set_token_timestamps(prefs.token_timestamps);
-            params.set_single_segment(prefs.single_segment);
-            params.set_split_on_word(prefs.split_on_word);
-            params.set_tdrz_enable(prefs.tdrz_enable);
-            params.set_translate(prefs.translate);
+            params.set_suppress_blank(prefs.toggles.suppress_blanks);
+            params.set_print_special(prefs.toggles.print_special);
+            params.set_print_progress(prefs.toggles.print_progress);
+            params.set_token_timestamps(prefs.toggles.token_timestamps);
+            params.set_single_segment(prefs.toggles.single_segment);
+            params.set_split_on_word(prefs.toggles.split_on_word);
+            params.set_tdrz_enable(prefs.toggles.tdrz_enable);
+            params.set_translate(prefs.toggles.translate);
             params.set_language(Some(language.as_str()));
 
             println!("params: {:#?}", prefs);

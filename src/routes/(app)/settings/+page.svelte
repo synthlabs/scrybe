@@ -5,12 +5,10 @@
     import { Button } from "$lib/components/ui/button/index.ts";
     import { Switch } from "$lib/components/ui/switch/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
-    import { load, Store } from "@tauri-apps/plugin-store";
-    import { invoke } from "@tauri-apps/api/core";
     import AudioDevice from "$lib/components/audio-device.svelte";
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy } from "svelte";
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$bindings/defaults";
     import type { AppState } from "$bindings/AppState";
@@ -219,7 +217,9 @@
                 <div class="px-2">
                     <Switch
                         id={name}
-                        bind:checked={store.object.whisper_params[setting.key]}
+                        bind:checked={store.object.whisper_params.toggles[
+                            setting.key
+                        ]}
                         aria-labelledby="{name}-label"
                     />
                 </div>

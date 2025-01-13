@@ -36,11 +36,20 @@ pub struct OverlayConfig {
     pub id: String,
     #[ts(type = "\"left\" | \"center\" | \"right\"")]
     pub text_alignment: String,
+    pub background_color: String,
+    pub transparency: i32,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
 pub struct WhisperParams {
+    pub toggles: WhisperToggles,
+    pub language: String,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[ts(export)]
+pub struct WhisperToggles {
     pub translate: bool,
     pub suppress_blanks: bool,
     pub print_special: bool,
@@ -49,5 +58,4 @@ pub struct WhisperParams {
     pub single_segment: bool,
     pub split_on_word: bool,
     pub tdrz_enable: bool,
-    pub language: String,
 }

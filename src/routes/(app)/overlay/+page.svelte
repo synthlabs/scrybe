@@ -18,6 +18,10 @@
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
 
+    let color = $state("#030712");
+
+    $inspect(color);
+
     // onMount(async () => {
     //     // const store = await load("overlay.json", { autoSave: true });
     //     // config.text_alignment = await get_store_value(
@@ -42,7 +46,9 @@
     <Separator />
     <div class="space-y-4">
         <div class="bg-checkered h-32 w-full border-2 border-primary">
-            <TextOverlay justify={store.object.overlay_config.text_alignment}
+            <TextOverlay
+                justify={store.object.overlay_config.text_alignment}
+                background={color}
             ></TextOverlay>
         </div>
         <div class="flex flex-col gap-2 pt-4">
@@ -95,7 +101,7 @@
                 </button>
             </div>
         </div>
-        <div class="">url</div>
+        <div class=""><input type="color" bind:value={color} /></div>
     </div>
 </div>
 

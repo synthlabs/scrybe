@@ -2,7 +2,7 @@ use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::{AppState, WhisperParams},
+    types::{AppState, WhisperParams, WhisperToggles},
     whisper::{Batch, WhisperManager},
 };
 
@@ -37,14 +37,16 @@ async fn set_params(
     let mut whisper_manager = state.lock().unwrap();
 
     let params = WhisperParams {
-        translate,
-        suppress_blanks,
-        print_special,
-        print_progress,
-        token_timestamps,
-        single_segment,
-        split_on_word,
-        tdrz_enable,
+        toggles: WhisperToggles {
+            translate,
+            suppress_blanks,
+            print_special,
+            print_progress,
+            token_timestamps,
+            single_segment,
+            split_on_word,
+            tdrz_enable,
+        },
         language,
     };
     println!("setting params: {:?}", params);
