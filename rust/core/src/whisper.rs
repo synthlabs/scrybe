@@ -32,7 +32,6 @@ pub struct WhisperManager {
     ctx: WhisperContext,
     last_prompt: String,
     segment_index: i128,
-    params: Mutex<WhisperParams>,
 }
 
 impl WhisperManager {
@@ -46,36 +45,28 @@ impl WhisperManager {
             ctx,
             last_prompt: "".to_owned(),
             segment_index: 0,
-            params: WhisperParams::default().into(),
         })
-    }
-
-    pub fn set_params(&mut self, new_params: WhisperParams) {
-        let mut params = self.params.lock().unwrap();
-        *params = new_params;
     }
 
     pub fn process_samples(
         &mut self,
         samples: Vec<f32>,
+        params: WhisperParams,
     ) -> Result<Vec<WhisperSegment>, anyhow::Error> {
-        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        let language;
-        {
-            let prefs = self.params.lock().unwrap();
-            language = prefs.language.clone();
-            params.set_suppress_blank(prefs.toggles.suppress_blanks);
-            params.set_print_special(prefs.toggles.print_special);
-            params.set_print_progress(prefs.toggles.print_progress);
-            params.set_token_timestamps(prefs.toggles.token_timestamps);
-            params.set_single_segment(prefs.toggles.single_segment);
-            params.set_split_on_word(prefs.toggles.split_on_word);
-            params.set_tdrz_enable(prefs.toggles.tdrz_enable);
-            params.set_translate(prefs.toggles.translate);
-            params.set_language(Some(language.as_str()));
+        let mut full_params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-            println!("params: {:#?}", prefs);
-        }
+        println!("params: {:#?}", params);
+
+        full_params.set_suppress_blank(params.toggles.suppress_blanks);
+        full_params.set_print_special(params.toggles.print_special);
+        full_params.set_print_progress(params.toggles.print_progress);
+        full_params.set_token_timestamps(params.toggles.token_timestamps);
+        full_params.set_single_segment(params.toggles.single_segment);
+        full_params.set_split_on_word(params.toggles.split_on_word);
+        full_params.set_tdrz_enable(params.toggles.tdrz_enable);
+        full_params.set_translate(params.toggles.translate);
+        full_params.set_language(Some(params.language.as_str()));
+
         // if !self.last_prompt.is_empty() {
         //     params.set_initial_prompt(&self.last_prompt.clone());
         // }
@@ -83,7 +74,7 @@ impl WhisperManager {
         let start = SystemTime::now();
 
         let mut state = self.ctx.create_state().expect("failed to create state");
-        state.full(params, &samples[..])?;
+        state.full(full_params, &samples[..])?;
 
         let end = SystemTime::now();
 

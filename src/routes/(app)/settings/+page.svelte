@@ -23,9 +23,6 @@
 
     onDestroy(() => {
         console.log("unsubbing - settings page");
-        if (un_sub) {
-            un_sub();
-        }
     });
 
     type ConfigToggle = {
@@ -101,15 +98,6 @@
             store.object.model_path = selected;
         }
     };
-
-    let subscribe = async () => {
-        console.log("subbing to appstate running only updates");
-        un_sub = await listen<AppState>("appstate_update", (event) => {
-            store.object.running = event.payload.running;
-        });
-    };
-
-    subscribe();
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">

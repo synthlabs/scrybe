@@ -4,4 +4,4 @@ import type { AudioFormat } from "./AudioFormat";
 import type { OverlayConfig } from "./OverlayConfig";
 import type { WhisperParams } from "./WhisperParams";
 
-export type AppState = { generation: number, running: boolean, current_device: AudioDevice, audio_format: AudioFormat, model_path: string, audio_buffer_size: number, overlay_config: OverlayConfig, whisper_params: WhisperParams, };
+export type AppState = { generation: number, current_device: AudioDevice, audio_format: AudioFormat, model_path: string, audio_buffer_size: number, overlay_config: OverlayConfig, whisper_params: WhisperParams, };

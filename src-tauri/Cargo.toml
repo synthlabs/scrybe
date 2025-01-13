@@ -31,6 +31,9 @@ ts-rs = "10.1.0"
 tauri-plugin-dialog = "2"
 
 scrybe_core = { path = "../rust/core" }
+tokio-stream = "0.1.17"
+futures = "0.3.31"
+uuid = "1.11.1"
 
 # Windows
 [target.'cfg(windows)'.dependencies]

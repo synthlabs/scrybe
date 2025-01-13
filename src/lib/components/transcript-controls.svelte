@@ -14,8 +14,11 @@
     store.sync = false;
     store.init();
 
+    let transcribe_running = $state(false);
     let debounce = $state(false);
     let disabled_state = $derived(debounce || store.object.model_path === "");
+
+    $inspect(transcribe_running);
 
     let un_sub: UnlistenFn;
 
@@ -28,22 +31,21 @@
 
     const toggle_transcripts = () => {
         debounce = true;
-        if (store.object.running) {
+        if (transcribe_running) {
             console.log("Currently running, stopping...");
             invoke("stop_transcribe");
-            store.object.running = false;
         } else {
             console.log("Currently NOT running, starting...");
             invoke("start_transcribe");
-            store.object.running = true;
         }
         setTimeout(() => (debounce = false), 1000);
     };
 
     let subscribe = async () => {
         console.log("subbing to appstate updates");
-        un_sub = await listen<AppState>("appstate_update", (event) => {
-            store.object = event.payload;
+        un_sub = await listen<boolean>("transcribe_running", (event) => {
+            console.log("transcribe_running event");
+            transcribe_running = event.payload;
         });
     };
 
@@ -51,7 +53,7 @@
 </script>
 
 <div class="flex gap-2 text-sm text-muted-foreground">
-    {#if store.object.running}
+    {#if transcribe_running}
         Lisening ({store.object.current_device.name})
     {:else}
         Not Listening
@@ -64,7 +66,7 @@
         onclick={toggle_transcripts}
         disabled={disabled_state}
     >
-        {#if store.object.running}
+        {#if transcribe_running}
             <LoaderCircle class="animate-spin text-primary" />
         {:else}
             <Play />
