@@ -1,8 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { load, Store } from "@tauri-apps/plugin-store";
 
-export class SyncedStore<T extends { generation: number }> {
+export class SyncedStore<T> {
     name: string;
     autosave: boolean = true;
     sync: boolean = true;
@@ -25,6 +24,7 @@ export class SyncedStore<T extends { generation: number }> {
             $effect.root(() => {
                 $effect(() => {
                     console.log("DEBUG [SyncedStore]: syncing...");
+
                     this.#store.set("object", { value: this.object });
 
                     invoke(`set_${this.name}`, { new_value: this.object });

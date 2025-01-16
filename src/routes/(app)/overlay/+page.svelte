@@ -122,7 +122,8 @@
                 <div id="bg-color" class="flex flex-grow flex-row items-center">
                     <input type="color" bind:value={bg_color} />
                     <Slider
-                        bind:value={transparency}
+                        type="single"
+                        bind:value={transparency as never}
                         max={100}
                         step={1}
                         class="w-72 px-2"

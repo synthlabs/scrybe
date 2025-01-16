@@ -2,7 +2,7 @@ use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::{AppState, WhisperParams, WhisperToggles},
+    types::{AppState, WhisperParams},
     whisper::{Batch, WhisperManager},
 };
 
@@ -77,7 +77,6 @@ fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_v
             .as_millis()
     );
     let mut current_state = app_state.lock().unwrap();
-    new_value.generation += 1;
 
     if new_value.model_path != current_state.model_path {
         setup_whisper_manager(&app, new_value.clone());

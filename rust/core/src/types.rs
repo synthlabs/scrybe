@@ -3,8 +3,6 @@ use ts_rs::TS;
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
 pub struct AppState {
-    #[ts(type = "number")]
-    pub generation: u64,
     pub current_device: AudioDevice,
     pub audio_format: AudioFormat,
     pub model_path: String,

@@ -13,6 +13,7 @@
     import { DefaultAppState } from "$bindings/defaults";
     import type { AppState } from "$bindings/AppState";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+    import { toast } from "svelte-sonner";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
