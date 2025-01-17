@@ -3,35 +3,12 @@ use std::{sync::Mutex, time::SystemTime};
 
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-use crate::types::WhisperParams;
-
-#[derive(serde::Serialize, Clone)]
-pub struct Batch {
-    pub segments: Vec<WhisperSegment>,
-}
-
-#[derive(serde::Serialize, Clone)]
-pub struct WhisperSegment {
-    _index: i128,
-    start_timestamp: i64,
-    end_timestamp: i64,
-    text: String,
-}
-
-impl fmt::Display for WhisperSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[{}-{}] {}",
-            self.start_timestamp, self.end_timestamp, self.text
-        )
-    }
-}
+use crate::types::{WhisperParams, WhisperSegment, WhisperText};
 
 pub struct WhisperManager {
     ctx: WhisperContext,
     last_prompt: String,
-    segment_index: i128,
+    segment_index: u64,
 }
 
 impl WhisperManager {
@@ -52,7 +29,7 @@ impl WhisperManager {
         &mut self,
         samples: Vec<f32>,
         params: WhisperParams,
-    ) -> Result<Vec<WhisperSegment>, anyhow::Error> {
+    ) -> Result<Vec<WhisperText>, anyhow::Error> {
         let mut full_params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
         println!("params: {:#?}", params);
@@ -83,18 +60,20 @@ impl WhisperManager {
             end.duration_since(start).unwrap().as_millis()
         );
 
-        let mut segments: Vec<WhisperSegment> = Vec::new();
+        let mut segments: Vec<WhisperText> = Vec::new();
         let num_segments = state.full_n_segments()?;
         for i in 0..num_segments {
             let segment = state.full_get_segment_text(i)?;
-            let start_timestamp = state.full_get_segment_t0(i)?;
-            let end_timestamp = state.full_get_segment_t1(i)?;
-            segments.push(WhisperSegment {
-                _index: self.segment_index,
-                start_timestamp,
-                end_timestamp,
+            let start_time = state.full_get_segment_t0(i)?;
+            let end_time = state.full_get_segment_t1(i)?;
+            segments.push(WhisperText {
+                index: self.segment_index,
+                start_time,
+                end_time,
                 text: segment.clone(),
             });
+
+            println!("{}", segment);
 
             let new_prompt = segment.clone();
             if new_prompt != self.last_prompt {
@@ -106,10 +85,10 @@ impl WhisperManager {
             // TODO: format those as json
 
             if state.full_get_segment_speaker_turn_next(i) {
-                segments.push(WhisperSegment {
-                    _index: 0,
-                    start_timestamp: 0,
-                    end_timestamp: 0,
+                segments.push(WhisperText {
+                    index: 0,
+                    start_time: 0,
+                    end_time: 0,
                     text: "<Speaker change>".to_owned(),
                 });
             }

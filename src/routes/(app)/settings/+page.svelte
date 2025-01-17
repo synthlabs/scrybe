@@ -12,8 +12,8 @@
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$bindings/defaults";
     import type { AppState } from "$bindings/AppState";
-    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import { toast } from "svelte-sonner";
+    import { type UnlistenFn } from "@tauri-apps/api/event";
+    import type { WhisperToggles } from "$bindings/WhisperToggles";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -32,7 +32,15 @@
         key: string;
     };
 
-    let toggles: { [key: string]: ConfigToggle } = {
+    type IndexedToggle = WhisperToggles & {
+        [key: string]: any; // Index signature
+    };
+
+    let store_toggles = $derived(
+        store.object.whisper_params.toggles as IndexedToggle,
+    );
+
+    let toggle_metadata: { [key: string]: ConfigToggle } = {
         translate: {
             label: "Translate",
             description: "Translate the recorded audio to english",
@@ -114,17 +122,17 @@
         <RecordingFormats />
         <div class="max-w-72 space-y-2 pb-4">
             <Label
-                id="audio_buffer_size-label"
-                for="audio_buffer_size"
+                id="audio_segment_size-label"
+                for="audio_segment_size"
                 class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-                Audio Buffer Size
+                Audio Segment Size (seconds)
             </Label>
             <Input
                 type="number"
-                id="audio_buffer_size"
+                id="audio_segment_size"
                 class="max-w-24"
-                bind:value={store.object.audio_buffer_size}
+                bind:value={store.object.audio_segment_size}
             />
         </div>
     </div>
@@ -187,7 +195,7 @@
                 </Select.Content>
             </Select.Root>
         </div>
-        {#each Object.entries(toggles) as [name, setting]}
+        {#each Object.entries(toggle_metadata) as [name, setting]}
             <div
                 class="flex max-w-lg flex-row items-center justify-between space-y-2 rounded-lg border p-4"
             >
@@ -206,9 +214,7 @@
                 <div class="px-2">
                     <Switch
                         id={name}
-                        bind:checked={store.object.whisper_params.toggles[
-                            setting.key
-                        ]}
+                        bind:checked={store_toggles[setting.key]}
                         aria-labelledby="{name}-label"
                     />
                 </div>

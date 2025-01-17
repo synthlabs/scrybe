@@ -1,18 +1,18 @@
 import type { AppState } from "./AppState";
 
 export let DefaultAppState: AppState = {
-    running: false,
     current_device: {
         name: "",
         id: "",
     },
-    audio_buffer_size: 2,
+    audio_segment_size: 2,
     overlay_config: {
         name: "",
         id: "",
         text_alignment: "left",
+        background_color: "",
+        transparency: 0,
     },
-    generation: 1,
     whisper_params: {
         toggles: {
             translate: false,

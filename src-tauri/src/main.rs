@@ -2,8 +2,8 @@ use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::{AppState, WhisperParams},
-    whisper::{Batch, WhisperManager},
+    types::{AppState, WhisperParams, WhisperSegment},
+    whisper::WhisperManager,
 };
 
 use serde::Deserialize;
@@ -13,10 +13,11 @@ use std::{
     convert::Infallible,
     env,
     sync::{Arc, Mutex},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
+use uuid::Uuid;
 use warp::{reject::Rejection, ws::Message, Filter};
 
 use tokio::sync::{mpsc, RwLock};
@@ -26,6 +27,8 @@ mod ws;
 
 type WSResult<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<RwLock<HashMap<String, Client>>>;
+
+const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -37,6 +40,7 @@ pub struct Client {
 #[derive(Debug, Clone)]
 struct InternalState {
     transcribe_running: bool,
+    audio_step_size: u64,
 }
 
 #[derive(RustEmbed)]
@@ -68,7 +72,7 @@ fn get_transcribe_running(state: State<'_, Mutex<InternalState>>) -> bool {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, mut new_value: AppState) {
+fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, new_value: AppState) {
     println!(
         "{:?} set_appstate",
         SystemTime::now()
@@ -117,8 +121,28 @@ async fn start_transcribe(
 
     audio_manager.play_stream().expect("unable play stream");
 
+    let mut current_segment = WhisperSegment {
+        id: Uuid::new_v4().to_string(),
+        index: 0,
+        items: vec![],
+    };
+    let mut segment_start_time = SystemTime::now();
+    let mut samples: Vec<f32> = Vec::new();
     loop {
+        let mut step_size = 0;
+        let mut segment_size = 0;
+        let mut whisper_params = WhisperParams::default();
+        if let Ok(state) = app_state.lock() {
+            println!("app state syncing");
+            segment_size = state.audio_segment_size.try_into().unwrap_or(2);
+            whisper_params = state.whisper_params.clone();
+            println!("segment duration {}", segment_size);
+        }
+
         if let Ok(state) = internal_state.lock() {
+            println!("internal app state syncing");
+            step_size = state.audio_step_size;
+
             println!("checking running status");
             if !state.transcribe_running {
                 println!("stopping");
@@ -126,19 +150,9 @@ async fn start_transcribe(
             }
         }
 
-        let mut duration = 0;
-        let mut whisper_params = WhisperParams::default();
-        if let Ok(state) = app_state.lock() {
-            println!("app state syncing");
-            duration = state.audio_buffer_size.try_into().unwrap_or(2);
-            whisper_params = state.whisper_params.clone();
-            println!("duration {}", duration);
-        }
+        println!("waiting for {}ms", step_size);
+        std::thread::sleep(std::time::Duration::from_millis(step_size));
 
-        println!("waiting for {}s", duration);
-        std::thread::sleep(std::time::Duration::from_secs(duration));
-
-        let mut samples: Vec<f32> = Vec::new();
         println!("copying buffer");
         if let Ok(mut guard) = writer.lock() {
             samples.append(&mut guard);
@@ -157,18 +171,33 @@ async fn start_transcribe(
                 }
             };
 
-            app.emit("new_batch", Batch { segments })
+            current_segment.items = segments;
+
+            app.emit("segment_update", current_segment.clone())
                 .expect("failed to emit event");
         }
-
         println!(
-            "trimming samples, total {}, removing {}",
-            samples.len(),
-            (samples.len() - 2000)
+            "{:#?} elapsed since start",
+            segment_start_time.elapsed().unwrap()
         );
 
-        // leave the last half second of the previous sample
-        let _ = samples.drain(..(samples.len() - 2000));
+        if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+            println!(
+                "trimming samples, total {}, removing {}",
+                samples.len(),
+                (samples.len() - 500)
+            );
+
+            // leave the last half second of the previous sample
+            let _ = samples.drain(..(samples.len() - 500));
+
+            segment_start_time = SystemTime::now();
+            current_segment = WhisperSegment {
+                id: Uuid::new_v4().to_string(),
+                index: current_segment.index + 1,
+                items: vec![],
+            };
+        }
     }
     #[allow(unreachable_code)]
     Ok(())
@@ -232,6 +261,7 @@ pub fn main() {
             app.manage(Mutex::new(initial_state));
             app.manage(Mutex::new(InternalState {
                 transcribe_running: false,
+                audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             }));
 
             let ws_clients: Clients = Arc::new(RwLock::new(HashMap::new()));
