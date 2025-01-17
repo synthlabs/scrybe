@@ -45,7 +45,7 @@ impl WhisperManager {
         full_params.set_language(Some(params.language.as_str()));
 
         // if !self.last_prompt.is_empty() {
-        //     params.set_initial_prompt(&self.last_prompt.clone());
+        //     full_params.set_initial_prompt(&self.last_prompt.clone());
         // }
 
         let start = SystemTime::now();

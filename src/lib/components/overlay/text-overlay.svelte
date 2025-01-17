@@ -1,4 +1,8 @@
 <script lang="ts">
+    import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+    import { onDestroy, onMount } from "svelte";
+
     function hexToRgb(hex: string) {
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
         var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -22,14 +26,16 @@
 
     interface Props {
         justify?: "left" | "center" | "right" | undefined;
-        text?: string;
+        test_text?: string;
+        test_mode?: boolean;
         background?: string;
         transparency?: number;
     }
 
     let {
         justify,
-        text = "I'm an example of a subtitle, and how I will look on the overlay browser source.",
+        test_text = "I'm an example of a subtitle, and how I will look on the overlay browser source.",
+        test_mode = false,
         background = "",
         transparency = 100,
     }: Props = $props();
@@ -40,6 +46,27 @@
     let inner_style = $derived(
         `--tw-bg-opacity: ${derived_opacity}; background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / var(--tw-bg-opacity, 1));`,
     );
+    let current_segment: WhisperSegment = $state({
+        id: "",
+        index: 0,
+        items: [],
+    });
+    let has_segment = $derived(current_segment.items.length > 0);
+
+    let un_sub: UnlistenFn;
+
+    onMount(async () => {
+        console.log("subbing to transcript");
+        un_sub = await listen<WhisperSegment>("segment_update", (event) => {
+            console.log(event.payload);
+            current_segment = event.payload;
+        });
+    });
+
+    onDestroy(() => {
+        console.log("unsubbing");
+        un_sub();
+    });
 </script>
 
 <div
@@ -50,6 +77,14 @@
         class="flex h-full w-full flex-col justify-center rounded-xl p-4"
         style={inner_style}
     >
-        {text}
+        {#if has_segment}
+            {#each current_segment.items as segment (segment.index)}
+                <div class="w-full text-wrap">
+                    {segment.text}
+                </div>
+            {/each}
+        {:else}
+            {test_text}
+        {/if}
     </div>
 </div>

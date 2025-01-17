@@ -5,7 +5,12 @@ export let DefaultAppState: AppState = {
         name: "",
         id: "",
     },
-    audio_segment_size: 2,
+    audio_format: {
+        name: "",
+        id: "",
+    },
+    model_path: "",
+    audio_segment_size: 0,
     overlay_config: {
         name: "",
         id: "",
@@ -26,9 +31,5 @@ export let DefaultAppState: AppState = {
         },
         language: "",
     },
-    audio_format: {
-        name: "",
-        id: "",
-    },
-    model_path: "",
+    advanced_settings: {},
 };

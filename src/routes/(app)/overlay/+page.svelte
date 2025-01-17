@@ -6,24 +6,16 @@
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Slider } from "$lib/components/ui/slider/index.ts";
-    import { Input } from "$lib/components/ui/input/index.ts";
     import { cn } from "$lib/utils";
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$bindings/defaults";
-    import type { OverlayConfig } from "$bindings/OverlayConfig";
-    import { invoke } from "@tauri-apps/api/core";
-    import { onMount } from "svelte";
-    import { load, Store } from "@tauri-apps/plugin-store";
     import type { AppState } from "$bindings/AppState";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
 
-    let bg_color = $state("#030712");
-    let transparency = $state(75);
-
-    $inspect(bg_color);
-    $inspect(store.object.overlay_config.text_alignment);
+    $inspect(store.object.overlay_config.background_color);
+    $inspect(store.object.overlay_config.transparency);
 
     // onMount(async () => {
     //     // const store = await load("overlay.json", { autoSave: true });
@@ -51,8 +43,8 @@
         <div class="bg-checkered h-32 w-full border-2 border-primary">
             <TextOverlay
                 justify={store.object.overlay_config.text_alignment}
-                background={bg_color}
-                {transparency}
+                background={store.object.overlay_config.background_color}
+                transparency={store.object.overlay_config.transparency}
             ></TextOverlay>
         </div>
         <div class="flex w-full flex-row flex-wrap gap-4">
@@ -120,10 +112,15 @@
                     Background Color
                 </Label>
                 <div id="bg-color" class="flex flex-grow flex-row items-center">
-                    <input type="color" bind:value={bg_color} />
+                    <input
+                        type="color"
+                        bind:value={
+                            store.object.overlay_config.background_color
+                        }
+                    />
                     <Slider
                         type="single"
-                        bind:value={transparency}
+                        bind:value={store.object.overlay_config.transparency}
                         max={100}
                         step={1}
                         class="w-72 px-2"

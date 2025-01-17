@@ -11,14 +11,6 @@
     onMount(async () => {
         console.log("subbing to transcript");
         un_sub = await listen<WhisperSegment>("segment_update", (event) => {
-            // event.event is the event name (useful if you want to use a single callback fn for multiple event types)
-            // event.payload is the payload object
-            // batches.unshift(event.payload);
-
-            // if (batches.length > 15) {
-            //     batches.pop();
-            // }
-
             console.log(event.payload);
             current_segment = event.payload;
         });
