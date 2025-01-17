@@ -20,10 +20,10 @@
     store.init();
 
     let bg_color = $state("#030712");
-    let transparency = $state([75]);
+    let transparency = $state(75);
 
     $inspect(bg_color);
-    $inspect(transparency);
+    $inspect(store.object.overlay_config.text_alignment);
 
     // onMount(async () => {
     //     // const store = await load("overlay.json", { autoSave: true });
@@ -52,7 +52,7 @@
             <TextOverlay
                 justify={store.object.overlay_config.text_alignment}
                 background={bg_color}
-                transparency={transparency[0]}
+                {transparency}
             ></TextOverlay>
         </div>
         <div class="flex w-full flex-row flex-wrap gap-4">
@@ -67,7 +67,7 @@
                 <div id="align" class="row flex flex-row">
                     <button
                         class={cn(
-                            "rounded-md rounded-r-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
+                            "rounded-md rounded-r-none border border-transparent px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
                             store.object.overlay_config.text_alignment == "left"
                                 ? "bg-accent"
                                 : "bg-secondary",
@@ -123,7 +123,7 @@
                     <input type="color" bind:value={bg_color} />
                     <Slider
                         type="single"
-                        bind:value={transparency as never}
+                        bind:value={transparency}
                         max={100}
                         step={1}
                         class="w-72 px-2"

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import { onDestroy } from "svelte";
+    import { onDestroy, onMount } from "svelte";
 
     type Batch = {
         segments: WhisperSegment[];
@@ -18,7 +18,7 @@
 
     let un_sub: UnlistenFn;
 
-    let subscribe = async () => {
+    onMount(async () => {
         console.log("subbing to transcript");
         un_sub = await listen<Batch>("new_batch", (event) => {
             // event.event is the event name (useful if you want to use a single callback fn for multiple event types)
@@ -29,9 +29,7 @@
                 batches.pop();
             }
         });
-    };
-
-    subscribe();
+    });
 
     onDestroy(() => {
         console.log("unsubbing");
