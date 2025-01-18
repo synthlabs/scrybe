@@ -90,14 +90,15 @@ impl AudioManager {
 
         Ok(AudioManager {
             _host: host,
-            _device: device,
-            _config: config,
+            _device: device.clone(),
+            _config: config.clone(),
             stream,
         })
     }
 
     pub fn play_stream(&mut self) -> Result<(), anyhow::Error> {
         self.stream.play()?;
+        println!("stream started");
         Ok(())
     }
 
@@ -110,6 +111,7 @@ impl AudioManager {
         T: Sample,
         U: Sample + hound::Sample + FromSample<T>,
     {
+        // println!("write_input_data");
         // Convert the input samples to f32
         let samples: Vec<f32> = input
             .iter()

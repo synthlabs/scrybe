@@ -1,3 +1,4 @@
+use futures::StreamExt;
 use rust_embed::RustEmbed;
 
 use scrybe_core::{
@@ -9,8 +10,6 @@ use scrybe_core::{
 use serde::Deserialize;
 use serde_json::json;
 use std::{
-    collections::HashMap,
-    convert::Infallible,
     env,
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -18,17 +17,15 @@ use std::{
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
-use warp::{reject::Rejection, ws::Message, Filter};
+use warp::{ws::Message, Filter};
 
-use tokio::sync::{mpsc, RwLock};
-
-mod handler;
-mod ws;
-
-type WSResult<T> = std::result::Result<T, Rejection>;
-type Clients = Arc<RwLock<HashMap<String, Client>>>;
+use tokio::sync::mpsc;
 
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 250; //ms
+
+type SharedAppState = Arc<Mutex<AppState>>;
+type SharedInternalState = Arc<Mutex<InternalState>>;
+type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -48,7 +45,7 @@ struct InternalState {
 struct Static;
 
 #[tauri::command]
-fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
+fn get_appstate(app_state: State<'_, SharedAppState>) -> AppState {
     println!(
         "{:?} get_appstate",
         SystemTime::now()
@@ -60,7 +57,7 @@ fn get_appstate(app_state: State<'_, Mutex<AppState>>) -> AppState {
 }
 
 #[tauri::command]
-fn get_transcribe_running(state: State<'_, Mutex<InternalState>>) -> bool {
+fn get_transcribe_running(state: State<'_, SharedInternalState>) -> bool {
     println!(
         "{:?} get_transcribe_running",
         SystemTime::now()
@@ -72,7 +69,7 @@ fn get_transcribe_running(state: State<'_, Mutex<InternalState>>) -> bool {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, new_value: AppState) {
+fn set_appstate(app: AppHandle, app_state: State<'_, SharedAppState>, new_value: AppState) {
     println!(
         "{:?} set_appstate",
         SystemTime::now()
@@ -93,7 +90,7 @@ fn set_appstate(app: AppHandle, app_state: State<'_, Mutex<AppState>>, new_value
 }
 
 #[tauri::command]
-fn stop_transcribe(app: AppHandle, internal_state: State<'_, Mutex<InternalState>>) {
+fn stop_transcribe(app: AppHandle, internal_state: State<'_, SharedInternalState>) {
     let mut state = internal_state.lock().unwrap();
     state.transcribe_running = false;
     app.emit("transcribe_running", state.transcribe_running)
@@ -103,9 +100,9 @@ fn stop_transcribe(app: AppHandle, internal_state: State<'_, Mutex<InternalState
 #[tauri::command]
 async fn start_transcribe(
     app: AppHandle,
-    wm_state: State<'_, Mutex<WhisperManager>>,
-    app_state: State<'_, Mutex<AppState>>,
-    internal_state: State<'_, Mutex<InternalState>>,
+    wm_state: State<'_, SharedWhisperManager>,
+    app_state: State<'_, SharedAppState>,
+    internal_state: State<'_, SharedInternalState>,
 ) -> Result<(), ()> {
     let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
     let mut audio_manager =
@@ -229,11 +226,44 @@ fn setup_whisper_manager(app: &AppHandle, state: AppState) {
 
     let whisper_manager = WhisperManager::new(state.model_path.clone().as_str(), true).unwrap();
 
-    app.manage(Mutex::new(whisper_manager));
+    app.manage(Arc::new(Mutex::new(whisper_manager)));
 }
 
-fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = Infallible> + Clone {
-    warp::any().map(move || clients.clone())
+async fn handle_ws_client(websocket: warp::ws::WebSocket) {
+    println!("handling ws client");
+
+    // receiver - this server, from websocket client
+    // sender - diff clients connected to this server
+    let (_sender, mut receiver) = websocket.split();
+
+    while let Some(body) = receiver.next().await {
+        let message = match body {
+            Ok(msg) => msg,
+            Err(e) => {
+                println!("error reading message on websocket: {}", e);
+                break;
+            }
+        };
+
+        handle_websocket_message(message).await;
+    }
+
+    // // unlisten to the event using the `id` returned on the `listen_global` function
+    // // a `once_global` API is also exposed on the `App` struct
+    // app.unlisten(id);
+    println!("client disconnected");
+}
+
+async fn handle_websocket_message(message: Message) {
+    // Skip any non-Text messages...
+    let msg = if let Ok(s) = message.to_str() {
+        s
+    } else {
+        println!("ping-pong");
+        return;
+    };
+
+    println!("got request {}", msg);
 }
 
 pub fn main() {
@@ -258,13 +288,11 @@ pub fn main() {
 
             setup_whisper_manager(app.handle(), initial_state.clone());
 
-            app.manage(Mutex::new(initial_state));
-            app.manage(Mutex::new(InternalState {
+            app.manage(Arc::new(Mutex::new(initial_state)));
+            app.manage(Arc::new(Mutex::new(InternalState {
                 transcribe_running: false,
                 audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
-            }));
-
-            let ws_clients: Clients = Arc::new(RwLock::new(HashMap::new()));
+            })));
 
             let _server_handle = tauri::async_runtime::spawn(async move {
                 let static_files = warp::path("app")
@@ -274,16 +302,14 @@ pub fn main() {
 
                 let ws_route = warp::path("ws")
                     .and(warp::ws())
-                    .and(warp::path::param())
-                    .and(with_clients(ws_clients.clone()))
-                    .and_then(handler::ws_handler);
+                    .map(move |ws: warp::ws::Ws| ws.on_upgrade(|ws| handle_ws_client(ws)));
 
                 let cors = warp::cors()
                     .allow_any_origin()
                     .allow_methods(vec!["GET", "POST"])
                     .allow_headers(vec!["Content-Type"]);
 
-                let routes = static_files.with(cors);
+                let routes = static_files.or(ws_route).with(cors);
                 warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
             });
 
