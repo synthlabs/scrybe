@@ -14,7 +14,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tauri::{App, AppHandle, Emitter, Manager, State};
+use tauri::{App, AppHandle, Emitter, Listener, Manager, State};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 use warp::{ws::Message, Filter};
@@ -26,13 +26,6 @@ const DEFAULT_AUDIO_STEP_SIZE: u64 = 250; //ms
 type SharedAppState = Arc<Mutex<AppState>>;
 type SharedInternalState = Arc<Mutex<InternalState>>;
 type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
-
-#[derive(Debug, Clone)]
-pub struct Client {
-    pub user_id: usize,
-    pub topics: Vec<String>,
-    pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
-}
 
 #[derive(Debug, Clone)]
 struct InternalState {
@@ -118,85 +111,99 @@ async fn start_transcribe(
 
     audio_manager.play_stream().expect("unable play stream");
 
-    let mut current_segment = WhisperSegment {
-        id: Uuid::new_v4().to_string(),
-        index: 0,
-        items: vec![],
-    };
-    let mut segment_start_time = SystemTime::now();
-    let mut samples: Vec<f32> = Vec::new();
-    loop {
-        let mut step_size = 0;
-        let mut segment_size = 0;
-        let mut whisper_params = WhisperParams::default();
-        if let Ok(state) = app_state.lock() {
-            println!("app state syncing");
-            segment_size = state.audio_segment_size.try_into().unwrap_or(2);
-            whisper_params = state.whisper_params.clone();
-            println!("segment duration {}", segment_size);
-        }
+    let app_state_ref = Arc::clone(&app_state);
+    let internal_state_ref = Arc::clone(&internal_state);
+    let wm_state_ref = Arc::clone(&wm_state);
+    let writer_ref = writer.clone();
 
-        if let Ok(state) = internal_state.lock() {
-            println!("internal app state syncing");
-            step_size = state.audio_step_size;
-
-            println!("checking running status");
-            if !state.transcribe_running {
-                println!("stopping");
-                break;
+    tokio::spawn(async move {
+        let mut current_segment = WhisperSegment {
+            id: Uuid::new_v4().to_string(),
+            index: 0,
+            items: vec![],
+        };
+        let mut segment_start_time = SystemTime::now();
+        let mut samples: Vec<f32> = Vec::new();
+        loop {
+            let mut step_size = 0;
+            let mut segment_size = 0;
+            let mut whisper_params = WhisperParams::default();
+            if let Ok(state) = app_state_ref.lock() {
+                println!("app state syncing");
+                segment_size = state.audio_segment_size.try_into().unwrap_or(2);
+                whisper_params = state.whisper_params.clone();
+                println!("segment duration {}", segment_size);
             }
-        }
 
-        println!("waiting for {}ms", step_size);
-        std::thread::sleep(std::time::Duration::from_millis(step_size));
+            if let Ok(state) = internal_state_ref.lock() {
+                println!("internal app state syncing");
+                step_size = state.audio_step_size;
 
-        println!("copying buffer");
-        if let Ok(mut guard) = writer.lock() {
-            samples.append(&mut guard);
-        }
-        println!("processing {}", samples.len());
-
-        {
-            println!("getting whisper manager");
-            let mut whisper_manager = wm_state.lock().unwrap();
-
-            let segments = match whisper_manager.process_samples(samples.clone(), whisper_params) {
-                Ok(segments) => segments,
-                Err(err) => {
-                    println!("ERROR {}", err);
-                    continue;
+                println!("checking running status");
+                if !state.transcribe_running {
+                    println!("stopping");
+                    break;
                 }
-            };
+            }
 
-            current_segment.items = segments;
+            println!("waiting for {}ms", step_size);
+            std::thread::sleep(std::time::Duration::from_millis(step_size));
 
-            app.emit("segment_update", current_segment.clone())
-                .expect("failed to emit event");
-        }
-        println!(
-            "{:#?} elapsed since start",
-            segment_start_time.elapsed().unwrap()
-        );
+            println!("copying buffer");
+            if let Ok(mut guard) = writer_ref.lock() {
+                samples.append(&mut guard);
+            }
 
-        if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+            println!("processing {}", samples.len());
+            if samples.len() == 0 {
+                panic!("samples still not working");
+            }
+
+            {
+                println!("getting whisper manager");
+                let mut whisper_manager = wm_state_ref.lock().unwrap();
+
+                let segments =
+                    match whisper_manager.process_samples(samples.clone(), whisper_params) {
+                        Ok(segments) => segments,
+                        Err(err) => {
+                            println!("ERROR {}", err);
+                            continue;
+                        }
+                    };
+
+                current_segment.items = segments;
+
+                app.emit("segment_update", current_segment.clone())
+                    .expect("failed to emit event");
+            }
             println!(
-                "trimming samples, total {}, removing {}",
-                samples.len(),
-                (samples.len() - 500)
+                "{:#?} elapsed since start",
+                segment_start_time.elapsed().unwrap()
             );
 
-            // leave the last half second of the previous sample
-            let _ = samples.drain(..(samples.len() - 500));
+            if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+                println!(
+                    "trimming samples, total {}, removing {}",
+                    samples.len(),
+                    (samples.len() - 500)
+                );
 
-            segment_start_time = SystemTime::now();
-            current_segment = WhisperSegment {
-                id: Uuid::new_v4().to_string(),
-                index: current_segment.index + 1,
-                items: vec![],
-            };
+                // leave the last half second of the previous sample
+                let _ = samples.drain(..(samples.len() - 500));
+
+                segment_start_time = SystemTime::now();
+                current_segment = WhisperSegment {
+                    id: Uuid::new_v4().to_string(),
+                    index: current_segment.index + 1,
+                    items: vec![],
+                };
+            }
         }
-    }
-    #[allow(unreachable_code)]
+    });
+
+    println!("done with transcribe command");
+
     Ok(())
 }
 
@@ -301,6 +308,7 @@ pub fn main() {
                     .boxed();
 
                 let ws_route = warp::path("ws")
+                    // The `ws()` filter will prepare the Websocket handshake.
                     .and(warp::ws())
                     .map(move |ws: warp::ws::Ws| ws.on_upgrade(|ws| handle_ws_client(ws)));
 

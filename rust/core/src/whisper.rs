@@ -1,5 +1,6 @@
-use crate::types::{WhisperParams, WhisperText};
 use std::time::SystemTime;
+
+use crate::types::{WhisperParams, WhisperText};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 pub struct WhisperManager {
