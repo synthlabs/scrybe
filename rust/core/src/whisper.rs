@@ -1,9 +1,6 @@
-use core::fmt;
-use std::{sync::Mutex, time::SystemTime};
-
+use crate::types::{WhisperParams, WhisperText};
+use std::time::SystemTime;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
-
-use crate::types::{WhisperParams, WhisperSegment, WhisperText};
 
 pub struct WhisperManager {
     ctx: WhisperContext,

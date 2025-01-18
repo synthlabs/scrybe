@@ -34,6 +34,7 @@
             current_segment = event.payload;
         });
     });
+
     onDestroy(() => {
         console.log("unsubbing");
         un_sub();
