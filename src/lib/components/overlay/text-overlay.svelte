@@ -1,7 +1,5 @@
 <script lang="ts">
     import type { WhisperSegment } from "$bindings/WhisperSegment";
-    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import { onDestroy, onMount } from "svelte";
 
     function hexToRgb(hex: string) {
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
@@ -27,17 +25,21 @@
     interface Props {
         justify?: "left" | "center" | "right" | undefined;
         test_text?: string;
-        test_mode?: boolean;
         background?: string;
         transparency?: number;
+        current_segment?: WhisperSegment;
     }
 
     let {
         justify,
         test_text = "I'm an example of a subtitle, and how I will look on the overlay browser source.",
-        test_mode = false,
         background = "",
         transparency = 100,
+        current_segment = {
+            id: "",
+            index: 0,
+            items: [],
+        },
     }: Props = $props();
 
     let rgb = $derived(hexToRgb(background));
@@ -46,27 +48,7 @@
     let inner_style = $derived(
         `--tw-bg-opacity: ${derived_opacity}; background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / var(--tw-bg-opacity, 1));`,
     );
-    let current_segment: WhisperSegment = $state({
-        id: "",
-        index: 0,
-        items: [],
-    });
     let has_segment = $derived(current_segment.items.length > 0);
-
-    let un_sub: UnlistenFn;
-
-    onMount(async () => {
-        console.log("subbing to transcript");
-        un_sub = await listen<WhisperSegment>("segment_update", (event) => {
-            console.log(event.payload);
-            current_segment = event.payload;
-        });
-    });
-
-    onDestroy(() => {
-        console.log("unsubbing");
-        un_sub();
-    });
 </script>
 
 <div

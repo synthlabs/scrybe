@@ -10,6 +10,9 @@
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$bindings/defaults";
     import type { AppState } from "$bindings/AppState";
+    import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import { type UnlistenFn, listen } from "@tauri-apps/api/event";
+    import { onMount, onDestroy } from "svelte";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -17,18 +20,24 @@
     $inspect(store.object.overlay_config.background_color);
     $inspect(store.object.overlay_config.transparency);
 
-    // onMount(async () => {
-    //     // const store = await load("overlay.json", { autoSave: true });
-    //     // config.text_alignment = await get_store_value(
-    //     //     store,
-    //     //     "text_alignment",
-    //     //     config.text_alignment,
-    //     // );
+    let un_sub: UnlistenFn;
+    let current_segment: WhisperSegment = $state({
+        id: "",
+        index: 0,
+        items: [],
+    });
 
-    //     let cfg = (await invoke("get_overlay_config")) as OverlayConfig;
-    //     // config.object = cfg;
-    //     console.log(cfg);
-    // });
+    onMount(async () => {
+        console.log("subbing to transcript");
+        un_sub = await listen<WhisperSegment>("segment_update", (event) => {
+            console.log(event.payload);
+            current_segment = event.payload;
+        });
+    });
+    onDestroy(() => {
+        console.log("unsubbing");
+        un_sub();
+    });
 </script>
 
 <div class="mx-auto w-full space-y-4 pb-4">
@@ -45,6 +54,7 @@
                 justify={store.object.overlay_config.text_alignment}
                 background={store.object.overlay_config.background_color}
                 transparency={store.object.overlay_config.transparency}
+                {current_segment}
             ></TextOverlay>
         </div>
         <div class="flex w-full flex-row flex-wrap gap-4">

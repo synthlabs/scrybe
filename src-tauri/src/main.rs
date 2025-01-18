@@ -28,7 +28,7 @@ mod ws;
 type WSResult<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<RwLock<HashMap<String, Client>>>;
 
-const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
+const DEFAULT_AUDIO_STEP_SIZE: u64 = 250; //ms
 
 #[derive(Debug, Clone)]
 pub struct Client {
