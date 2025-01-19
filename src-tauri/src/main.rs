@@ -1,3 +1,6 @@
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use futures::{
     join,
     stream::{SplitSink, SplitStream},
@@ -24,7 +27,7 @@ use tokio::sync::broadcast::{self, Sender};
 use uuid::Uuid;
 use warp::{filters::ws::WebSocket, ws::Message, Filter};
 
-const DEFAULT_AUDIO_STEP_SIZE: u64 = 250; //ms
+const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
 type SharedAppState = Arc<Mutex<AppState>>;
 type SharedInternalState = Arc<Mutex<InternalState>>;
