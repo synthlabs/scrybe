@@ -9,8 +9,8 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0"
-# cpal = "0.15.3"
-cpal = { path = "../../../cpal" }
+cpal = "0.15.3"
+# cpal = { path = "../../../cpal" }
 hound = "3.5.1"
 samplerate = "0.2.4"
 clap = { version = "4.5.23", features = ["derive", "string"] }
