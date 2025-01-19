@@ -1,3 +1,6 @@
 models/*.bin
 samples/*.wav
 recorded.wav
+models/*mlmodelc.zip
+models/*mlmodelc/*
+models/__MACOSX/*
