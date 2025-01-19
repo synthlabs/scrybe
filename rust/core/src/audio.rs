@@ -111,7 +111,6 @@ impl AudioManager {
         T: Sample,
         U: Sample + hound::Sample + FromSample<T>,
     {
-        // println!("write_input_data");
         // Convert the input samples to f32
         let samples: Vec<f32> = input
             .iter()

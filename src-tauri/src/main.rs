@@ -1,4 +1,8 @@
-use futures::StreamExt;
+use futures::{
+    join,
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 use rust_embed::RustEmbed;
 
 use scrybe_core::{
@@ -14,12 +18,11 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tauri::{App, AppHandle, Emitter, Manager, State};
+use tauri::{App, AppHandle, Emitter, Listener, Manager, State};
 use tauri_plugin_store::StoreExt;
+use tokio::sync::broadcast::{self, Sender};
 use uuid::Uuid;
-use warp::{ws::Message, Filter};
-
-use tokio::sync::mpsc;
+use warp::{filters::ws::WebSocket, ws::Message, Filter};
 
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 250; //ms
 
@@ -91,105 +94,116 @@ fn stop_transcribe(app: AppHandle, internal_state: State<'_, SharedInternalState
 }
 
 #[tauri::command]
-async fn start_transcribe(
-    app: AppHandle,
-    wm_state: State<'_, SharedWhisperManager>,
-    app_state: State<'_, SharedAppState>,
-    internal_state: State<'_, SharedInternalState>,
-) -> Result<(), ()> {
-    let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-    let mut audio_manager =
-        AudioManager::new(writer.clone()).expect("unable to create audio manager");
+fn start_transcribe(app: AppHandle) -> Result<(), ()> {
+    let app_handle_ref = app.clone();
 
-    if let Ok(mut state) = internal_state.lock() {
-        state.transcribe_running = true;
-        app.emit("transcribe_running", state.transcribe_running)
-            .expect("unable to emit state");
-    }
+    std::thread::spawn(move || {
+        let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
+        let app_state_ref = app_handle_ref.state::<SharedAppState>();
+        let internal_state_ref = app_handle_ref.state::<SharedInternalState>();
 
-    println!("Begin recording...");
+        let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
+        let mut audio_manager =
+            AudioManager::new(writer.clone()).expect("unable to create audio manager");
 
-    audio_manager.play_stream().expect("unable play stream");
-
-    let mut current_segment = WhisperSegment {
-        id: Uuid::new_v4().to_string(),
-        index: 0,
-        items: vec![],
-    };
-    let mut segment_start_time = SystemTime::now();
-    let mut samples: Vec<f32> = Vec::new();
-    loop {
-        let mut step_size = 0;
-        let mut segment_size = 0;
-        let mut whisper_params = WhisperParams::default();
-        if let Ok(state) = app_state.lock() {
-            println!("app state syncing");
-            segment_size = state.audio_segment_size.try_into().unwrap_or(2);
-            whisper_params = state.whisper_params.clone();
-            println!("segment duration {}", segment_size);
+        if let Ok(mut state) = internal_state_ref.lock() {
+            state.transcribe_running = true;
+            app.emit("transcribe_running", state.transcribe_running)
+                .expect("unable to emit state");
         }
 
-        if let Ok(state) = internal_state.lock() {
-            println!("internal app state syncing");
-            step_size = state.audio_step_size;
+        println!("Begin recording...");
 
-            println!("checking running status");
-            if !state.transcribe_running {
-                println!("stopping");
-                break;
+        audio_manager.play_stream().expect("unable play stream");
+
+        let mut current_segment = WhisperSegment {
+            id: Uuid::new_v4().to_string(),
+            index: 0,
+            items: vec![],
+        };
+        let mut segment_start_time = SystemTime::now();
+        let mut samples: Vec<f32> = Vec::new();
+        loop {
+            let mut step_size = 0;
+            let mut segment_size = 0;
+            let mut whisper_params = WhisperParams::default();
+            if let Ok(state) = app_state_ref.lock() {
+                println!("app state syncing");
+                segment_size = state.audio_segment_size.try_into().unwrap_or(2);
+                whisper_params = state.whisper_params.clone();
+                println!("segment duration {}", segment_size);
             }
-        }
 
-        println!("waiting for {}ms", step_size);
-        std::thread::sleep(std::time::Duration::from_millis(step_size));
+            if let Ok(state) = internal_state_ref.lock() {
+                println!("internal app state syncing");
+                step_size = state.audio_step_size;
 
-        println!("copying buffer");
-        if let Ok(mut guard) = writer.lock() {
-            samples.append(&mut guard);
-        }
-        println!("processing {}", samples.len());
-
-        {
-            println!("getting whisper manager");
-            let mut whisper_manager = wm_state.lock().unwrap();
-
-            let segments = match whisper_manager.process_samples(samples.clone(), whisper_params) {
-                Ok(segments) => segments,
-                Err(err) => {
-                    println!("ERROR {}", err);
-                    continue;
+                println!("checking running status");
+                if !state.transcribe_running {
+                    println!("stopping");
+                    break;
                 }
-            };
+            }
 
-            current_segment.items = segments;
+            println!("waiting for {}ms", step_size);
+            std::thread::sleep(std::time::Duration::from_millis(step_size));
 
-            app.emit("segment_update", current_segment.clone())
-                .expect("failed to emit event");
-        }
-        println!(
-            "{:#?} elapsed since start",
-            segment_start_time.elapsed().unwrap()
-        );
+            println!("copying buffer");
+            if let Ok(mut guard) = writer.lock() {
+                println!("guard len {}", guard.len());
+                samples.append(&mut guard);
+            }
+            println!("processing {}", samples.len());
+            if samples.len() == 0 {
+                println!("no samples yet");
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                continue;
+            }
 
-        if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+            {
+                println!("getting whisper manager");
+                let mut whisper_manager = wm_state_ref.lock().unwrap();
+
+                let segments =
+                    match whisper_manager.process_samples(samples.clone(), whisper_params) {
+                        Ok(segments) => segments,
+                        Err(err) => {
+                            println!("ERROR {}", err);
+                            continue;
+                        }
+                    };
+
+                current_segment.items = segments;
+
+                app.emit("segment_update", current_segment.clone())
+                    .expect("failed to emit event");
+            }
             println!(
-                "trimming samples, total {}, removing {}",
-                samples.len(),
-                (samples.len() - 500)
+                "{:#?} elapsed since start",
+                segment_start_time.elapsed().unwrap()
             );
 
-            // leave the last half second of the previous sample
-            let _ = samples.drain(..(samples.len() - 500));
+            if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+                println!(
+                    "trimming samples, total {}, removing {}",
+                    samples.len(),
+                    (samples.len() - 500)
+                );
 
-            segment_start_time = SystemTime::now();
-            current_segment = WhisperSegment {
-                id: Uuid::new_v4().to_string(),
-                index: current_segment.index + 1,
-                items: vec![],
-            };
+                // leave the last half second of the previous sample
+                let _ = samples.drain(..(samples.len() - 500));
+
+                segment_start_time = SystemTime::now();
+                current_segment = WhisperSegment {
+                    id: Uuid::new_v4().to_string(),
+                    index: current_segment.index + 1,
+                    items: vec![],
+                };
+            }
         }
-    }
-    #[allow(unreachable_code)]
+    });
+
+    println!("done with transcribe command");
     Ok(())
 }
 
@@ -222,14 +236,33 @@ fn setup_whisper_manager(app: &AppHandle, state: AppState) {
     app.manage(Arc::new(Mutex::new(whisper_manager)));
 }
 
-async fn handle_ws_client(websocket: warp::ws::WebSocket) {
-    println!("handling ws client");
-
+async fn handle_ws(websocket: warp::ws::WebSocket, tx: Sender<String>) {
     // receiver - this server, from websocket client
     // sender - diff clients connected to this server
-    let (_sender, mut receiver) = websocket.split();
+    let (sender, receiver) = websocket.split();
 
-    while let Some(body) = receiver.next().await {
+    join!(
+        handle_ws_client_writes(sender, tx),
+        handle_ws_client_reads(receiver)
+    );
+}
+
+async fn handle_ws_client_writes(mut ws_tx: SplitSink<WebSocket, Message>, tx: Sender<String>) {
+    let mut channel = tx.subscribe();
+
+    while let Ok(event) = channel.recv().await {
+        println!("handling ws - got channel event - {}", event);
+        if let Err(err) = ws_tx.send(Message::text(event)).await {
+            println!("websocket error: {}", err);
+            return;
+        }
+    }
+}
+
+async fn handle_ws_client_reads(mut rx: SplitStream<WebSocket>) {
+    println!("handling ws client");
+
+    while let Some(body) = rx.next().await {
         let message = match body {
             Ok(msg) => msg,
             Err(e) => {
@@ -287,6 +320,16 @@ pub fn main() {
                 audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             })));
 
+            let (tx, _rx) = broadcast::channel::<String>(16);
+            let producer = tx.clone();
+
+            app.listen("segment_update", move |event| {
+                println!("got segment update: {:?}", event.payload());
+                if let Err(err) = producer.send(event.payload().to_string()) {
+                    println!("Failed to produce segment to ws: {}", err);
+                }
+            });
+
             let _server_handle = tauri::async_runtime::spawn(async move {
                 let static_files = warp::path("app")
                     .and(warp::get())
@@ -295,7 +338,10 @@ pub fn main() {
 
                 let ws_route = warp::path("ws")
                     .and(warp::ws())
-                    .map(move |ws: warp::ws::Ws| ws.on_upgrade(|ws| handle_ws_client(ws)));
+                    .map(move |ws: warp::ws::Ws| {
+                        let sender = tx.clone();
+                        ws.on_upgrade(|ws| handle_ws(ws, sender))
+                    });
 
                 let cors = warp::cors()
                     .allow_any_origin()
