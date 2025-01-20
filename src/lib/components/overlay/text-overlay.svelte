@@ -24,6 +24,7 @@
 
     interface Props {
         justify?: "left" | "center" | "right" | undefined;
+        test_mode?: boolean;
         test_text?: string;
         background?: string;
         transparency?: number;
@@ -32,6 +33,7 @@
 
     let {
         justify,
+        test_mode = false,
         test_text = "I'm an example of a subtitle, and how I will look on the overlay browser source.",
         background = "",
         transparency = 100,
@@ -51,22 +53,24 @@
     let has_segment = $derived(current_segment.items.length > 0);
 </script>
 
-<div
-    class="mx-auto flex h-full w-full flex-col justify-center bg-transparent p-2"
-    style={outer_style}
->
+{#if has_segment || test_mode}
     <div
-        class="flex h-full w-full flex-col justify-center rounded-xl p-4"
-        style={inner_style}
+        class="mx-auto flex h-full w-full flex-col justify-center bg-transparent p-2"
+        style={outer_style}
     >
-        {#if has_segment}
-            {#each current_segment.items as segment (segment.index)}
-                <div class="w-full text-wrap">
-                    {segment.text}
-                </div>
-            {/each}
-        {:else}
-            {test_text}
-        {/if}
+        <div
+            class="flex h-full w-full flex-col justify-center rounded-xl p-4"
+            style={inner_style}
+        >
+            {#if has_segment}
+                {#each current_segment.items as segment (segment.index)}
+                    <div class="w-full text-wrap">
+                        {segment.text}
+                    </div>
+                {/each}
+            {:else if test_mode}
+                {test_text}
+            {/if}
+        </div>
     </div>
-</div>
+{/if}

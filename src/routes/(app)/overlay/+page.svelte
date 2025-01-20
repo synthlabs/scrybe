@@ -52,6 +52,7 @@
     <div class="space-y-4">
         <div class="bg-checkered h-32 w-full border-2 border-primary">
             <TextOverlay
+                test_mode={true}
                 justify={store.object.overlay_config.text_alignment}
                 background={store.object.overlay_config.background_color}
                 transparency={store.object.overlay_config.transparency}
