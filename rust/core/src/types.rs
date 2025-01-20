@@ -2,6 +2,7 @@ use ts_rs::TS;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct AppState {
     pub current_device: AudioDevice,
     pub audio_format: AudioFormat,
@@ -29,6 +30,7 @@ impl Default for AppState {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct AudioDevice {
     pub name: String,
     pub id: String,
@@ -45,6 +47,7 @@ impl Default for AudioDevice {
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct AudioFormat {
     pub name: String,
     pub id: String,
@@ -52,6 +55,7 @@ pub struct AudioFormat {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct OverlayConfig {
     pub name: String,
     pub id: String,
@@ -60,6 +64,8 @@ pub struct OverlayConfig {
     pub background_color: String,
     #[ts(type = "number")]
     pub transparency: i32,
+    #[ts(type = "number")]
+    pub font_size: i32,
 }
 
 impl Default for OverlayConfig {
@@ -70,12 +76,14 @@ impl Default for OverlayConfig {
             text_alignment: "center".to_string(), //TODO: make this an enum
             background_color: "#030712".to_string(),
             transparency: 75,
+            font_size: 16,
         }
     }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct WhisperParams {
     pub toggles: WhisperToggles,
     pub language: String,
@@ -92,6 +100,7 @@ impl Default for WhisperParams {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct WhisperToggles {
     pub translate: bool,
     pub suppress_blanks: bool,
@@ -120,10 +129,12 @@ impl Default for WhisperToggles {
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct AdvancedSettings {}
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct WhisperText {
     #[ts(type = "number")]
     pub index: u64,
@@ -135,6 +146,7 @@ pub struct WhisperText {
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
 #[ts(export)]
+#[serde(default)]
 pub struct WhisperSegment {
     pub id: String,
     #[ts(type = "number")]
