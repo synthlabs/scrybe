@@ -11,7 +11,6 @@
     import { DefaultAppState } from "$bindings/defaults";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
-    store.sync = false;
     store.init();
 
     let transcribe_running = $state(false);
