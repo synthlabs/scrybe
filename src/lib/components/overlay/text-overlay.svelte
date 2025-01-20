@@ -52,7 +52,7 @@
 </script>
 
 <div
-    class="mx-auto flex h-full w-full flex-col justify-center p-1"
+    class="mx-auto flex h-full w-full flex-col justify-center bg-transparent p-2"
     style={outer_style}
 >
     <div

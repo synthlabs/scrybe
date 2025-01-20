@@ -19,13 +19,15 @@
     };
 </script>
 
-<div class="h-full w-full">
-    <TextOverlay {current_segment} />
-</div>
+<TextOverlay {current_segment} />
 
 <style>
+    :global(html) {
+        background-color: transparent !important;
+    }
     :global(body) {
         height: 100%;
         width: 100%;
+        background-color: transparent !important;
     }
 </style>
