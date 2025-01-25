@@ -9,3 +9,4 @@
 - ship a test piece of audio to init the model after selecting it (specifically for coreml)
 - automatically detect silence and trim it
 - see how easy it is to detect speaking from an audio format perspective, or maybe even see how easy it is to isolate the voice
+- create a semantic hash of segments (normalized to no punctuation, no case, etc) to reduce formatting difference updates on the UI

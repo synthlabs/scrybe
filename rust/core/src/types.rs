@@ -153,3 +153,20 @@ pub struct WhisperSegment {
     pub index: u64,
     pub items: Vec<WhisperText>,
 }
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[ts(export)]
+#[serde(default)]
+pub struct WebsocketRequest {
+    pub kind: String,
+    pub data: String,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[ts(export)]
+#[serde(default)]
+pub struct WebsocketResponse {
+    pub kind: String,
+    pub data: String,
+    pub is_error: bool,
+}

@@ -1,6 +1,11 @@
 <script lang="ts">
     import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import type { WebsocketRequest } from "$bindings/WebsocketRequest";
+    import type { WebsocketResponse } from "$bindings/WebsocketResponse";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
+    import type { OverlayConfig } from "$bindings/OverlayConfig";
+    import type { AppState } from "$bindings/AppState";
+    import { DefaultAppState } from "$bindings/defaults";
 
     let current_segment: WhisperSegment = $state({
         id: "",
@@ -8,18 +13,46 @@
         items: [],
     });
 
+    let overlay_config: OverlayConfig = $state(DefaultAppState.overlay_config);
+
+    $inspect(overlay_config);
+
     const ws = new WebSocket("ws://localhost:3030/ws");
-    ws.onmessage = (event) => {
-        let segment: WhisperSegment = JSON.parse(event.data);
-        current_segment = segment;
+    ws.onmessage = (ws_event) => {
+        let event: WebsocketResponse = JSON.parse(ws_event.data);
+        console.log(event);
+
+        switch (event.kind) {
+            case "segment_update":
+                const segment: WhisperSegment = JSON.parse(event.data);
+                current_segment = segment;
+                break;
+            case "appstate_update":
+                const appstate: AppState = JSON.parse(event.data);
+                overlay_config = appstate.overlay_config;
+                break;
+            default:
+                console.log("unknown event type");
+                break;
+        }
+        // current_segment = segment;
     };
     ws.onopen = (event) => {
         console.log("connected", event);
-        ws.send(`Hello, WebSocket! Sent from a browser client.`);
+        const request: WebsocketRequest = {
+            kind: "get_appstate",
+            data: "{}",
+        };
+        ws.send(JSON.stringify(request));
     };
 </script>
 
-<TextOverlay {current_segment} />
+<TextOverlay
+    justify={overlay_config.text_alignment}
+    background={overlay_config.background_color}
+    transparency={overlay_config.transparency}
+    {current_segment}
+/>
 
 <style>
     :global(html) {

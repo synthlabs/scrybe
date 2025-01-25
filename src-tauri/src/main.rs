@@ -1,16 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use futures::{
-    join,
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+mod ws;
+
 use rust_embed::RustEmbed;
 
 use scrybe_core::{
     audio::AudioManager,
-    types::{AppState, WhisperParams, WhisperSegment},
+    types::{AppState, WebsocketResponse, WhisperParams, WhisperSegment},
     whisper::WhisperManager,
 };
 
@@ -23,9 +20,9 @@ use std::{
 };
 use tauri::{App, AppHandle, Emitter, Listener, Manager, State};
 use tauri_plugin_store::StoreExt;
-use tokio::sync::broadcast::{self, Sender};
 use uuid::Uuid;
-use warp::{filters::ws::WebSocket, ws::Message, Filter};
+use warp::Filter;
+use ws::WebsocketManager;
 
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
@@ -68,7 +65,12 @@ fn get_transcribe_running(state: State<'_, SharedInternalState>) -> bool {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn set_appstate(app: AppHandle, app_state: State<'_, SharedAppState>, new_value: AppState) {
+fn set_appstate(
+    app: AppHandle,
+    app_state: State<'_, SharedAppState>,
+    ws_manager: State<'_, WebsocketManager>,
+    new_value: AppState,
+) {
     println!(
         "{:?} set_appstate",
         SystemTime::now()
@@ -86,6 +88,14 @@ fn set_appstate(app: AppHandle, app_state: State<'_, SharedAppState>, new_value:
 
     app.emit("appstate_update", current_state.clone())
         .expect("unable to emit state");
+
+    let response =
+        WebsocketManager::to_ws_response("appstate_update".to_owned(), current_state.clone());
+
+    match serde_json::to_string(&response) {
+        Ok(msg) => <WebsocketManager as Clone>::clone(&ws_manager).broadcast(msg),
+        Err(err) => println!("error creating websocket response: {}", err),
+    };
 }
 
 #[tauri::command]
@@ -239,62 +249,6 @@ fn setup_whisper_manager(app: &AppHandle, state: AppState) {
     app.manage(Arc::new(Mutex::new(whisper_manager)));
 }
 
-async fn handle_ws(websocket: warp::ws::WebSocket, tx: Sender<String>) {
-    // receiver - this server, from websocket client
-    // sender - diff clients connected to this server
-    let (sender, receiver) = websocket.split();
-
-    join!(
-        handle_ws_client_writes(sender, tx),
-        handle_ws_client_reads(receiver)
-    );
-}
-
-async fn handle_ws_client_writes(mut ws_tx: SplitSink<WebSocket, Message>, tx: Sender<String>) {
-    let mut channel = tx.subscribe();
-
-    while let Ok(event) = channel.recv().await {
-        println!("handling ws - got channel event - {}", event);
-        if let Err(err) = ws_tx.send(Message::text(event)).await {
-            println!("websocket error: {}", err);
-            return;
-        }
-    }
-}
-
-async fn handle_ws_client_reads(mut rx: SplitStream<WebSocket>) {
-    println!("handling ws client");
-
-    while let Some(body) = rx.next().await {
-        let message = match body {
-            Ok(msg) => msg,
-            Err(e) => {
-                println!("error reading message on websocket: {}", e);
-                break;
-            }
-        };
-
-        handle_websocket_message(message).await;
-    }
-
-    // // unlisten to the event using the `id` returned on the `listen_global` function
-    // // a `once_global` API is also exposed on the `App` struct
-    // app.unlisten(id);
-    println!("client disconnected");
-}
-
-async fn handle_websocket_message(message: Message) {
-    // Skip any non-Text messages...
-    let msg = if let Ok(s) = message.to_str() {
-        s
-    } else {
-        println!("ping-pong");
-        return;
-    };
-
-    println!("got request {}", msg);
-}
-
 pub fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -315,23 +269,37 @@ pub fn main() {
                 .expect("unable to load store")
                 .set("object", json!({ "value": initial_state.clone() }));
 
+            println!("setting up whisper manager");
             setup_whisper_manager(app.handle(), initial_state.clone());
 
-            app.manage(Arc::new(Mutex::new(initial_state)));
+            let managed_state = Arc::new(Mutex::new(initial_state));
+            app.manage(managed_state.clone());
             app.manage(Arc::new(Mutex::new(InternalState {
                 transcribe_running: false,
                 audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             })));
 
-            let (tx, _rx) = broadcast::channel::<String>(16);
-            let producer = tx.clone();
+            println!("setting up websocket manager");
+            let ws_manager = WebsocketManager::new(managed_state.clone()).unwrap();
 
+            app.manage(ws_manager.clone());
+
+            let ws_manager_ref = ws_manager.clone();
             app.listen("segment_update", move |event| {
                 println!("got segment update: {:?}", event.payload());
-                if let Err(err) = producer.send(event.payload().to_string()) {
-                    println!("Failed to produce segment to ws: {}", err);
-                }
+                let response = WebsocketResponse {
+                    kind: "segment_update".to_owned(),
+                    data: event.payload().to_string(),
+                    is_error: false,
+                };
+
+                match serde_json::to_string(&response) {
+                    Ok(msg) => ws_manager_ref.clone().broadcast(msg),
+                    Err(err) => println!("error creating websocket response: {}", err),
+                };
             });
+
+            let ws_manager_ref = ws_manager.clone();
 
             let _server_handle = tauri::async_runtime::spawn(async move {
                 let static_files = warp::path("app")
@@ -342,8 +310,11 @@ pub fn main() {
                 let ws_route = warp::path("ws")
                     .and(warp::ws())
                     .map(move |ws: warp::ws::Ws| {
-                        let sender = tx.clone();
-                        ws.on_upgrade(|ws| handle_ws(ws, sender))
+                        println!("ws_handler");
+                        let ws_manager_ref = ws_manager_ref.clone();
+                        ws.on_upgrade(move |socket| {
+                            ws_manager_ref.clone().client_connection(socket)
+                        })
                     });
 
                 let cors = warp::cors()

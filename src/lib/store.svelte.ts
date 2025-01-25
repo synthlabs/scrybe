@@ -8,7 +8,7 @@ export class SyncedStore<T> {
     autosave: boolean = true;
     sync: boolean = true;
     #store!: Store;
-    #update_latch: boolean = false;
+    #update_latch: boolean = true;
     #un_sub: UnlistenFn | undefined;
 
     constructor(name: string, object: T) {
@@ -40,9 +40,9 @@ export class SyncedStore<T> {
                 $effect(() => {
                     console.log("DEBUG [SyncedStore]: syncing...");
 
-                    if (!this.#update_latch) {
-                        this.#store.set("object", { value: this.object });
+                    this.#store.set("object", { value: this.object });
 
+                    if (!this.#update_latch) {
                         invoke(`set_${this.name}`, { new_value: this.object });
                     } else {
                         console.log("update latch");

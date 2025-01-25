@@ -17,6 +17,7 @@ export let DefaultAppState: AppState = {
         text_alignment: "left",
         background_color: "",
         transparency: 0,
+        font_size: 0,
     },
     whisper_params: {
         toggles: {
