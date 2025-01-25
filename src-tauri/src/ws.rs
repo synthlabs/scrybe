@@ -142,7 +142,7 @@ impl WebsocketManager {
         response.data = match serde_json::to_string(&object) {
             Ok(data) => data,
             Err(err) => {
-                println!("failed to serialize overlay config: {}", err);
+                println!("failed to serialize object: {}", err);
                 response.is_error = true;
                 err.to_string()
             }
