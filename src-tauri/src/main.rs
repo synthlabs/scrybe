@@ -24,6 +24,8 @@ use uuid::Uuid;
 use warp::Filter;
 use ws::WebsocketManager;
 
+use tauri_plugin_decorum::WebviewWindowExt; // adds helper methods to WebviewWindow
+
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
 type SharedAppState = Arc<Mutex<AppState>>;
@@ -261,6 +263,12 @@ pub fn main() {
         .setup(|app| {
             let working_dir = env::current_dir().expect("unable to get working dir");
             println!("Current working dir {}", working_dir.display());
+
+            // Create a custom titlebar for main window
+            // On Windows this hides decoration and creates custom window controls
+            // On macOS it needs hiddenTitle: true and titleBarStyle: overlay
+            let main_window = app.get_webview_window("main").unwrap();
+            main_window.create_overlay_titlebar().unwrap();
 
             let initial_state: AppState =
                 get_config(app, "appstate.json", "object", AppState::default());

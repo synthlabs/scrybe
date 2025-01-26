@@ -35,6 +35,7 @@ scrybe_core = { path = "../rust/core" }
 tokio-stream = "0.1.17"
 futures = "0.3.31"
 uuid = {version = "1.12.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+tauri-plugin-decorum = "1.1.1"
 
 # Windows
 [target.'cfg(windows)'.dependencies]
