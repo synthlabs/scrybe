@@ -69,10 +69,5 @@
         overscroll-behavior: none;
         height: 100%;
         width: 100%;
-        background-color: 221.1 32.2% 11.57%;
-    }
-
-    div[data-tauri-decorum-tb] {
-        background-color: 263.4 69.96% 50.39%;
     }
 }

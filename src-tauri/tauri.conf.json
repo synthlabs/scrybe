@@ -10,15 +10,13 @@
         "frontendDist": "../build"
     },
     "app": {
-        "withGlobalTauri": true,
         "windows": [
             {
                 "title": "scrybe",
                 "width": 800,
                 "height": 600,
-                "titleBarStyle": "Overlay",
-                "hiddenTitle": true,
-                "decorations": false
+                "hiddenTitle": false,
+                "decorations": true
             }
         ],
         "security": {
