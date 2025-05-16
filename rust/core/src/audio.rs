@@ -2,6 +2,104 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, Host, Sample, Stream, SupportedStreamConfig};
 use std::sync::{Arc, Mutex};
 
+pub fn iterate_devices() -> Result<(), anyhow::Error> {
+    println!("Supported hosts:\n  {:?}", cpal::ALL_HOSTS);
+    let available_hosts = cpal::available_hosts();
+    println!("Available hosts:\n  {:?}", available_hosts);
+
+    for host_id in available_hosts {
+        println!("{}", host_id.name());
+        let host = cpal::host_from_id(host_id)?;
+
+        let default_in = host.default_input_device().map(|e| e.name().unwrap());
+        let default_out = host.default_output_device().map(|e| e.name().unwrap());
+        println!("  Default Input Device:\n    {:?}", default_in);
+        println!("  Default Output Device:\n    {:?}", default_out);
+
+        let devices = host.devices()?;
+        println!("  Devices: ");
+        for (device_index, device) in devices.enumerate() {
+            println!("  {}. \"{}\"", device_index + 1, device.name()?);
+
+            // Input configs
+            if let Ok(conf) = device.default_input_config() {
+                println!("    Default input stream config:\n      {:?}", conf);
+            }
+            let input_configs = match device.supported_input_configs() {
+                Ok(f) => f.collect(),
+                Err(e) => {
+                    println!("    Error getting supported input configs: {:?}", e);
+                    Vec::new()
+                }
+            };
+            if !input_configs.is_empty() {
+                println!("    All supported input stream configs:");
+                for (config_index, config) in input_configs.into_iter().enumerate() {
+                    println!(
+                        "      {}.{}. {:?}",
+                        device_index + 1,
+                        config_index + 1,
+                        config
+                    );
+                }
+            }
+
+            // Output configs
+            if let Ok(conf) = device.default_output_config() {
+                println!("    Default output stream config:\n      {:?}", conf);
+            }
+            let output_configs = match device.supported_output_configs() {
+                Ok(f) => f.collect(),
+                Err(e) => {
+                    println!("    Error getting supported output configs: {:?}", e);
+                    Vec::new()
+                }
+            };
+            if !output_configs.is_empty() {
+                println!("    All supported output stream configs:");
+                for (config_index, config) in output_configs.into_iter().enumerate() {
+                    println!(
+                        "      {}.{}. {:?}",
+                        device_index + 1,
+                        config_index + 1,
+                        config
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn get_default_input_device(host: &Host) -> Result<Device, anyhow::Error> {
+    // Set up the input device
+    #[cfg(target_os = "macos")]
+    let device = host
+        .default_input_device()
+        .expect("failed to find default input device");
+    #[cfg(not(target_os = "macos"))]
+    let device = host
+        .default_input_device()
+        .expect("failed to find default input device");
+
+    Ok(device)
+}
+
+pub fn get_default_output_device(host: &Host) -> Result<Device, anyhow::Error> {
+    // Set up the output device
+    #[cfg(target_os = "macos")]
+    let device = host
+        .default_output_device()
+        .expect("failed to find default output device");
+    #[cfg(not(target_os = "macos"))]
+    let device = host
+        .default_output_device()
+        .expect("failed to find default output device");
+
+    Ok(device)
+}
+
 pub struct AudioManager {
     _host: Host,
     _device: Device,
@@ -10,34 +108,34 @@ pub struct AudioManager {
 }
 
 impl AudioManager {
-    pub fn new(buffer: Arc<Mutex<Vec<f32>>>) -> Result<Self, anyhow::Error> {
-        // Use ScreenCaptureKit host
-        #[cfg(target_os = "macos")]
-        let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
-        #[cfg(not(target_os = "macos"))]
+    pub fn new_with_default_input(buffer: Arc<Mutex<Vec<f32>>>) -> Result<Self, anyhow::Error> {
+        // // Use ScreenCaptureKit host
+        // #[cfg(target_os = "macos")]
+        // let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
+        // #[cfg(not(target_os = "macos"))]
         let host = cpal::default_host();
 
-        // Set up the input device and stream with the default input config.
-        #[cfg(target_os = "macos")]
-        let device = host
-            .default_input_device()
-            .expect("failed to find input device");
-        #[cfg(not(target_os = "macos"))]
-        let device = host
-            .default_output_device()
-            .expect("failed to find input device");
+        let device = get_default_input_device(&host)?;
 
+        Self::new(buffer, host, device)
+    }
+
+    pub fn new(
+        buffer: Arc<Mutex<Vec<f32>>>,
+        host: Host,
+        device: Device,
+    ) -> Result<Self, anyhow::Error> {
         println!("Input device: {}", device.name()?);
 
-        #[cfg(target_os = "macos")]
+        // #[cfg(target_os = "macos")]
         let config = device
             .default_input_config()
             .expect("Failed to get default input config");
 
-        #[cfg(not(target_os = "macos"))]
-        let config = device
-            .default_output_config()
-            .expect("Failed to get default input config");
+        // #[cfg(not(target_os = "macos"))]
+        // let config = device
+        //     .default_output_config()
+        //     .expect("Failed to get default input config");
 
         println!("Default config: {:?}", config);
 
@@ -118,14 +216,15 @@ impl AudioManager {
             .collect();
 
         // Resample the stereo audio to the desired sample rate
-        let resampled_stereo: Vec<f32> =
+        let mut resampled_audio: Vec<f32> =
             Self::audio_resample(&samples, sample_rate, 16000, channels);
 
-        let mut resampled_mono =
-            whisper_rs::convert_stereo_to_mono_audio(&resampled_stereo).unwrap();
+        if channels > 1 {
+            resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
+        }
 
         if let Ok(mut guard) = buffer.lock() {
-            guard.append(&mut resampled_mono);
+            guard.append(&mut resampled_audio);
         }
     }
 

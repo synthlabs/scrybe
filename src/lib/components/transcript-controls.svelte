@@ -15,7 +15,7 @@
 
     let transcribe_running = $state(false);
     let debounce = $state(false);
-    let disabled_state = $derived(debounce || store.object.model_path === "");
+    let disabled_state = $derived(debounce);
 
     $inspect(transcribe_running);
 

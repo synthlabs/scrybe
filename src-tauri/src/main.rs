@@ -118,8 +118,8 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
         let internal_state_ref = app_handle_ref.state::<SharedInternalState>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager =
-            AudioManager::new(writer.clone()).expect("unable to create audio manager");
+        let mut audio_manager = AudioManager::new_with_default_input(writer.clone())
+            .expect("unable to create audio manager");
 
         if let Ok(mut state) = internal_state_ref.lock() {
             state.transcribe_running = true;
@@ -279,6 +279,10 @@ pub fn main() {
 
             println!("setting up whisper manager");
             setup_whisper_manager(app.handle(), initial_state.clone());
+
+            // println!("getting default input device");
+            // let device = scrybe_core::audio::get_default_input_device()
+            //     .expect("unable to get default device");
 
             let managed_state = Arc::new(Mutex::new(initial_state));
             app.manage(managed_state.clone());

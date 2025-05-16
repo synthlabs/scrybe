@@ -13,8 +13,7 @@
     let value = $state("");
 
     const triggerContent = $derived(
-        audio_devices.find((f) => f.value === value)?.label ??
-            "Default (MacBook Pro Speakers)",
+        audio_devices.find((f) => f.value === value)?.label ?? "Default",
     );
 </script>
 
