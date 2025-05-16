@@ -24,6 +24,8 @@ use uuid::Uuid;
 use warp::Filter;
 use ws::WebsocketManager;
 
+use hf_hub::api::sync::Api;
+
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
 type SharedAppState = Arc<Mutex<AppState>>;
@@ -234,10 +236,16 @@ where
     }
 }
 
-fn setup_whisper_manager(app: &AppHandle, state: AppState) {
+fn setup_whisper_manager(app: &AppHandle, mut state: AppState) {
     if state.model_path == "" {
-        println!("empty model path, skipping manager creation");
-        return;
+        println!("empty model path, pulling default model");
+        let api = Api::new().unwrap();
+        let repo = api.model("ggerganov/whisper.cpp".to_string());
+        let filename = repo.get("ggml-small-q8_0.bin").unwrap();
+
+        println!("{:?}", filename);
+
+        state.model_path = filename.to_string_lossy().into_owned();
     }
 
     println!("Model path {}", state.model_path);
