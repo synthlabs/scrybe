@@ -6,7 +6,7 @@ mod ws;
 use rust_embed::RustEmbed;
 
 use scrybe_core::{
-    audio::AudioManager,
+    audio::{self, AudioManager},
     types::{AppState, WebsocketResponse, WhisperParams, WhisperSegment},
     whisper::WhisperManager,
 };
@@ -165,18 +165,21 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
 
             println!("copying buffer");
             if let Ok(mut guard) = writer.lock() {
-                println!("guard len {}", guard.len());
+                println!(
+                    "guard len pre-trim {}, avg threshold {}",
+                    guard.len(),
+                    audio::avg_threshold(&guard)
+                );
+                // TODO: this should be a setting to adjust
+                audio::trim_silence(&mut guard, 0.01);
+                println!("guard len post-trim {}", guard.len());
                 samples.append(&mut guard);
             }
-            println!("processing {}", samples.len());
-            if samples.len() == 0 {
-                println!("no samples yet");
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                continue;
-            }
 
-            {
-                println!("getting whisper manager");
+            // 8037 normal samples in 500ms
+            if samples.len() > 4000 {
+                println!("got enough samples, getting whisper manager");
+
                 let mut whisper_manager = wm_state_ref.lock().unwrap();
 
                 let segments =
@@ -199,14 +202,8 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
             );
 
             if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
-                println!(
-                    "trimming samples, total {}, removing {}",
-                    samples.len(),
-                    (samples.len() - 500)
-                );
-
-                // leave the last half second of the previous sample
-                let _ = samples.drain(..(samples.len() - 500));
+                println!("trimming samples, total {}", samples.len(),);
+                samples.clear();
 
                 segment_start_time = SystemTime::now();
                 current_segment = WhisperSegment {
@@ -214,6 +211,8 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
                     index: current_segment.index + 1,
                     items: vec![],
                 };
+                app.emit("segment_update", current_segment.clone())
+                    .expect("failed to emit event");
             }
         }
     });
