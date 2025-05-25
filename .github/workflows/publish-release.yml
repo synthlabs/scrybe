@@ -1,0 +1,88 @@
+name: 'publish'
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 10
+          run_install: true
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ./src-tauri -> target
+            ./rust/core -> target
+
+      - name: Install rust target (macos only)
+        if: startsWith(matrix.platform, 'macos')
+        run: rustup target add x86_64-apple-darwin
+
+      - name: install dependencies (ubuntu only)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Set short SHA
+        id: short-sha
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Sha check
+        run: echo "${{ steps.short-sha.outputs.SHORT_SHA }}"
+        shell: bash
+
+      - name: Read SUMRY file
+        id: sumry
+        run: |
+          echo 'FILE<<EOF' >> $GITHUB_OUTPUT
+          echo 'https://github.com/synthlabs/pepo/releases/tag/app-${{ steps.short-sha.outputs.SHORT_SHA }}' >> $GITHUB_OUTPUT
+          echo '' >> $GITHUB_OUTPUT
+          cat SUMRY.md | tail -n +3 >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: app-${{ steps.short-sha.outputs.SHORT_SHA }}
+          releaseName: 'Pepo v${{ steps.short-sha.outputs.SHORT_SHA }}'
+          releaseBody: |
+            ${{ steps.sumry.outputs.FILE }}
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

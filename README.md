@@ -9,7 +9,7 @@
 Currently most subtitling programs available to add closed captioning to your own broadcasts cost money and/or require a remote service. This is a basic attempt at a fully local, livestream-native subtitling program.
 
 <p align="center">
-  <img src="screenshots/scrybe_GAidxc0qbb.png" height="450">
+  <img src="screenshots/scrybe_GAidxc0qbb.png" height="500">
 </p>
 
 </span>
