@@ -46,13 +46,14 @@ jobs:
             ./rust/core -> target
 
       - name: Install MSVC dev tools (windows only)
-        if: startsWith(matrix.platform, 'macos')
         uses: TheMrMilchmann/setup-msvc-dev@v3
+        if: startsWith(matrix.platform, 'windows')
         with:
           arch: x64
 
       - name: Install CUDA (windows only)
         uses: Jimver/cuda-toolkit@master
+        if: startsWith(matrix.platform, 'windows')
         id: cuda-toolkit
         with:
           log-file-suffix: '${{matrix.os}}.txt'
