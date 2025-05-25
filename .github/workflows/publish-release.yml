@@ -14,21 +14,21 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target universal-apple-darwin'
-          - platform: 'ubuntu-22.04'
+          - platform: 'ubuntu-latest'
             args: ''
           - platform: 'windows-latest'
             args: ''
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: lts/*
 
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         name: Install pnpm
         id: pnpm-install
         with:
@@ -44,6 +44,18 @@ jobs:
           workspaces: |
             ./src-tauri -> target
             ./rust/core -> target
+
+      - name: Install MSVC dev tools (windows only)
+        if: startsWith(matrix.platform, 'macos')
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+
+      - name: Install CUDA (windows only)
+        uses: Jimver/cuda-toolkit@master
+        id: cuda-toolkit
+        with:
+          log-file-suffix: '${{matrix.os}}.txt'
 
       - name: Install rust target (macos only)
         if: startsWith(matrix.platform, 'macos')
