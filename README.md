@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/synthlabs/scrybe"><img src="screenshots/scrybe_logo.png" height="180"></a>
+  <a href="https://github.com/synthlabs/scrybe"><img src="screenshots/scrybe_v1_sparkles.png" height="180"></a>
 </p>
 
 <span align="center">
