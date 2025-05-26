@@ -81,7 +81,7 @@ jobs:
         id: sumry
         run: |
           echo 'FILE<<EOF' >> $GITHUB_OUTPUT
-          echo 'https://github.com/synthlabs/pepo/releases/tag/app-${{ steps.short-sha.outputs.SHORT_SHA }}' >> $GITHUB_OUTPUT
+          echo 'https://github.com/synthlabs/scrybe/releases/tag/app-${{ steps.short-sha.outputs.SHORT_SHA }}' >> $GITHUB_OUTPUT
           echo '' >> $GITHUB_OUTPUT
           cat SUMRY.md | tail -n +3 >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
@@ -93,7 +93,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: app-${{ steps.short-sha.outputs.SHORT_SHA }}
-          releaseName: 'Pepo v${{ steps.short-sha.outputs.SHORT_SHA }}'
+          releaseName: 'Scrybe v${{ steps.short-sha.outputs.SHORT_SHA }}'
           releaseBody: |
             ${{ steps.sumry.outputs.FILE }}
           releaseDraft: false
