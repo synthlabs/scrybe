@@ -16,4 +16,4 @@ Currently most subtitling programs available to add closed captioning to your ow
 
 ## Plans
 
-Plans will go here, right now this isn't easily usable as is. There's a lot of rough edges I'm still working through, and lots of future ideas.
+This is still in very early development so it's not really usable as-is. If you're really interested before I finish updating this, you can message me on discord and I can help you set it up. My username is the same.
