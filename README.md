@@ -6,7 +6,7 @@
 
 # Local Subtitles for your own Broadcasts
 
-Currently most subtitling programs available to add closed captioning to your own broadcasts cost money and/or require a remote service. This is a basic attempt at a fully local, livestream-native subtitling program.
+Currently most programs available to add subtitles to your own broadcasts require sending your audio to a third-party service. This is a basic attempt at a fully local, livestream-native subtitling program.
 
 <p align="center">
   <img src="screenshots/scrybe_GAidxc0qbb.png" height="500">
@@ -17,3 +17,10 @@ Currently most subtitling programs available to add closed captioning to your ow
 ## Plans
 
 This is still in very early development so it's not really usable as-is. If you're really interested before I finish updating this, you can message me on discord and I can help you set it up.
+
+Some features planned:
+
+- Multiple audio streams. Meaning you can create independent subtitles for desktop audio and your microphone at the same time.
+- Support for Twitch native closed captioning
+- OBS plugin to support muting subtitles when you mute your microphone in OBS
+- Support subtitle translation
