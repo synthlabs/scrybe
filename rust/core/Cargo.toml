@@ -26,3 +26,11 @@ openblas = ["whisper-rs/openblas"]
 metal = ["whisper-rs/metal"]
 rocm = ["whisper-rs/hipblas"]
 vulkan = ["whisper-rs/vulkan"]
+
+[[bin]]
+name = "iterate_devices"
+path = "cmds/iterate_devices.rs"
+
+[[bin]]
+name = "iterate_devices_w_device_mngr"
+path = "cmds/iterate_devices_w_device_mngr.rs"
