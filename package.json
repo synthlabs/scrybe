@@ -1,51 +1,46 @@
 {
     "name": "scrybe",
-    "version": "0.1.0",
-    "description": "",
-    "type": "module",
+    "version": "0.2.0",
+    "private": false,
     "scripts": {
-        "dev": "vite dev",
         "build": "vite build",
-        "preview": "vite preview",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+        "dev": "vite dev",
+        "preview": "vite preview",
         "tauri": "tauri"
     },
-    "license": "MIT",
-    "dependencies": {
-        "@tauri-apps/api": "^2.8.0",
-        "@tauri-apps/plugin-dialog": "~2.2.2",
-        "@tauri-apps/plugin-opener": "^2.5.0",
-        "@tauri-apps/plugin-store": "^2.4.0",
-        "@tauri-apps/plugin-updater": "~2.7.1"
-    },
     "devDependencies": {
-        "@sveltejs/adapter-static": "^3.0.9",
-        "@sveltejs/kit": "^2.36.2",
+        "@sveltejs/adapter-static": "^3.0.10",
+        "@sveltejs/kit": "^2.49.1",
         "@sveltejs/vite-plugin-svelte": "^5.1.1",
-        "@tauri-apps/cli": "^2.8.1",
-        "autoprefixer": "^10.4.21",
+        "@tauri-apps/cli": "^2.9.5",
+        "autoprefixer": "^10.4.22",
         "bits-ui": "1.0.0-next.77",
         "clsx": "^2.1.1",
         "lucide-svelte": "^0.469.0",
         "mode-watcher": "^0.5.1",
         "postcss": "^8.5.6",
-        "prettier": "^3.6.2",
+        "prettier": "^3.7.4",
         "prettier-plugin-svelte": "^3.4.0",
         "prettier-plugin-tailwindcss": "^0.6.14",
-        "svelte": "^5.38.2",
-        "svelte-check": "^4.3.1",
+        "svelte": "^5.45.6",
+        "svelte-check": "^4.3.4",
         "svelte-sonner": "^0.3.28",
         "tailwind-merge": "^2.6.0",
         "tailwind-variants": "^0.3.1",
-        "tailwindcss": "^3.4.17",
+        "tailwindcss": "^3.4.18",
         "tailwindcss-animate": "^1.0.7",
         "typescript": "~5.6.3",
-        "vite": "^6.3.5"
+        "vite": "^6.4.1"
     },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "esbuild"
-        ]
-    }
+    "type": "module",
+    "dependencies": {
+        "@tauri-apps/api": "^2.9.1",
+        "@tauri-apps/plugin-dialog": "~2.2.2",
+        "@tauri-apps/plugin-opener": "^2.5.2",
+        "@tauri-apps/plugin-store": "^2.4.1",
+        "@tauri-apps/plugin-updater": "~2.7.1"
+    },
+    "packageManager": "pnpm@10.24.0"
 }

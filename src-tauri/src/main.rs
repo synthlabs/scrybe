@@ -108,6 +108,13 @@ fn set_appstate(
 #[tauri::command]
 #[specta::specta]
 fn stop_transcribe(app: AppHandle, internal_state: State<'_, SharedInternalState>) {
+    debug!(
+        "{:?} stop_transcribe",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    );
     let mut state = internal_state.lock().unwrap();
     state.transcribe_running = false;
     app.emit("transcribe_running", state.transcribe_running)
@@ -117,6 +124,14 @@ fn stop_transcribe(app: AppHandle, internal_state: State<'_, SharedInternalState
 #[tauri::command]
 #[specta::specta]
 fn start_transcribe(app: AppHandle) -> Result<(), ()> {
+    debug!(
+        "{:?} start_transcribe",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    );
+
     let app_handle_ref = app.clone();
 
     std::thread::spawn(move || {
