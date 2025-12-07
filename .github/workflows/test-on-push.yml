@@ -1,38 +1,32 @@
-name: 'publish'
+name: 'test-on-push'
 on:
   push:
-    branches:
+    branches-ignore:
       - main
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  test-tauri:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        include:
-          - platform: 'macos-latest'
-            args: '--target universal-apple-darwin'
-          - platform: 'ubuntu-latest'
-            args: ''
-          - platform: 'windows-latest'
-            args: ''
+        platform: [macos-latest, ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          submodules: 'recursive'
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: latest
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         id: pnpm-install
         with:
-          version: 10
+          version: 10.24.0
           run_install: true
 
       - name: install Rust stable
@@ -44,23 +38,19 @@ jobs:
           workspaces: |
             ./src-tauri -> target
             ./rust/core -> target
-
+      
       - name: Install MSVC dev tools (windows only)
         uses: TheMrMilchmann/setup-msvc-dev@v3
         if: startsWith(matrix.platform, 'windows')
         with:
           arch: x64
-
+      
       - name: Install CUDA (windows only)
         uses: Jimver/cuda-toolkit@master
         if: startsWith(matrix.platform, 'windows')
         id: cuda-toolkit
         with:
           log-file-suffix: '${{matrix.os}}.txt'
-
-      - name: Install rust target (macos only)
-        if: startsWith(matrix.platform, 'macos')
-        run: rustup target add x86_64-apple-darwin
 
       - name: install dependencies (ubuntu only)
         if: startsWith(matrix.platform, 'ubuntu')
@@ -82,26 +72,8 @@ jobs:
         run: echo "SHORT_SHA=${{ steps.short-sha.outputs.SHORT_SHA }}, VERSION=${{ steps.tauri-version.outputs.VERSION }}"
         shell: bash
 
-      - name: Read SUMRY file
-        id: sumry
-        run: |
-          echo 'FILE<<EOF' >> $GITHUB_OUTPUT
-          echo 'https://github.com/synthlabs/scrybe/releases/tag/app-${{ steps.short-sha.outputs.SHORT_SHA }}' >> $GITHUB_OUTPUT
-          echo '' >> $GITHUB_OUTPUT
-          cat SUMRY.md | tail -n +3 >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          tagName: app-${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}
-          releaseName: 'Scrybe v${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}'
-          releaseBody: |
-            ${{ steps.sumry.outputs.FILE }}
-          includeUpdaterJson: true
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
