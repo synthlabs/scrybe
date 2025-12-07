@@ -59,21 +59,20 @@ impl WhisperManager {
         );
 
         let mut segments: Vec<WhisperText> = Vec::new();
-        let num_segments = state.full_n_segments()?;
-        for i in 0..num_segments {
-            let segment = state.full_get_segment_text(i)?;
-            let start_time = state.full_get_segment_t0(i)?;
-            let end_time = state.full_get_segment_t1(i)?;
+        for segment in state.as_iter() {
+            let segment_text = segment.to_str()?;
+            let start_time = segment.start_timestamp();
+            let end_time = segment.end_timestamp();
             segments.push(WhisperText {
                 index: self.segment_index,
                 start_time,
                 end_time,
-                text: segment.clone(),
+                text: segment_text.to_string(),
             });
 
-            println!("{}", segment);
+            println!("{}", segment_text);
 
-            let new_prompt = segment.clone();
+            let new_prompt = segment_text.to_string();
             if new_prompt != self.last_prompt {
                 self.last_prompt = new_prompt;
             } else {
@@ -82,7 +81,7 @@ impl WhisperManager {
             self.segment_index += 1;
             // TODO: format those as json
 
-            if state.full_get_segment_speaker_turn_next(i) {
+            if segment.next_segment_speaker_turn() {
                 segments.push(WhisperText {
                     index: 0,
                     start_time: 0,
