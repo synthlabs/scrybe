@@ -5,6 +5,7 @@ use scrybe_core::types::{AppState, WebsocketRequest, WebsocketResponse};
 use serde::Serialize;
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 use warp::{filters::ws::WebSocket, reject::Rejection, ws::Message};
 
@@ -30,7 +31,7 @@ impl WebsocketManager {
     }
 
     pub async fn client_connection(self, ws: WebSocket) {
-        println!("establishing client connection... {:?}", ws);
+        info!("establishing client connection... {:?}", ws);
 
         let (client_ws_sender, mut client_ws_rcv) = ws.split();
         let (client_sender, client_rcv) = mpsc::unbounded_channel();
@@ -39,7 +40,7 @@ impl WebsocketManager {
 
         tokio::task::spawn(client_rcv.forward(client_ws_sender).map(|result| {
             if let Err(e) = result {
-                println!("error sending websocket msg: {}", e);
+                error!("error sending websocket msg: {}", e);
             }
         }));
 
@@ -59,7 +60,7 @@ impl WebsocketManager {
             let msg = match result {
                 Ok(msg) => msg,
                 Err(e) => {
-                    println!("error receiving message for id {}): {}", uuid.clone(), e);
+                    error!("error receiving message for id {}): {}", uuid.clone(), e);
                     break;
                 }
             };
@@ -68,19 +69,19 @@ impl WebsocketManager {
         }
 
         self.clients.lock().await.remove(&uuid);
-        println!("{} disconnected", uuid);
+        debug!("{} disconnected", uuid);
     }
 
     pub fn broadcast(self, msg: String) {
-        println!("broadcasting: {}", msg);
+        debug!("broadcasting: {}", msg);
         match self.clients.blocking_lock() {
             guard => {
                 for (id, client) in guard.iter() {
-                    println!("sending to {}", id);
+                    debug!("sending to {}", id);
 
                     match client.sender.send(Ok(Message::text(msg.clone()))) {
                         Ok(_) => {}
-                        Err(err) => println!("failed to send to client: {}", err),
+                        Err(err) => error!("failed to send to client: {}", err),
                     };
                 }
             }
@@ -92,23 +93,23 @@ impl WebsocketManager {
         let msg = if let Ok(s) = message.to_str() {
             s
         } else {
-            println!("ping-pong");
+            debug!("ping-pong");
             return;
         };
 
-        println!("[{}] got request {}", client.client_id, msg);
+        info!("[{}] got request {}", client.client_id, msg);
 
         let request: WebsocketRequest = match serde_json::from_str(msg) {
             Ok(result) => result,
             Err(err) => {
-                println!("failed to parse websocket request: {}", err);
+                error!("failed to parse websocket request: {}", err);
                 return;
             }
         };
 
         match request.kind.as_str() {
             "get_appstate" => {
-                println!("get_appstate from websocket");
+                debug!("get_appstate from websocket");
 
                 if let Ok(guard) = self.appstate.lock() {
                     let response =
@@ -117,19 +118,19 @@ impl WebsocketManager {
                     let response_str = match serde_json::to_string(&response) {
                         Ok(data) => data,
                         Err(err) => {
-                            println!("failed to serialize response: {}", err);
+                            error!("failed to serialize response: {}", err);
                             return;
                         }
                     };
 
                     match client.sender.send(Ok(Message::text(response_str.clone()))) {
                         Ok(_) => {}
-                        Err(err) => println!("failed to send to client: {}", err),
+                        Err(err) => error!("failed to send to client: {}", err),
                     };
                 }
             }
-            "" => println!("missing kind"),
-            _ => println!("unknown kind"),
+            "" => warn!("missing kind"),
+            _ => warn!("unknown kind"),
         }
     }
 
@@ -142,7 +143,7 @@ impl WebsocketManager {
         response.data = match serde_json::to_string(&object) {
             Ok(data) => data,
             Err(err) => {
-                println!("failed to serialize object: {}", err);
+                error!("failed to serialize object: {}", err);
                 response.is_error = true;
                 err.to_string()
             }

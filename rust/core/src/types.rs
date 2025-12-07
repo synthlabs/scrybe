@@ -1,6 +1,6 @@
 use ts_rs::TS;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct AppState {
@@ -28,7 +28,7 @@ impl Default for AppState {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct AudioDevice {
@@ -45,7 +45,7 @@ impl Default for AudioDevice {
     }
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct AudioFormat {
@@ -53,7 +53,7 @@ pub struct AudioFormat {
     pub id: String,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct OverlayConfig {
@@ -81,7 +81,7 @@ impl Default for OverlayConfig {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WhisperParams {
@@ -98,7 +98,7 @@ impl Default for WhisperParams {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WhisperToggles {
@@ -127,12 +127,12 @@ impl Default for WhisperToggles {
     }
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct AdvancedSettings {}
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WhisperText {
@@ -144,7 +144,7 @@ pub struct WhisperText {
     pub text: String,
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WhisperSegment {
@@ -154,7 +154,7 @@ pub struct WhisperSegment {
     pub items: Vec<WhisperText>,
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WebsocketRequest {
@@ -162,7 +162,7 @@ pub struct WebsocketRequest {
     pub data: String,
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, TS, specta::Type)]
 #[ts(export)]
 #[serde(default)]
 pub struct WebsocketResponse {
