@@ -58,6 +58,7 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         id: cuda-toolkit
         with:
+          cuda: '10.2.89'
           log-file-suffix: '${{matrix.os}}.txt'
 
       - name: Install rust target (macos only)
@@ -98,6 +99,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          CMAKE_OSX_DEPLOYMENT_TARGET: 13.3
         with:
           tagName: app-${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}
           releaseName: 'Scrybe v${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}'

@@ -1,46 +1,46 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "app": {
-    "security": {
-      "csp": null
+    "$schema": "https://schema.tauri.app/config/2",
+    "app": {
+        "security": {
+            "csp": null
+        },
+        "windows": [
+            {
+                "decorations": true,
+                "height": 600,
+                "hiddenTitle": false,
+                "title": "scrybe",
+                "width": 800
+            }
+        ]
     },
-    "windows": [
-      {
-        "decorations": true,
-        "height": 600,
-        "hiddenTitle": false,
-        "title": "scrybe",
-        "width": 800
-      }
-    ]
-  },
-  "build": {
-    "beforeBuildCommand": "pnpm build",
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:1420",
-    "frontendDist": "../build"
-  },
-  "bundle": {
-    "active": true,
-    "createUpdaterArtifacts": true,
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "targets": "all"
-  },
-  "identifier": "com.scrybe.app",
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/synthlabs/scrybe/releases/latest/download/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIxM0EyNDBGNTM2M0Y2QTYKUldTbTltTlREeVE2SVRhZGhDamlXeHNHc2lzTjNLWFZWNXlJVVZFUytURmtHb2pXYm5CT0syRDcK"
-    }
-  },
-  "productName": "scrybe",
-  "version": "0.2.0"
+    "build": {
+        "beforeBuildCommand": "pnpm build",
+        "beforeDevCommand": "pnpm dev",
+        "devUrl": "http://localhost:1420",
+        "frontendDist": "../build"
+    },
+    "bundle": {
+        "active": true,
+        "createUpdaterArtifacts": true,
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "targets": "all"
+    },
+    "identifier": "com.scrybe.live",
+    "plugins": {
+        "updater": {
+            "endpoints": [
+                "https://github.com/synthlabs/scrybe/releases/latest/download/latest.json"
+            ],
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIxM0EyNDBGNTM2M0Y2QTYKUldTbTltTlREeVE2SVRhZGhDamlXeHNHc2lzTjNLWFZWNXlJVVZFUytURmtHb2pXYm5CT0syRDcK"
+        }
+    },
+    "productName": "scrybe",
+    "version": "0.2.0"
 }

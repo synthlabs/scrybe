@@ -172,7 +172,8 @@ impl AudioManager {
             Self::audio_resample(&samples, sample_rate, 16000, channels);
 
         if channels > 1 {
-            resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
+            todo!("support resampling to mono audio");
+            // resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
         }
 
         if let Ok(mut guard) = buffer.lock() {
