@@ -9,6 +9,7 @@
     import { invoke } from "@tauri-apps/api/core";
     import { SyncedStore } from "$lib/store.svelte";
     import { DefaultAppState } from "$lib/defaults";
+    import Logger from "$utils/log";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -22,7 +23,7 @@
     let un_sub: UnlistenFn;
 
     onDestroy(() => {
-        console.log("unsubbing - transcript controls");
+        Logger.debug("unsubbing - transcript controls");
         if (un_sub) {
             un_sub();
         }
@@ -31,19 +32,19 @@
     const toggle_transcripts = () => {
         debounce = true;
         if (transcribe_running) {
-            console.log("Currently running, stopping...");
+            Logger.info("Currently running, stopping...");
             invoke("stop_transcribe");
         } else {
-            console.log("Currently NOT running, starting...");
+            Logger.info("Currently NOT running, starting...");
             invoke("start_transcribe");
         }
         setTimeout(() => (debounce = false), 1000);
     };
 
     let subscribe = async () => {
-        console.log("subbing to appstate updates");
+        Logger.info("subbing to appstate updates");
         un_sub = await listen<boolean>("transcribe_running", (event) => {
-            console.log("transcribe_running event");
+            Logger.debug("transcribe_running event");
             transcribe_running = event.payload;
         });
     };

@@ -8,6 +8,7 @@
     } from "$lib/bindings";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
     import { DefaultAppState } from "$lib/defaults";
+    import Logger from "$utils/log";
 
     let current_segment: WhisperSegment = $state({
         id: "",
@@ -22,7 +23,7 @@
     const ws = new WebSocket("ws://localhost:3030/ws");
     ws.onmessage = (ws_event) => {
         let event: WebsocketResponse = JSON.parse(ws_event.data);
-        console.log(event);
+        Logger.debug(event);
 
         switch (event.kind) {
             case "segment_update":
@@ -34,13 +35,13 @@
                 overlay_config = appstate.overlay_config;
                 break;
             default:
-                console.log("unknown event type");
+                Logger.warn("unknown event type");
                 break;
         }
         // current_segment = segment;
     };
     ws.onopen = (event) => {
-        console.log("connected", event);
+        Logger.info("connected", event);
         const request: WebsocketRequest = {
             kind: "get_appstate",
             data: "{}",

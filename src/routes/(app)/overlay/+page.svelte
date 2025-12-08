@@ -12,6 +12,7 @@
     import { type UnlistenFn, listen } from "@tauri-apps/api/event";
     import { onMount, onDestroy } from "svelte";
     import type { AppState, WhisperSegment } from "$lib/bindings";
+    import Logger from "$utils/log";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -27,15 +28,15 @@
     });
 
     onMount(async () => {
-        console.log("subbing to transcript");
+        Logger.info("subbing to transcript");
         un_sub = await listen<WhisperSegment>("segment_update", (event) => {
-            console.log(event.payload);
+            Logger.debug(event.payload);
             current_segment = event.payload;
         });
     });
 
     onDestroy(() => {
-        console.log("unsubbing");
+        Logger.debug("unsubbing");
         un_sub();
     });
 </script>

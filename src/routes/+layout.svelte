@@ -3,6 +3,7 @@
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onDestroy, onMount } from "svelte";
     import { toast } from "svelte-sonner";
+    import Logger from "$utils/log";
 
     import "../app.css";
 
@@ -11,15 +12,15 @@
     // let un_sub: UnlistenFn;
 
     // onMount(async () => {
-    //     console.log("subbing to appstate updates");
+    //     Logger.debug("subbing to appstate updates");
     //     un_sub = await listen<AppState>("appstate_update", (event) => {
-    //         console.log("appstate_update", event.payload);
+    //         Logger.debug("appstate_update", event.payload);
 
     //     });
     // });
 
     // onDestroy(() => {
-    //     console.log("unsubbing");
+    //     Logger.debug("unsubbing");
     //     un_sub();
     // });
 </script>

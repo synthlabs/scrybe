@@ -13,6 +13,7 @@
     import { DefaultAppState } from "$lib/defaults";
     import { type UnlistenFn } from "@tauri-apps/api/event";
     import type { AppState, WhisperToggles } from "$lib/bindings";
+    import Logger from "$utils/log";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -22,7 +23,7 @@
     let un_sub: UnlistenFn;
 
     onDestroy(() => {
-        console.log("unsubbing - settings page");
+        Logger.debug("unsubbing - settings page");
     });
 
     type ConfigToggle = {
@@ -91,7 +92,7 @@
 
     const select_file = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
-        console.log("selecting file");
+        Logger.debug("selecting file");
         const selected = await open({
             directory: false,
             multiple: false,
@@ -99,10 +100,10 @@
         });
         if (Array.isArray(selected) || selected === null) {
             // user selected multiple directories
-            console.log("error");
+            Logger.error("selected multiple directories");
         } else {
             // user selected a single file
-            console.log(selected);
+            Logger.debug(selected);
             store.object.model_path = selected;
         }
     };

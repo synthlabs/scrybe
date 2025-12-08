@@ -3,21 +3,22 @@
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onDestroy, onMount } from "svelte";
     import type { WhisperSegment } from "$lib/bindings";
+    import Logger from "$utils/log";
 
     let current_segment: WhisperSegment = $state({} as WhisperSegment);
 
     let un_sub: UnlistenFn;
 
     onMount(async () => {
-        console.log("subbing to transcript");
+        Logger.info("subbing to transcript");
         un_sub = await listen<WhisperSegment>("segment_update", (event) => {
-            console.log(event.payload);
+            Logger.debug(event.payload);
             current_segment = event.payload;
         });
     });
 
     onDestroy(() => {
-        console.log("unsubbing");
+        Logger.debug("unsubbing");
         un_sub();
     });
 </script>
