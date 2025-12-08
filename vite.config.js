@@ -1,7 +1,6 @@
-import { defineConfig } from "vite";
+import { defineConfig, searchForWorkspaceRoot } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
@@ -29,7 +28,10 @@ export default defineConfig(async () => ({
             ignored: ["**/src-tauri/**"],
         },
         fs: {
-            allow: ["/Users/jerod/src/scrybe/rust/core/bindings", "C:\\Users\\jerod\\Documents\\src\\scrybe\\rust\\core\\bindings"]
-        }
+            allow: [
+                // search up for workspace root
+                searchForWorkspaceRoot(process.cwd()),
+            ],
+        },
     },
 }));

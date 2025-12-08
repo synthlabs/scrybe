@@ -1,8 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use crate::types::{AppState, WebsocketResponse};
 use hf_hub::api::sync::Api;
 use rust_embed::RustEmbed;
-use serde::Deserialize;
+use scrybe_core::{
+    audio::{self, AudioManager},
+    whisper::WhisperManager,
+};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
     env,
@@ -12,16 +17,11 @@ use std::{
 use tauri::{App, AppHandle, Emitter, Listener, Manager, State};
 use tauri_plugin_store::StoreExt;
 use tauri_specta::collect_commands;
+use tauri_svelte_synced_store::StateSyncer;
 use tracing::{debug, error, info};
 use uuid::Uuid;
 use warp::Filter;
 use ws::WebsocketManager;
-
-use crate::types::{AppState, WebsocketResponse};
-use scrybe_core::{
-    audio::{self, AudioManager},
-    whisper::WhisperManager,
-};
 
 mod types;
 mod ws;
@@ -32,7 +32,7 @@ type SharedAppState = Arc<Mutex<AppState>>;
 type SharedInternalState = Arc<Mutex<InternalState>>;
 type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
 
-#[derive(Debug, Clone, specta::Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type, Default)]
 struct InternalState {
     transcribe_running: bool,
     audio_step_size: u64,
@@ -41,6 +41,76 @@ struct InternalState {
 #[derive(RustEmbed)]
 #[folder = "../build"]
 struct Static;
+
+#[tauri::command]
+#[specta::specta]
+fn emit_state(
+    name: String,
+    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
+) -> bool {
+    tracing::info!("emit_state: {:?}", name);
+
+    match name.as_str() {
+        "internal_state" => state_syncer.emit::<InternalState>("internal_state"),
+        "app_state" => state_syncer.emit::<AppState>("app_state"),
+        _ => return false,
+    };
+
+    return true;
+}
+
+#[tauri::command]
+#[specta::specta]
+fn update_state(
+    app: AppHandle,
+    ws_manager: State<'_, WebsocketManager>,
+    state: tauri_svelte_synced_store::StateUpdate,
+    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
+) -> bool {
+    tracing::info!("update_state: {:?}", state);
+
+    match state.name.as_str() {
+        "internal_state" => {
+            state_syncer
+                .update_typed_string::<InternalState>("internal_state", state.value.as_str());
+        }
+        "app_state" => {
+            let new_app_state: AppState = match serde_json::from_str(state.value.as_str()) {
+                Ok(res) => res,
+                Err(_) => {
+                    error!("failed to parse app state");
+                    return false;
+                }
+            };
+
+            // AppState lock scope
+            {
+                let app_state_ref = state_syncer.get::<AppState>("app_state");
+                let app_state = app_state_ref.lock().unwrap();
+
+                if new_app_state.model_path != app_state.model_path {
+                    setup_whisper_manager(&app, new_app_state.clone());
+                }
+            }
+            state_syncer.update("app_state", new_app_state.clone());
+
+            let response = WebsocketManager::to_ws_response(
+                "appstate_update".to_owned(),
+                new_app_state.clone(),
+            );
+
+            match serde_json::to_string(&response) {
+                Ok(msg) => <WebsocketManager as Clone>::clone(&ws_manager).broadcast(msg),
+                Err(err) => error!("error creating websocket response: {}", err),
+            };
+        }
+        _ => {
+            tracing::warn!("unknown type");
+            return false;
+        }
+    }
+    return true;
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -318,6 +388,8 @@ pub fn main() {
             start_transcribe,
             stop_transcribe,
             get_transcribe_running,
+            emit_state,
+            update_state,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
@@ -359,15 +431,14 @@ pub fn main() {
             // let device = scrybe_core::audio::get_default_input_device()
             //     .expect("unable to get default device");
 
-            let managed_state = Arc::new(Mutex::new(initial_state));
-            app.manage(managed_state.clone());
-            app.manage(Arc::new(Mutex::new(InternalState {
-                transcribe_running: false,
-                audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
-            })));
+            let state_syncer = StateSyncer::new(app.handle().clone());
+            state_syncer.set("app_state", AppState::default());
+            state_syncer.set("internal_state", InternalState::default());
+
+            app.manage::<StateSyncer>(state_syncer.clone());
 
             info!("setting up websocket manager");
-            let ws_manager = WebsocketManager::new(managed_state.clone()).unwrap();
+            let ws_manager = WebsocketManager::new(state_syncer.clone()).unwrap();
 
             app.manage(ws_manager.clone());
 

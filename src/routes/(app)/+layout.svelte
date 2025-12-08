@@ -2,7 +2,6 @@
     import LifeBuoy from "lucide-svelte/icons/life-buoy";
     import House from "lucide-svelte/icons/house";
     import Settings2 from "lucide-svelte/icons/settings-2";
-    import Bot from "lucide-svelte/icons/bot";
     import Projector from "lucide-svelte/icons/projector";
     import { page } from "$app/state";
     import AppSidebar from "$lib/components/app-sidebar.svelte";

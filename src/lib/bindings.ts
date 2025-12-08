@@ -27,6 +27,12 @@ export const commands = {
     async getTranscribeRunning(): Promise<boolean> {
         return await TAURI_INVOKE("get_transcribe_running");
     },
+    async emitState(name: string): Promise<boolean> {
+        return await TAURI_INVOKE("emit_state", { name });
+    },
+    async updateState(state: StateUpdate): Promise<boolean> {
+        return await TAURI_INVOKE("update_state", { state });
+    },
 };
 
 /** user-defined events **/
@@ -58,6 +64,11 @@ export type OverlayConfig = {
     background_color: string;
     transparency: number;
     font_size: number;
+};
+export type StateUpdate = {
+    version: number | null;
+    name: string;
+    value: string;
 };
 export type WebsocketRequest = { kind: string; data: string };
 export type WebsocketResponse = {

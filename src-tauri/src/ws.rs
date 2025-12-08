@@ -1,6 +1,7 @@
 use futures::{FutureExt, StreamExt};
 use serde::Serialize;
 use std::{collections::HashMap, sync::Arc};
+use tauri_svelte_synced_store::StateSyncer;
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{debug, error, info, warn};
@@ -21,13 +22,13 @@ pub struct Client {
 #[derive(Clone)]
 pub struct WebsocketManager {
     pub clients: Clients,
-    pub appstate: Arc<std::sync::Mutex<AppState>>,
+    pub store: StateSyncer,
 }
 
 impl WebsocketManager {
-    pub fn new(appstate: Arc<std::sync::Mutex<AppState>>) -> Result<Self, anyhow::Error> {
+    pub fn new(store: StateSyncer) -> Result<Self, anyhow::Error> {
         let clients = Arc::new(Mutex::new(HashMap::new()));
-        Ok(WebsocketManager { clients, appstate })
+        Ok(WebsocketManager { clients, store })
     }
 
     pub async fn client_connection(self, ws: WebSocket) {
@@ -111,9 +112,12 @@ impl WebsocketManager {
             "get_appstate" => {
                 debug!("get_appstate from websocket");
 
-                if let Ok(guard) = self.appstate.lock() {
+                {
+                    let app_state_ref = self.store.get::<AppState>("app_state");
+                    let app_state = app_state_ref.lock().unwrap();
+
                     let response =
-                        Self::to_ws_response("appstate_update".to_owned(), &guard.to_owned());
+                        Self::to_ws_response("appstate_update".to_owned(), app_state.clone());
 
                     let response_str = match serde_json::to_string(&response) {
                         Ok(data) => data,

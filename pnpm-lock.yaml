@@ -17,6 +17,9 @@ importers:
       '@tauri-apps/plugin-opener':
         specifier: ^2.5.2
         version: 2.5.2
+      '@tauri-apps/plugin-process':
+        specifier: ^2.3.1
+        version: 2.3.1
       '@tauri-apps/plugin-store':
         specifier: ^2.4.1
         version: 2.4.1
@@ -29,16 +32,19 @@ importers:
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))
+        version: 3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))
       '@sveltejs/kit':
         specifier: ^2.49.1
-        version: 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+        version: 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.1.1
-        version: 5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+        version: 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
       '@tauri-apps/cli':
         specifier: ^2.9.5
         version: 2.9.5
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
       autoprefixer:
         specifier: ^10.4.22
         version: 10.4.22(postcss@8.5.6)
@@ -92,7 +98,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.4.1
-        version: 6.4.1(jiti@1.21.7)(yaml@2.8.1)
+        version: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
 
 packages:
 
@@ -533,6 +539,9 @@ packages:
   '@tauri-apps/plugin-opener@2.5.2':
     resolution: {integrity: sha512-ei/yRRoCklWHImwpCcDK3VhNXx+QXM9793aQ64YxpqVF0BDuuIlXhZgiAkc15wnPVav+IbkYhmDJIv5R326Mew==}
 
+  '@tauri-apps/plugin-process@2.3.1':
+    resolution: {integrity: sha512-nCa4fGVaDL/B9ai03VyPOjfAHRHSBz5v6F/ObsB73r/dA3MHHhZtldaDMIc0V/pnUw9ehzr2iEG+XkSEyC0JJA==}
+
   '@tauri-apps/plugin-store@2.4.1':
     resolution: {integrity: sha512-ckGSEzZ5Ii4Hf2D5x25Oqnm2Zf9MfDWAzR+volY0z/OOBz6aucPKEY0F649JvQ0Vupku6UJo7ugpGRDOFOunkA==}
 
@@ -544,6 +553,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/node@24.10.1':
+    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -1101,6 +1113,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
   update-browserslist-db@1.2.2:
     resolution: {integrity: sha512-E85pfNzMQ9jpKkA7+TJAi4TJN+tBCuWh5rUcS/sv6cFi+1q9LYDwDI5dpUL0u/73EElyQ8d3TEaeW4sPedBqYA==}
     hasBin: true
@@ -1368,15 +1383,15 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))':
+  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))':
     dependencies:
-      '@sveltejs/kit': 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/kit': 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
 
-  '@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
       '@standard-schema/spec': 1.0.0
       '@sveltejs/acorn-typescript': 1.0.8(acorn@8.15.0)
-      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
       '@types/cookie': 0.6.0
       acorn: 8.15.0
       cookie: 0.6.0
@@ -1389,27 +1404,27 @@ snapshots:
       set-cookie-parser: 2.7.2
       sirv: 3.0.2
       svelte: 5.45.6
-      vite: 6.4.1(jiti@1.21.7)(yaml@2.8.1)
+      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
 
-  '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
       debug: 4.4.3
       svelte: 5.45.6
-      vite: 6.4.1(jiti@1.21.7)(yaml@2.8.1)
+      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte-inspector': 4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
       debug: 4.4.3
       deepmerge: 4.3.1
       kleur: 4.1.5
       magic-string: 0.30.21
       svelte: 5.45.6
-      vite: 6.4.1(jiti@1.21.7)(yaml@2.8.1)
-      vitefu: 1.1.1(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1))
+      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
+      vitefu: 1.1.1(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -1474,6 +1489,10 @@ snapshots:
     dependencies:
       '@tauri-apps/api': 2.9.1
 
+  '@tauri-apps/plugin-process@2.3.1':
+    dependencies:
+      '@tauri-apps/api': 2.9.1
+
   '@tauri-apps/plugin-store@2.4.1':
     dependencies:
       '@tauri-apps/api': 2.9.1
@@ -1485,6 +1504,10 @@ snapshots:
   '@types/cookie@0.6.0': {}
 
   '@types/estree@1.0.8': {}
+
+  '@types/node@24.10.1':
+    dependencies:
+      undici-types: 7.16.0
 
   acorn@8.15.0: {}
 
@@ -1997,6 +2020,8 @@ snapshots:
 
   typescript@5.9.3: {}
 
+  undici-types@7.16.0: {}
+
   update-browserslist-db@1.2.2(browserslist@4.28.1):
     dependencies:
       browserslist: 4.28.1
@@ -2005,7 +2030,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite@6.4.1(jiti@1.21.7)(yaml@2.8.1):
+  vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
@@ -2014,13 +2039,14 @@ snapshots:
       rollup: 4.53.3
       tinyglobby: 0.2.15
     optionalDependencies:
+      '@types/node': 24.10.1
       fsevents: 2.3.3
       jiti: 1.21.7
       yaml: 2.8.1
 
-  vitefu@1.1.1(vite@6.4.1(jiti@1.21.7)(yaml@2.8.1)):
+  vitefu@1.1.1(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)):
     optionalDependencies:
-      vite: 6.4.1(jiti@1.21.7)(yaml@2.8.1)
+      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
 
   yaml@2.8.1:
     optional: true
