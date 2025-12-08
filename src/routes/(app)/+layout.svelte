@@ -4,12 +4,13 @@
     import Settings2 from "lucide-svelte/icons/settings-2";
     import Bot from "lucide-svelte/icons/bot";
     import Projector from "lucide-svelte/icons/projector";
-
     import { page } from "$app/state";
     import AppSidebar from "$lib/components/app-sidebar.svelte";
     import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.ts";
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
+    import { onMount } from "svelte";
+    import { checkForAppUpdates } from "$utils/updater";
 
     import TranscriptControls from "$lib/components/transcript-controls.svelte";
 
@@ -67,6 +68,12 @@
     let breadcrubms = $derived(page.url.pathname.split("/"));
 
     let { children } = $props();
+
+    onMount(async () => {
+        await checkForAppUpdates(
+            "https://github.com/synthlabs/scrybe/releases/latest",
+        );
+    });
 </script>
 
 <Sidebar.Provider>
