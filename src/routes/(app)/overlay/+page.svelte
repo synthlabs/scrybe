@@ -8,11 +8,10 @@
     import { Slider } from "$lib/components/ui/slider/index.ts";
     import { cn } from "$lib/utils";
     import { SyncedStore } from "$lib/store.svelte";
-    import { DefaultAppState } from "$bindings/defaults";
-    import type { AppState } from "$bindings/AppState";
-    import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import { DefaultAppState } from "$lib/defaults";
     import { type UnlistenFn, listen } from "@tauri-apps/api/event";
     import { onMount, onDestroy } from "svelte";
+    import type { AppState, WhisperSegment } from "$lib/bindings";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
@@ -147,10 +146,8 @@
 
 <style>
     .bg-checkered {
-        background-image: linear-gradient(
-                rgba(110, 110, 110, 0.6),
-                rgba(110, 110, 110, 0.6)
-            ),
+        background-image:
+            linear-gradient(rgba(110, 110, 110, 0.6), rgba(110, 110, 110, 0.6)),
             url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23F0F0F0' d='M0 0h16v16H0zm16 16h16v16H16z'/%3E%3C/svg%3E");
         background-size: 32px 32px;
     }

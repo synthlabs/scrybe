@@ -1,4 +1,4 @@
-import type { AppState } from "./AppState";
+import type { AppState } from "../../rust/core/bindings/AppState";
 
 export let DefaultAppState: AppState = {
     current_device: {

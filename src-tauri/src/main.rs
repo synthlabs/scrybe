@@ -1,16 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-mod ws;
-
+use hf_hub::api::sync::Api;
 use rust_embed::RustEmbed;
-
-use scrybe_core::{
-    audio::{self, AudioManager},
-    types::{AppState, WebsocketResponse, WhisperParams, WhisperSegment},
-    whisper::WhisperManager,
-};
-
 use serde::Deserialize;
 use serde_json::json;
 use std::{
@@ -26,7 +17,14 @@ use uuid::Uuid;
 use warp::Filter;
 use ws::WebsocketManager;
 
-use hf_hub::api::sync::Api;
+use crate::types::{AppState, WebsocketResponse};
+use scrybe_core::{
+    audio::{self, AudioManager},
+    whisper::WhisperManager,
+};
+
+mod types;
+mod ws;
 
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 
@@ -153,7 +151,7 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
 
         audio_manager.play_stream().expect("unable play stream");
 
-        let mut current_segment = WhisperSegment {
+        let mut current_segment = scrybe_core::whisper::WhisperSegment {
             id: Uuid::new_v4().to_string(),
             index: 0,
             items: vec![],
@@ -163,7 +161,7 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
         loop {
             let mut step_size = 0;
             let mut segment_size = 0;
-            let mut whisper_params = WhisperParams::default();
+            let mut whisper_params = scrybe_core::whisper::WhisperParams::default();
             if let Ok(state) = app_state_ref.lock() {
                 debug!("app state syncing");
                 segment_size = state.audio_segment_size.try_into().unwrap_or(2);
@@ -228,7 +226,7 @@ fn start_transcribe(app: AppHandle) -> Result<(), ()> {
                 samples.clear();
 
                 segment_start_time = SystemTime::now();
-                current_segment = WhisperSegment {
+                current_segment = scrybe_core::whisper::WhisperSegment {
                     id: Uuid::new_v4().to_string(),
                     index: current_segment.index + 1,
                     items: vec![],
@@ -304,6 +302,15 @@ pub fn main() {
     let handlers = tauri_specta::Builder::<tauri::Wry>::new()
         .typ::<InternalState>()
         .typ::<AppState>()
+        .typ::<types::AdvancedSettings>()
+        .typ::<types::AudioDevice>()
+        .typ::<types::AudioFormat>()
+        .typ::<types::OverlayConfig>()
+        .typ::<types::WebsocketRequest>()
+        .typ::<types::WebsocketResponse>()
+        .typ::<scrybe_core::whisper::WhisperParams>()
+        .typ::<scrybe_core::whisper::WhisperToggles>()
+        .typ::<scrybe_core::whisper::WhisperSegment>()
         // Then register them (separated by a comma)
         .commands(collect_commands![
             set_appstate,
@@ -312,6 +319,17 @@ pub fn main() {
             stop_transcribe,
             get_transcribe_running,
         ]);
+
+    #[cfg(debug_assertions)] // <- Only export on non-release builds
+    handlers
+        .export(
+            specta_typescript::Typescript::default()
+                .formatter(specta_typescript::formatter::prettier)
+                .bigint(specta_typescript::BigIntExportBehavior::Number)
+                .header("/* eslint-disable */"),
+            "../src/lib/bindings.ts",
+        )
+        .expect("Failed to export typescript bindings");
 
     let _builder = builder
         .invoke_handler(handlers.invoke_handler())

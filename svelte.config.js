@@ -10,7 +10,8 @@ const config = {
     kit: {
         adapter: adapter(),
         alias: {
-            $bindings: 'rust/core/bindings',
+            '$utils': './utils/js',
+            '$utils/*': './utils/js/*',
         },
     },
 };

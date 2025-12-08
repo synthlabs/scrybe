@@ -1,13 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
-
 use futures::{FutureExt, StreamExt};
-use scrybe_core::types::{AppState, WebsocketRequest, WebsocketResponse};
 use serde::Serialize;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 use warp::{filters::ws::WebSocket, reject::Rejection, ws::Message};
+
+use crate::types::{AppState, WebsocketRequest, WebsocketResponse};
 
 pub type _WSResult<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<Mutex<HashMap<String, Client>>>;

@@ -1,11 +1,13 @@
 <script lang="ts">
-    import type { WhisperSegment } from "$bindings/WhisperSegment";
-    import type { WebsocketRequest } from "$bindings/WebsocketRequest";
-    import type { WebsocketResponse } from "$bindings/WebsocketResponse";
+    import type {
+        WhisperSegment,
+        WebsocketRequest,
+        WebsocketResponse,
+        OverlayConfig,
+        AppState,
+    } from "$lib/bindings";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
-    import type { OverlayConfig } from "$bindings/OverlayConfig";
-    import type { AppState } from "$bindings/AppState";
-    import { DefaultAppState } from "$bindings/defaults";
+    import { DefaultAppState } from "$lib/defaults";
 
     let current_segment: WhisperSegment = $state({
         id: "",

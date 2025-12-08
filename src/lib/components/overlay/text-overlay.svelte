@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import type { WhisperSegment } from "$lib/bindings";
 
     function hexToRgb(hex: string) {
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
@@ -23,7 +23,7 @@
     }
 
     interface Props {
-        justify?: "left" | "center" | "right" | undefined;
+        justify?: "left" | "center" | "right" | undefined | string;
         test_mode?: boolean;
         test_text?: string;
         background?: string;

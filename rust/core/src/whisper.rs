@@ -1,7 +1,67 @@
 use std::time::SystemTime;
 
-use crate::types::{WhisperParams, WhisperText};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[serde(default)]
+pub struct WhisperText {
+    pub index: u64,
+    pub start_time: i64,
+    pub end_time: i64,
+    pub text: String,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[serde(default)]
+pub struct WhisperSegment {
+    pub id: String,
+    pub index: u64,
+    pub items: Vec<WhisperText>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[serde(default)]
+pub struct WhisperParams {
+    pub toggles: WhisperToggles,
+    pub language: String,
+}
+
+impl Default for WhisperParams {
+    fn default() -> Self {
+        Self {
+            toggles: WhisperToggles::default(),
+            language: "auto".to_string(), // TODO: turn this into an enum
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[serde(default)]
+pub struct WhisperToggles {
+    pub translate: bool,
+    pub suppress_blanks: bool,
+    pub print_special: bool,
+    pub print_progress: bool,
+    pub token_timestamps: bool,
+    pub single_segment: bool,
+    pub split_on_word: bool,
+    pub tdrz_enable: bool,
+}
+
+impl Default for WhisperToggles {
+    fn default() -> Self {
+        Self {
+            translate: false,
+            suppress_blanks: true,
+            print_special: false,
+            print_progress: false,
+            token_timestamps: true,
+            single_segment: true,
+            split_on_word: false,
+            tdrz_enable: false,
+        }
+    }
+}
 
 pub struct WhisperManager {
     ctx: WhisperContext,

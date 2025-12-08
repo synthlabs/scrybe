@@ -2,7 +2,7 @@
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onDestroy, onMount } from "svelte";
-    import type { WhisperSegment } from "$bindings/WhisperSegment";
+    import type { WhisperSegment } from "$lib/bindings";
 
     let current_segment: WhisperSegment = $state({} as WhisperSegment);
 

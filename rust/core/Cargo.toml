@@ -16,7 +16,6 @@ samplerate = { git = "https://github.com/xjerod/rust-samplerate.git" }
 clap = { version = "4.5.23", features = ["derive", "string"] }
 whisper-rs = { version = "=0.15.1"}
 serde = {version = "1.0.216", features = ["derive"]}
-ts-rs = "10.1.0"
 specta = "=2.0.0-rc.22"
 
 [features]

@@ -2,13 +2,13 @@
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { onDestroy } from "svelte";
     import { Button } from "$lib/components/ui/button/index.ts";
-    import type { AppState } from "$bindings/AppState";
+    import type { AppState } from "$lib/bindings";
     import Play from "lucide-svelte/icons/play";
     import LoaderCircle from "lucide-svelte/icons/loader-circle";
     import Pause from "lucide-svelte/icons/pause";
     import { invoke } from "@tauri-apps/api/core";
     import { SyncedStore } from "$lib/store.svelte";
-    import { DefaultAppState } from "$bindings/defaults";
+    import { DefaultAppState } from "$lib/defaults";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();

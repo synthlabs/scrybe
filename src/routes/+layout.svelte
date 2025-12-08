@@ -5,7 +5,6 @@
     import { toast } from "svelte-sonner";
 
     import "../app.css";
-    import type { AppState } from "$bindings/AppState";
 
     let { children } = $props();
 

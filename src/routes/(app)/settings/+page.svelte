@@ -10,10 +10,9 @@
     import { open } from "@tauri-apps/plugin-dialog";
     import { onDestroy } from "svelte";
     import { SyncedStore } from "$lib/store.svelte";
-    import { DefaultAppState } from "$bindings/defaults";
-    import type { AppState } from "$bindings/AppState";
+    import { DefaultAppState } from "$lib/defaults";
     import { type UnlistenFn } from "@tauri-apps/api/event";
-    import type { WhisperToggles } from "$bindings/WhisperToggles";
+    import type { AppState, WhisperToggles } from "$lib/bindings";
 
     let store = new SyncedStore<AppState>("appstate", DefaultAppState);
     store.init();
