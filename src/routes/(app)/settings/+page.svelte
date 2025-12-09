@@ -9,16 +9,15 @@
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
     import { onDestroy } from "svelte";
-    import { SyncedStore } from "$lib/store.svelte";
+    import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState } from "$lib/defaults";
     import { type UnlistenFn } from "@tauri-apps/api/event";
     import type { AppState, WhisperToggles } from "$lib/bindings";
     import Logger from "$utils/log";
 
-    let store = new SyncedStore<AppState>("appstate", DefaultAppState);
-    store.init();
+    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
 
-    $inspect(store.object);
+    $inspect(app_state.obj);
 
     let un_sub: UnlistenFn;
 
@@ -37,7 +36,7 @@
     };
 
     let store_toggles = $derived(
-        store.object.whisper_params.toggles as IndexedToggle,
+        app_state.obj.whisper_params.toggles as IndexedToggle,
     );
 
     let toggle_metadata: { [key: string]: ConfigToggle } = {
@@ -104,8 +103,9 @@
         } else {
             // user selected a single file
             Logger.debug(selected);
-            store.object.model_path = selected;
+            app_state.obj.model_path = selected;
         }
+        app_state.sync();
     };
 </script>
 
@@ -132,7 +132,7 @@
                 type="number"
                 id="audio_segment_size"
                 class="max-w-24"
-                bind:value={store.object.audio_segment_size}
+                bind:value={app_state.obj.audio_segment_size}
             />
         </div>
     </div>
@@ -153,7 +153,7 @@
                     id="model-input"
                     placeholder="Model Path"
                     class=""
-                    bind:value={store.object.model_path}
+                    bind:value={app_state.obj.model_path}
                     disabled
                 />
             </div>
@@ -180,12 +180,12 @@
             </Label>
             <Select.Root
                 type="single"
-                bind:value={store.object.whisper_params.language}
+                bind:value={app_state.obj.whisper_params.language}
                 name="language"
             >
                 <Select.Trigger>
-                    {store.object.whisper_params.language
-                        ? store.object.whisper_params.language
+                    {app_state.obj.whisper_params.language
+                        ? app_state.obj.whisper_params.language
                         : "auto"}
                 </Select.Trigger>
                 <Select.Content>

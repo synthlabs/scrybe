@@ -1,4 +1,5 @@
 import type { AppState } from "../../rust/core/bindings/AppState";
+import type { InternalState } from "./bindings";
 
 export let DefaultAppState: AppState = {
     current_device: {
@@ -33,4 +34,9 @@ export let DefaultAppState: AppState = {
         language: "",
     },
     advanced_settings: {},
+};
+
+export let DefaultInternalState: InternalState = {
+    transcribe_running: false,
+    audio_step_size: 0,
 };

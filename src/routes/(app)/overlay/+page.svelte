@@ -7,18 +7,18 @@
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Slider } from "$lib/components/ui/slider/index.ts";
     import { cn } from "$lib/utils";
-    import { SyncedStore } from "$lib/store.svelte";
+    import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState } from "$lib/defaults";
     import { type UnlistenFn, listen } from "@tauri-apps/api/event";
     import { onMount, onDestroy } from "svelte";
     import type { AppState, WhisperSegment } from "$lib/bindings";
     import Logger from "$utils/log";
 
-    let store = new SyncedStore<AppState>("appstate", DefaultAppState);
-    store.init();
+    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
 
-    $inspect(store.object.overlay_config.background_color);
-    $inspect(store.object.overlay_config.transparency);
+    $inspect(app_state.obj.overlay_config.background_color);
+    $inspect(app_state.obj.overlay_config.transparency);
+    $inspect(app_state.obj.overlay_config.text_alignment);
 
     let un_sub: UnlistenFn;
     let current_segment: WhisperSegment = $state({
@@ -39,6 +39,11 @@
         Logger.debug("unsubbing");
         un_sub();
     });
+
+    const setAlignment = (align: string) => {
+        app_state.obj.overlay_config.text_alignment = align;
+        app_state.sync();
+    };
 </script>
 
 <div class="mx-auto w-full space-y-4 pb-4">
@@ -53,9 +58,9 @@
         <div class="bg-checkered h-32 w-full border-2 border-primary">
             <TextOverlay
                 test_mode={true}
-                justify={store.object.overlay_config.text_alignment}
-                background={store.object.overlay_config.background_color}
-                transparency={store.object.overlay_config.transparency}
+                justify={app_state.obj.overlay_config.text_alignment}
+                background={app_state.obj.overlay_config.background_color}
+                transparency={app_state.obj.overlay_config.transparency}
                 {current_segment}
             ></TextOverlay>
         </div>
@@ -72,13 +77,12 @@
                     <button
                         class={cn(
                             "rounded-md rounded-r-none border border-transparent px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                            store.object.overlay_config.text_alignment == "left"
+                            app_state.obj.overlay_config.text_alignment ==
+                                "left"
                                 ? "bg-accent"
                                 : "bg-secondary",
                         )}
-                        onclick={() =>
-                            (store.object.overlay_config.text_alignment =
-                                "left")}
+                        onclick={() => setAlignment("left")}
                         type="button"
                     >
                         <AlignLeft />
@@ -86,14 +90,12 @@
                     <button
                         class={cn(
                             "rounded-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                            store.object.overlay_config.text_alignment ==
+                            app_state.obj.overlay_config.text_alignment ==
                                 "center"
                                 ? "bg-accent"
                                 : "bg-secondary",
                         )}
-                        onclick={() =>
-                            (store.object.overlay_config.text_alignment =
-                                "center")}
+                        onclick={() => setAlignment("center")}
                         type="button"
                     >
                         <AlignCenter />
@@ -101,14 +103,12 @@
                     <button
                         class={cn(
                             "rounded-md rounded-l-none border border-transparent  px-4 py-2 text-center text-sm text-white shadow-md transition-all hover:bg-accent hover:shadow-lg focus:bg-slate-600 focus:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
-                            store.object.overlay_config.text_alignment ==
+                            app_state.obj.overlay_config.text_alignment ==
                                 "right"
                                 ? "bg-accent"
                                 : "bg-secondary",
                         )}
-                        onclick={() =>
-                            (store.object.overlay_config.text_alignment =
-                                "right")}
+                        onclick={() => setAlignment("right")}
                         type="button"
                     >
                         <AlignRight />
@@ -127,15 +127,17 @@
                     <input
                         type="color"
                         bind:value={
-                            store.object.overlay_config.background_color
+                            app_state.obj.overlay_config.background_color
                         }
+                        onchange={() => app_state.sync()}
                     />
                     <Slider
                         type="single"
-                        bind:value={store.object.overlay_config.transparency}
+                        bind:value={app_state.obj.overlay_config.transparency}
                         max={100}
                         step={1}
                         class="w-72 px-2"
+                        onchange={() => app_state.sync()}
                     />
                 </div>
             </div>

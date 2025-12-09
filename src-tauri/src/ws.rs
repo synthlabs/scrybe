@@ -117,7 +117,7 @@ impl WebsocketManager {
                     let app_state = app_state_ref.lock().unwrap();
 
                     let response =
-                        Self::to_ws_response("appstate_update".to_owned(), app_state.clone());
+                        Self::to_ws_response("app_state_update".to_owned(), app_state.clone());
 
                     let response_str = match serde_json::to_string(&response) {
                         Ok(data) => data,

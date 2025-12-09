@@ -4,12 +4,6 @@
 /** user-defined commands **/
 
 export const commands = {
-    async setAppstate(newValue: AppState): Promise<void> {
-        await TAURI_INVOKE("set_appstate", { newValue });
-    },
-    async getAppstate(): Promise<AppState> {
-        return await TAURI_INVOKE("get_appstate");
-    },
     async startTranscribe(): Promise<Result<null, null>> {
         try {
             return {
