@@ -41,6 +41,7 @@ features = ["derive", "typescript"]
 version = "=2.0.0-rc.21"
 [dependencies.tauri-svelte-synced-store]
 git = "https://github.com/synthlabs/tauri-svelte-synced-store.git"
+# path = "../../tauri-svelte-synced-store"
 [dependencies.tokio]
 features = ["macros", "sync", "rt-multi-thread"]
 version = "1.42.0"

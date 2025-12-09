@@ -8,7 +8,6 @@ use scrybe_core::{
     whisper::WhisperManager,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -107,15 +106,10 @@ fn update_state(
                 }
             };
 
-            // // AppState lock scope
-            // {
-            //     let app_state_ref = state_syncer.get::<AppState>("app_state");
-            //     let app_state = app_state_ref.lock().unwrap();
-
-            //     if new_app_state.model_path != app_state.model_path {
-            //         setup_whisper_manager(&app, new_app_state.clone());
-            //     }
-            // }
+            if new_app_state.model_path != state_syncer.snapshot::<AppState>("app_state").model_path
+            {
+                setup_whisper_manager(&app, new_app_state.clone());
+            }
             state_syncer.update("app_state", new_app_state.clone());
 
             let response = WebsocketManager::to_ws_response(
@@ -138,23 +132,6 @@ fn update_state(
 
 #[tauri::command]
 #[specta::specta]
-fn get_appstate(
-    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
-) -> AppState {
-    debug!(
-        "{:?} get_appstate",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis()
-    );
-    let app_state_ref = state_syncer.get::<AppState>("app_state");
-    let state = app_state_ref.lock().unwrap();
-    state.clone()
-}
-
-#[tauri::command]
-#[specta::specta]
 fn get_transcribe_running(
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> bool {
@@ -168,42 +145,6 @@ fn get_transcribe_running(
     let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
     let state = internal_state_ref.lock().unwrap();
     state.transcribe_running
-}
-
-#[tauri::command(rename_all = "snake_case")]
-#[specta::specta]
-fn set_appstate(
-    app: AppHandle,
-    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
-    ws_manager: State<'_, WebsocketManager>,
-    new_value: AppState,
-) {
-    debug!(
-        "{:?} set_appstate",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis()
-    );
-    let app_state_ref = state_syncer.get::<AppState>("app_state");
-    let mut current_state = app_state_ref.lock().unwrap();
-
-    if new_value.model_path != current_state.model_path {
-        setup_whisper_manager(&app, new_value.clone());
-    }
-
-    *current_state = new_value.clone();
-
-    app.emit("app_state_update", current_state.clone())
-        .expect("unable to emit state");
-
-    let response =
-        WebsocketManager::to_ws_response("app_state_update".to_owned(), current_state.clone());
-
-    match serde_json::to_string(&response) {
-        Ok(msg) => <WebsocketManager as Clone>::clone(&ws_manager).broadcast(msg),
-        Err(err) => error!("error creating websocket response: {}", err),
-    };
 }
 
 #[tauri::command]
@@ -236,6 +177,14 @@ fn start_transcribe<'a>(
             .as_millis()
     );
 
+    if state_syncer
+        .snapshot::<InternalState>("internal_state")
+        .transcribe_running
+    {
+        info!("transcribe already running");
+        return Err(());
+    }
+
     let app_handle_ref = app.clone();
     let state_syncer_ref = state_syncer.inner().clone();
 
@@ -264,33 +213,28 @@ fn start_transcribe<'a>(
         let mut segment_start_time = SystemTime::now();
         let mut samples: Vec<f32> = Vec::new();
         loop {
-            let mut step_size = 0;
-            let mut segment_size = 0;
-            let mut whisper_params = scrybe_core::whisper::WhisperParams::default();
-            let app_state_ref = state_syncer_ref.get::<AppState>("app_state");
-            let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
+            let internal_state_ref = state_syncer_ref.snapshot::<InternalState>("internal_state");
+            let app_state_ref = state_syncer_ref.snapshot::<AppState>("app_state");
 
-            if let Ok(state) = app_state_ref.lock() {
-                debug!("app state syncing");
-                segment_size = state.audio_segment_size.try_into().unwrap_or(2);
-                whisper_params = state.whisper_params.clone();
-                debug!("segment duration {}", segment_size);
+            let whisper_params = app_state_ref.whisper_params.clone();
+            debug!(
+                "app state syncing: segment_size={}, whisper_params={:?}",
+                app_state_ref.audio_segment_size, whisper_params
+            );
+            debug!(
+                "internal state syncing: step_size={}, transcribe_running={}",
+                internal_state_ref.audio_step_size, internal_state_ref.transcribe_running
+            );
+
+            if !internal_state_ref.transcribe_running {
+                info!("stopping transcription");
+                break;
             }
 
-            if let Ok(state) = internal_state_ref.lock() {
-                debug!("internal app state syncing");
-                step_size = state.audio_step_size;
-                debug!("audio step size {}", step_size);
-
-                debug!("checking running status");
-                if !state.transcribe_running {
-                    info!("stopping");
-                    break;
-                }
-            }
-
-            debug!("waiting for {}ms", step_size);
-            std::thread::sleep(std::time::Duration::from_millis(step_size));
+            debug!("waiting for {}ms", internal_state_ref.audio_step_size);
+            std::thread::sleep(std::time::Duration::from_millis(
+                internal_state_ref.audio_step_size,
+            ));
 
             debug!("copying buffer");
             if let Ok(mut guard) = writer.lock() {
@@ -331,7 +275,9 @@ fn start_transcribe<'a>(
                 segment_start_time.elapsed().unwrap()
             );
 
-            if segment_start_time.elapsed().unwrap() > Duration::from_secs(segment_size) {
+            if segment_start_time.elapsed().unwrap()
+                > Duration::from_secs(app_state_ref.audio_segment_size)
+            {
                 debug!("trimming samples, total {}", samples.len(),);
                 samples.clear();
 
@@ -456,23 +402,17 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             info!("Current working dir {}", working_dir.display());
 
-            let initial_state: AppState =
-                get_config(app, "appstate.json", "object", AppState::default());
-
-            app.store("appstate.json")
-                .expect("unable to load store")
-                .set("object", json!({ "value": initial_state.clone() }));
-
-            info!("setting up whisper manager");
-            setup_whisper_manager(app.handle(), initial_state.clone());
-
             // info!("getting default input device");
             // let device = scrybe_core::audio::get_default_input_device()
             //     .expect("unable to get default device");
 
+            info!("setting up state");
             let state_syncer = StateSyncer::new(app.handle().clone());
             state_syncer.set("app_state", AppState::default());
             state_syncer.set("internal_state", InternalState::default());
+
+            info!("setting up whisper manager");
+            setup_whisper_manager(app.handle(), state_syncer.snapshot("app_state"));
 
             app.manage::<StateSyncer>(state_syncer.clone());
 
