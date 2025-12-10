@@ -50,6 +50,8 @@ export type AudioFormat = { name: string; id: string };
 export type InternalState = {
     transcribe_running: boolean;
     audio_step_size: number;
+    version: string;
+    name: string;
 };
 export type OverlayConfig = {
     name: string;

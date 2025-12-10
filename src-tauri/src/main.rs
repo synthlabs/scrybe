@@ -13,10 +13,9 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tauri::{App, AppHandle, Emitter, Listener, Manager, State};
-use tauri_plugin_store::StoreExt;
+use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_specta::collect_commands;
-use tauri_svelte_synced_store::StateSyncer;
+use tauri_svelte_synced_store::{StateSyncer, StateSyncerConfig};
 use tracing::{debug, error, info};
 use uuid::Uuid;
 use warp::Filter;
@@ -32,6 +31,8 @@ type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
 struct InternalState {
     transcribe_running: bool,
     audio_step_size: u64,
+    version: String,
+    name: String,
 }
 
 impl Default for InternalState {
@@ -39,6 +40,8 @@ impl Default for InternalState {
         Self {
             transcribe_running: false,
             audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
+            version: "".to_owned(),
+            name: "".to_owned(),
         }
     }
 }
@@ -298,20 +301,6 @@ fn start_transcribe<'a>(
     Ok(())
 }
 
-fn get_config<T>(handle: &mut App, file: &str, key: &str, default_val: T) -> T
-where
-    T: for<'a> Deserialize<'a>,
-{
-    let config_store = handle.store(file).expect("unable to get config store");
-
-    if let std::option::Option::Some(binding) = config_store.get(key) {
-        debug!("{} - {}", key, binding["value"]);
-        return serde_json::from_value(binding["value"].clone()).unwrap();
-    } else {
-        default_val
-    }
-}
-
 fn setup_whisper_manager(app: &AppHandle, mut state: AppState) {
     if state.model_path == "" {
         info!("empty model path, pulling default model");
@@ -407,9 +396,18 @@ pub fn main() {
             //     .expect("unable to get default device");
 
             info!("setting up state");
-            let state_syncer = StateSyncer::new(app.handle().clone());
-            state_syncer.set("app_state", AppState::default());
-            state_syncer.set("internal_state", InternalState::default());
+            let state_syncer = StateSyncer::new(
+                StateSyncerConfig {
+                    sync_to_disk: true,
+                    ..Default::default()
+                },
+                app.handle().clone(),
+            );
+            let _ = state_syncer.load::<AppState>("app_state");
+
+            let mut internal_state = state_syncer.load::<InternalState>("internal_state");
+            internal_state.version = app.package_info().version.to_string();
+            internal_state.name = app.package_info().name.to_string();
 
             info!("setting up whisper manager");
             setup_whisper_manager(app.handle(), state_syncer.snapshot("app_state"));
@@ -462,6 +460,17 @@ pub fn main() {
                 let routes = static_files.or(ws_route).with(cors);
                 warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
             });
+
+            info!("creating main window");
+            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                .title(&format!(
+                    "{} {}",
+                    internal_state.name.clone(),
+                    internal_state.version.clone()
+                ))
+                .inner_size(800.0, 600.0);
+
+            let _window = win_builder.build().unwrap();
 
             Ok(())
         })

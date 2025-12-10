@@ -54,7 +54,7 @@ authors = ["you"]
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"
-version = "0.2.1"
+version = "0.2.2"
 
 [target]
 [target."cfg(target_os = \"macos\")"]

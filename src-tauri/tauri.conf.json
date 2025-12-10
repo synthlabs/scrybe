@@ -4,15 +4,7 @@
     "security": {
       "csp": null
     },
-    "windows": [
-      {
-        "decorations": true,
-        "height": 600,
-        "hiddenTitle": false,
-        "title": "scrybe",
-        "width": 800
-      }
-    ]
+    "windows": []
   },
   "build": {
     "beforeBuildCommand": "pnpm build",
@@ -41,6 +33,6 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIxM0EyNDBGNTM2M0Y2QTYKUldTbTltTlREeVE2SVRhZGhDamlXeHNHc2lzTjNLWFZWNXlJVVZFUytURmtHb2pXYm5CT0syRDcK"
     }
   },
-  "productName": "scrybe",
-  "version": "0.2.1"
+  "productName": "Scrybe",
+  "version": "0.2.2"
 }
