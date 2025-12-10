@@ -28,38 +28,38 @@ importers:
         version: 2.9.0
       tauri-svelte-synced-store:
         specifier: github:synthlabs/tauri-svelte-synced-store
-        version: https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/040a47ab38648867cb23de21206c8b1575fff958(@tauri-apps/api@2.9.1)(svelte@5.45.6)
+        version: https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/14b86e624c39af659b8f8f1709e6282b9f36ba06(@tauri-apps/api@2.9.1)(svelte@5.45.8)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))
+        version: 3.0.10(@sveltejs/kit@2.49.2(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))
       '@sveltejs/kit':
-        specifier: ^2.49.1
-        version: 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+        specifier: ^2.49.2
+        version: 2.49.2(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.1.1
-        version: 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+        version: 5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
       '@tauri-apps/cli':
-        specifier: ^2.9.5
-        version: 2.9.5
+        specifier: ^2.9.6
+        version: 2.9.6
       '@types/node':
-        specifier: ^24.10.1
-        version: 24.10.1
+        specifier: ^24.10.2
+        version: 24.10.2
       autoprefixer:
         specifier: ^10.4.22
         version: 10.4.22(postcss@8.5.6)
       bits-ui:
         specifier: 1.0.0-next.77
-        version: 1.0.0-next.77(svelte@5.45.6)
+        version: 1.0.0-next.77(svelte@5.45.8)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       lucide-svelte:
         specifier: ^0.469.0
-        version: 0.469.0(svelte@5.45.6)
+        version: 0.469.0(svelte@5.45.8)
       mode-watcher:
         specifier: ^0.5.1
-        version: 0.5.1(svelte@5.45.6)
+        version: 0.5.1(svelte@5.45.8)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -68,19 +68,19 @@ importers:
         version: 3.7.4
       prettier-plugin-svelte:
         specifier: ^3.4.0
-        version: 3.4.0(prettier@3.7.4)(svelte@5.45.6)
+        version: 3.4.0(prettier@3.7.4)(svelte@5.45.8)
       prettier-plugin-tailwindcss:
         specifier: ^0.7.2
-        version: 0.7.2(prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.6))(prettier@3.7.4)
+        version: 0.7.2(prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.8))(prettier@3.7.4)
       svelte:
-        specifier: ^5.45.6
-        version: 5.45.6
+        specifier: ^5.45.8
+        version: 5.45.8
       svelte-check:
         specifier: ^4.3.4
-        version: 4.3.4(picomatch@4.0.3)(svelte@5.45.6)(typescript@5.9.3)
+        version: 4.3.4(picomatch@4.0.3)(svelte@5.45.8)(typescript@5.9.3)
       svelte-sonner:
         specifier: ^0.3.28
-        version: 0.3.28(svelte@5.45.6)
+        version: 0.3.28(svelte@5.45.8)
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.0
@@ -98,7 +98,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.4.1
-        version: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
+        version: 6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)
 
 packages:
 
@@ -428,8 +428,8 @@ packages:
     peerDependencies:
       '@sveltejs/kit': ^2.0.0
 
-  '@sveltejs/kit@2.49.1':
-    resolution: {integrity: sha512-vByReCTTdlNM80vva8alAQC80HcOiHLkd8XAxIiKghKSHcqeNfyhp3VsYAV8VSiPKu4Jc8wWCfsZNAIvd1uCqA==}
+  '@sveltejs/kit@2.49.2':
+    resolution: {integrity: sha512-Vp3zX/qlwerQmHMP6x0Ry1oY7eKKRcOWGc2P59srOp4zcqyn+etJyQpELgOi4+ZSUgteX8Y387NuwruLgGXLUQ==}
     engines: {node: '>=18.13'}
     hasBin: true
     peerDependencies:
@@ -462,74 +462,74 @@ packages:
   '@tauri-apps/api@2.9.1':
     resolution: {integrity: sha512-IGlhP6EivjXHepbBic618GOmiWe4URJiIeZFlB7x3czM0yDHHYviH1Xvoiv4FefdkQtn6v7TuwWCRfOGdnVUGw==}
 
-  '@tauri-apps/cli-darwin-arm64@2.9.5':
-    resolution: {integrity: sha512-P5XDyCwq3VbWGAplyfP/bgmuUITVDcypxgZUyX45SM7HbU1Nrkk0cNK1HCOkuNBAVVbWen2GUNWah/AiupHHXg==}
+  '@tauri-apps/cli-darwin-arm64@2.9.6':
+    resolution: {integrity: sha512-gf5no6N9FCk1qMrti4lfwP77JHP5haASZgVbBgpZG7BUepB3fhiLCXGUK8LvuOjP36HivXewjg72LTnPDScnQQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@tauri-apps/cli-darwin-x64@2.9.5':
-    resolution: {integrity: sha512-JC9UfQ2ZKavx60dnNxsWztRF3oUH3dgPwN1WJ3/5RUy2aNwD/vXqvJAfNFZ4GWeQpoQ+PqJxduev0U4OMQonnA==}
+  '@tauri-apps/cli-darwin-x64@2.9.6':
+    resolution: {integrity: sha512-oWh74WmqbERwwrwcueJyY6HYhgCksUc6NT7WKeXyrlY/FPmNgdyQAgcLuTSkhRFuQ6zh4Np1HZpOqCTpeZBDcw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@tauri-apps/cli-linux-arm-gnueabihf@2.9.5':
-    resolution: {integrity: sha512-iCQm2Uvx8AheghfG/QUv1y8Ga9yquJt6xJwH1uF0x5KfmJmwBi8pHBvB924dDi59PS84qTdIBeJejQT00QX3Iw==}
+  '@tauri-apps/cli-linux-arm-gnueabihf@2.9.6':
+    resolution: {integrity: sha512-/zde3bFroFsNXOHN204DC2qUxAcAanUjVXXSdEGmhwMUZeAQalNj5cz2Qli2elsRjKN/hVbZOJj0gQ5zaYUjSg==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [linux]
 
-  '@tauri-apps/cli-linux-arm64-gnu@2.9.5':
-    resolution: {integrity: sha512-b6AW8Gr5nQOQIYH0TsUev7rEThGHIvsx192eElOmOz/dh33J4pninHK32laMj2hzHMJ27qmDq5vANL+wrFo9sg==}
+  '@tauri-apps/cli-linux-arm64-gnu@2.9.6':
+    resolution: {integrity: sha512-pvbljdhp9VOo4RnID5ywSxgBs7qiylTPlK56cTk7InR3kYSTJKYMqv/4Q/4rGo/mG8cVppesKIeBMH42fw6wjg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@tauri-apps/cli-linux-arm64-musl@2.9.5':
-    resolution: {integrity: sha512-/gRBMnphS9E8riZ0LIbBhZ9Oy16A2rx/g3DGR0DcDBvUtkLfbL0lMu4s+sY85nkn9An15+cZ1ZK6d7AIqWahLA==}
+  '@tauri-apps/cli-linux-arm64-musl@2.9.6':
+    resolution: {integrity: sha512-02TKUndpodXBCR0oP//6dZWGYcc22Upf2eP27NvC6z0DIqvkBBFziQUcvi2n6SrwTRL0yGgQjkm9K5NIn8s6jw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@tauri-apps/cli-linux-riscv64-gnu@2.9.5':
-    resolution: {integrity: sha512-NOzjPF9YIBodjdkFcJmqINT0k3YDoR5ANM/jg6Z6s3Zmk8ScN6inI60jTxcfgfWyITiKsPy7GJyYou3Cm2XNzw==}
+  '@tauri-apps/cli-linux-riscv64-gnu@2.9.6':
+    resolution: {integrity: sha512-fmp1hnulbqzl1GkXl4aTX9fV+ubHw2LqlLH1PE3BxZ11EQk+l/TmiEongjnxF0ie4kV8DQfDNJ1KGiIdWe1GvQ==}
     engines: {node: '>= 10'}
     cpu: [riscv64]
     os: [linux]
 
-  '@tauri-apps/cli-linux-x64-gnu@2.9.5':
-    resolution: {integrity: sha512-SfGbwgvTphM5y+J91NyU/psleMUlyyPkZyDCFg8WU1HX8DpKUT3Vwhb/W1xpUBGb56tJgGCO46FCVkr8w4Areg==}
+  '@tauri-apps/cli-linux-x64-gnu@2.9.6':
+    resolution: {integrity: sha512-vY0le8ad2KaV1PJr+jCd8fUF9VOjwwQP/uBuTJvhvKTloEwxYA/kAjKK9OpIslGA9m/zcnSo74czI6bBrm2sYA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@tauri-apps/cli-linux-x64-musl@2.9.5':
-    resolution: {integrity: sha512-ZfeoiASAOGDzyvN+TDAg8A1pCeS082h4uc0vZKvtWUN+9QBIMfz0yJwltAv+SN/afap6NS6DVkbPV3UVuI9V5A==}
+  '@tauri-apps/cli-linux-x64-musl@2.9.6':
+    resolution: {integrity: sha512-TOEuB8YCFZTWVDzsO2yW0+zGcoMiPPwcUgdnW1ODnmgfwccpnihDRoks+ABT1e3fHb1ol8QQWsHSCovb3o2ENQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@tauri-apps/cli-win32-arm64-msvc@2.9.5':
-    resolution: {integrity: sha512-ulg7irow+ekjaK4inFHVq7m1KQebDSYNb17DFKV+h+x7qnLZymz2gHK7df2u4YyEjqvzwRd3AJpU3HNxRurSFQ==}
+  '@tauri-apps/cli-win32-arm64-msvc@2.9.6':
+    resolution: {integrity: sha512-ujmDGMRc4qRLAnj8nNG26Rlz9klJ0I0jmZs2BPpmNNf0gM/rcVHhqbEkAaHPTBVIrtUdf7bGvQAD2pyIiUrBHQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@tauri-apps/cli-win32-ia32-msvc@2.9.5':
-    resolution: {integrity: sha512-6lF0k/Qduhn1Z3IOXlp2ts8jNOMIX4cK4Fbk3axGeX7LMcVVbOSEAFwbTqS8BKZDFac0WRS8N1C96+Ms5LOS1Q==}
+  '@tauri-apps/cli-win32-ia32-msvc@2.9.6':
+    resolution: {integrity: sha512-S4pT0yAJgFX8QRCyKA1iKjZ9Q/oPjCZf66A/VlG5Yw54Nnr88J1uBpmenINbXxzyhduWrIXBaUbEY1K80ZbpMg==}
     engines: {node: '>= 10'}
     cpu: [ia32]
     os: [win32]
 
-  '@tauri-apps/cli-win32-x64-msvc@2.9.5':
-    resolution: {integrity: sha512-Vg50U74x1A4b2iBVtDcAVPbI1XVuzSmwlduuBM1VewxtRaVj5GDzWnYtBcnuIk+VGzNApRDfDhraAXGaW2a/Gw==}
+  '@tauri-apps/cli-win32-x64-msvc@2.9.6':
+    resolution: {integrity: sha512-ldWuWSSkWbKOPjQMJoYVj9wLHcOniv7diyI5UAJ4XsBdtaFB0pKHQsqw/ItUma0VXGC7vB4E9fZjivmxur60aw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  '@tauri-apps/cli@2.9.5':
-    resolution: {integrity: sha512-z88tX6O6kwTgMjYozhNGbehzQyBazgXejyH784CwSfBOWm06xFcogd0PY/jhcPsqzJF9kLRIkmlQy+cqdrioOQ==}
+  '@tauri-apps/cli@2.9.6':
+    resolution: {integrity: sha512-3xDdXL5omQ3sPfBfdC8fCtDKcnyV7OqyzQgfyT5P3+zY6lcPqIYKQBvUasNvppi21RSdfhy44ttvJmftb0PCDw==}
     engines: {node: '>= 10'}
     hasBin: true
 
@@ -554,8 +554,8 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@types/node@24.10.1':
-    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
+  '@types/node@24.10.2':
+    resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -614,8 +614,8 @@ packages:
     resolution: {integrity: sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==}
     engines: {node: '>= 6'}
 
-  caniuse-lite@1.0.30001759:
-    resolution: {integrity: sha512-Pzfx9fOKoKvevQf8oCXoyNRQ5QyxJj+3O0Rqx2V5oxT61KGx8+n6hV/IUyJeifUci2clnmmKVpvtiqRzgiWjSw==}
+  caniuse-lite@1.0.30001760:
+    resolution: {integrity: sha512-7AAMPcueWELt1p3mi13HR/LHH0TJLT11cnwDJEs3xA4+CK/PLKeO9Kl1oru24htkyUKtkGCvAx4ohB0Ttry8Dw==}
 
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
@@ -664,8 +664,8 @@ packages:
   dlv@1.1.3:
     resolution: {integrity: sha512-+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA==}
 
-  electron-to-chromium@1.5.266:
-    resolution: {integrity: sha512-kgWEglXvkEfMH7rxP5OSZZwnaDWT7J9EoZCujhnpLbfi0bbNtRkgdX2E3gt0Uer11c61qCYktB3hwkAS325sJg==}
+  electron-to-chromium@1.5.267:
+    resolution: {integrity: sha512-0Drusm6MVRXSOJpGbaSVgcQsuB4hEkMpHXaVstcPmhu5LIedxs1xNK/nIxmQIU/RPC0+1/o0AVZfBTkTNJOdUw==}
 
   esbuild@0.25.12:
     resolution: {integrity: sha512-bbPBYYrtZbkt6Os6FiTLCTFxvq4tt3JKall1vRwshA3fdVztsLAatFaZobhkBC8/BrPetoa0oksYoKXoG4ryJg==}
@@ -1050,8 +1050,8 @@ packages:
     peerDependencies:
       svelte: ^5.0.0
 
-  svelte@5.45.6:
-    resolution: {integrity: sha512-V3aVXthzPyPt1UB1wLEoXnEXpwPsvs7NHrR0xkCor8c11v71VqBj477MClqPZYyrcXrAH21sNGhOj9FJvSwXfQ==}
+  svelte@5.45.8:
+    resolution: {integrity: sha512-1Jh7FwVh/2Uxg0T7SeE1qFKMhwYH45b2v53bcZpW7qHa6O8iU1ByEj56PF0IQ6dU4HE5gRkic6h+vx+tclHeiw==}
     engines: {node: '>=18'}
 
   tailwind-merge@2.5.4:
@@ -1076,8 +1076,8 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
-  tauri-svelte-synced-store@https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/040a47ab38648867cb23de21206c8b1575fff958:
-    resolution: {tarball: https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/040a47ab38648867cb23de21206c8b1575fff958}
+  tauri-svelte-synced-store@https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/14b86e624c39af659b8f8f1709e6282b9f36ba06:
+    resolution: {tarball: https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/14b86e624c39af659b8f8f1709e6282b9f36ba06}
     version: 0.0.2
     peerDependencies:
       '@tauri-apps/api': ^2.7.0
@@ -1383,15 +1383,15 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))':
+  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.49.2(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))':
     dependencies:
-      '@sveltejs/kit': 2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/kit': 2.49.2(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
 
-  '@sveltejs/kit@2.49.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/kit@2.49.2(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
       '@standard-schema/spec': 1.0.0
       '@sveltejs/acorn-typescript': 1.0.8(acorn@8.15.0)
-      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
       '@types/cookie': 0.6.0
       acorn: 8.15.0
       cookie: 0.6.0
@@ -1403,28 +1403,28 @@ snapshots:
       sade: 1.8.1
       set-cookie-parser: 2.7.2
       sirv: 3.0.2
-      svelte: 5.45.6
-      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
+      svelte: 5.45.8
+      vite: 6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)
 
-  '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/vite-plugin-svelte-inspector@4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte': 5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
       debug: 4.4.3
-      svelte: 5.45.6
-      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
+      svelte: 5.45.8
+      vite: 6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))':
+  '@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.6)(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+      '@sveltejs/vite-plugin-svelte-inspector': 4.0.1(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)))(svelte@5.45.8)(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
       debug: 4.4.3
       deepmerge: 4.3.1
       kleur: 4.1.5
       magic-string: 0.30.21
-      svelte: 5.45.6
-      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
-      vitefu: 1.1.1(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1))
+      svelte: 5.45.8
+      vite: 6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)
+      vitefu: 1.1.1(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -1434,52 +1434,52 @@ snapshots:
 
   '@tauri-apps/api@2.9.1': {}
 
-  '@tauri-apps/cli-darwin-arm64@2.9.5':
+  '@tauri-apps/cli-darwin-arm64@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-darwin-x64@2.9.5':
+  '@tauri-apps/cli-darwin-x64@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-arm-gnueabihf@2.9.5':
+  '@tauri-apps/cli-linux-arm-gnueabihf@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-arm64-gnu@2.9.5':
+  '@tauri-apps/cli-linux-arm64-gnu@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-arm64-musl@2.9.5':
+  '@tauri-apps/cli-linux-arm64-musl@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-riscv64-gnu@2.9.5':
+  '@tauri-apps/cli-linux-riscv64-gnu@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-x64-gnu@2.9.5':
+  '@tauri-apps/cli-linux-x64-gnu@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-linux-x64-musl@2.9.5':
+  '@tauri-apps/cli-linux-x64-musl@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-win32-arm64-msvc@2.9.5':
+  '@tauri-apps/cli-win32-arm64-msvc@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-win32-ia32-msvc@2.9.5':
+  '@tauri-apps/cli-win32-ia32-msvc@2.9.6':
     optional: true
 
-  '@tauri-apps/cli-win32-x64-msvc@2.9.5':
+  '@tauri-apps/cli-win32-x64-msvc@2.9.6':
     optional: true
 
-  '@tauri-apps/cli@2.9.5':
+  '@tauri-apps/cli@2.9.6':
     optionalDependencies:
-      '@tauri-apps/cli-darwin-arm64': 2.9.5
-      '@tauri-apps/cli-darwin-x64': 2.9.5
-      '@tauri-apps/cli-linux-arm-gnueabihf': 2.9.5
-      '@tauri-apps/cli-linux-arm64-gnu': 2.9.5
-      '@tauri-apps/cli-linux-arm64-musl': 2.9.5
-      '@tauri-apps/cli-linux-riscv64-gnu': 2.9.5
-      '@tauri-apps/cli-linux-x64-gnu': 2.9.5
-      '@tauri-apps/cli-linux-x64-musl': 2.9.5
-      '@tauri-apps/cli-win32-arm64-msvc': 2.9.5
-      '@tauri-apps/cli-win32-ia32-msvc': 2.9.5
-      '@tauri-apps/cli-win32-x64-msvc': 2.9.5
+      '@tauri-apps/cli-darwin-arm64': 2.9.6
+      '@tauri-apps/cli-darwin-x64': 2.9.6
+      '@tauri-apps/cli-linux-arm-gnueabihf': 2.9.6
+      '@tauri-apps/cli-linux-arm64-gnu': 2.9.6
+      '@tauri-apps/cli-linux-arm64-musl': 2.9.6
+      '@tauri-apps/cli-linux-riscv64-gnu': 2.9.6
+      '@tauri-apps/cli-linux-x64-gnu': 2.9.6
+      '@tauri-apps/cli-linux-x64-musl': 2.9.6
+      '@tauri-apps/cli-win32-arm64-msvc': 2.9.6
+      '@tauri-apps/cli-win32-ia32-msvc': 2.9.6
+      '@tauri-apps/cli-win32-x64-msvc': 2.9.6
 
   '@tauri-apps/plugin-dialog@2.4.2':
     dependencies:
@@ -1505,7 +1505,7 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@types/node@24.10.1':
+  '@types/node@24.10.2':
     dependencies:
       undici-types: 7.16.0
 
@@ -1525,7 +1525,7 @@ snapshots:
   autoprefixer@10.4.22(postcss@8.5.6):
     dependencies:
       browserslist: 4.28.1
-      caniuse-lite: 1.0.30001759
+      caniuse-lite: 1.0.30001760
       fraction.js: 5.3.4
       normalize-range: 0.1.2
       picocolors: 1.1.1
@@ -1538,15 +1538,15 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  bits-ui@1.0.0-next.77(svelte@5.45.6):
+  bits-ui@1.0.0-next.77(svelte@5.45.8):
     dependencies:
       '@floating-ui/core': 1.7.3
       '@floating-ui/dom': 1.7.4
       '@internationalized/date': 3.10.0
       esm-env: 1.2.2
-      runed: 0.22.0(svelte@5.45.6)
-      svelte: 5.45.6
-      svelte-toolbelt: 0.7.1(svelte@5.45.6)
+      runed: 0.22.0(svelte@5.45.8)
+      svelte: 5.45.8
+      svelte-toolbelt: 0.7.1(svelte@5.45.8)
 
   braces@3.0.3:
     dependencies:
@@ -1555,14 +1555,14 @@ snapshots:
   browserslist@4.28.1:
     dependencies:
       baseline-browser-mapping: 2.9.5
-      caniuse-lite: 1.0.30001759
-      electron-to-chromium: 1.5.266
+      caniuse-lite: 1.0.30001760
+      electron-to-chromium: 1.5.267
       node-releases: 2.0.27
       update-browserslist-db: 1.2.2(browserslist@4.28.1)
 
   camelcase-css@2.0.1: {}
 
-  caniuse-lite@1.0.30001759: {}
+  caniuse-lite@1.0.30001760: {}
 
   chokidar@3.6.0:
     dependencies:
@@ -1600,7 +1600,7 @@ snapshots:
 
   dlv@1.1.3: {}
 
-  electron-to-chromium@1.5.266: {}
+  electron-to-chromium@1.5.267: {}
 
   esbuild@0.25.12:
     optionalDependencies:
@@ -1710,9 +1710,9 @@ snapshots:
 
   locate-character@3.0.0: {}
 
-  lucide-svelte@0.469.0(svelte@5.45.6):
+  lucide-svelte@0.469.0(svelte@5.45.8):
     dependencies:
-      svelte: 5.45.6
+      svelte: 5.45.8
 
   magic-string@0.30.21:
     dependencies:
@@ -1725,9 +1725,9 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.1
 
-  mode-watcher@0.5.1(svelte@5.45.6):
+  mode-watcher@0.5.1(svelte@5.45.8):
     dependencies:
-      svelte: 5.45.6
+      svelte: 5.45.8
 
   mri@1.2.0: {}
 
@@ -1803,16 +1803,16 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.6):
+  prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.8):
     dependencies:
       prettier: 3.7.4
-      svelte: 5.45.6
+      svelte: 5.45.8
 
-  prettier-plugin-tailwindcss@0.7.2(prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.6))(prettier@3.7.4):
+  prettier-plugin-tailwindcss@0.7.2(prettier-plugin-svelte@3.4.0(prettier@3.7.4)(svelte@5.45.8))(prettier@3.7.4):
     dependencies:
       prettier: 3.7.4
     optionalDependencies:
-      prettier-plugin-svelte: 3.4.0(prettier@3.7.4)(svelte@5.45.6)
+      prettier-plugin-svelte: 3.4.0(prettier@3.7.4)(svelte@5.45.8)
 
   prettier@3.7.4: {}
 
@@ -1868,15 +1868,15 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  runed@0.22.0(svelte@5.45.6):
+  runed@0.22.0(svelte@5.45.8):
     dependencies:
       esm-env: 1.2.2
-      svelte: 5.45.6
+      svelte: 5.45.8
 
-  runed@0.23.4(svelte@5.45.6):
+  runed@0.23.4(svelte@5.45.8):
     dependencies:
       esm-env: 1.2.2
-      svelte: 5.45.6
+      svelte: 5.45.8
 
   sade@1.8.1:
     dependencies:
@@ -1908,30 +1908,30 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-check@4.3.4(picomatch@4.0.3)(svelte@5.45.6)(typescript@5.9.3):
+  svelte-check@4.3.4(picomatch@4.0.3)(svelte@5.45.8)(typescript@5.9.3):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       chokidar: 4.0.3
       fdir: 6.5.0(picomatch@4.0.3)
       picocolors: 1.1.1
       sade: 1.8.1
-      svelte: 5.45.6
+      svelte: 5.45.8
       typescript: 5.9.3
     transitivePeerDependencies:
       - picomatch
 
-  svelte-sonner@0.3.28(svelte@5.45.6):
+  svelte-sonner@0.3.28(svelte@5.45.8):
     dependencies:
-      svelte: 5.45.6
+      svelte: 5.45.8
 
-  svelte-toolbelt@0.7.1(svelte@5.45.6):
+  svelte-toolbelt@0.7.1(svelte@5.45.8):
     dependencies:
       clsx: 2.1.1
-      runed: 0.23.4(svelte@5.45.6)
+      runed: 0.23.4(svelte@5.45.8)
       style-to-object: 1.0.14
-      svelte: 5.45.6
+      svelte: 5.45.8
 
-  svelte@5.45.6:
+  svelte@5.45.8:
     dependencies:
       '@jridgewell/remapping': 2.3.5
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -1990,10 +1990,10 @@ snapshots:
       - tsx
       - yaml
 
-  tauri-svelte-synced-store@https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/040a47ab38648867cb23de21206c8b1575fff958(@tauri-apps/api@2.9.1)(svelte@5.45.6):
+  tauri-svelte-synced-store@https://codeload.github.com/synthlabs/tauri-svelte-synced-store/tar.gz/14b86e624c39af659b8f8f1709e6282b9f36ba06(@tauri-apps/api@2.9.1)(svelte@5.45.8):
     dependencies:
       '@tauri-apps/api': 2.9.1
-      svelte: 5.45.6
+      svelte: 5.45.8
 
   thenify-all@1.6.0:
     dependencies:
@@ -2030,7 +2030,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1):
+  vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
@@ -2039,14 +2039,14 @@ snapshots:
       rollup: 4.53.3
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 24.10.1
+      '@types/node': 24.10.2
       fsevents: 2.3.3
       jiti: 1.21.7
       yaml: 2.8.1
 
-  vitefu@1.1.1(vite@6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)):
+  vitefu@1.1.1(vite@6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)):
     optionalDependencies:
-      vite: 6.4.1(@types/node@24.10.1)(jiti@1.21.7)(yaml@2.8.1)
+      vite: 6.4.1(@types/node@24.10.2)(jiti@1.21.7)(yaml@2.8.1)
 
   yaml@2.8.1:
     optional: true
