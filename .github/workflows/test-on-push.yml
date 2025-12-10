@@ -9,7 +9,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - platform: 'macos-14'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-latest'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -51,6 +57,10 @@ jobs:
         id: cuda-toolkit
         with:
           log-file-suffix: '${{matrix.os}}.txt'
+
+      - name: Install rust target (macos only)
+        if: startsWith(matrix.platform, 'macos')
+        run: rustup target add x86_64-apple-darwin
 
       - name: install dependencies (ubuntu only)
         if: startsWith(matrix.platform, 'ubuntu')
