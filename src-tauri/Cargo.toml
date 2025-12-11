@@ -54,16 +54,16 @@ authors = ["you"]
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"
-version = "0.2.3"
+version = "0.2.4"
 
 [target]
+[target."cfg(not(target_os = \"macos\"))"]
+[target."cfg(not(target_os = \"macos\"))".dependencies]
+[target."cfg(not(target_os = \"macos\"))".dependencies.scrybe_core]
+features = ["cuda"]
+path = "../rust/core"
 [target."cfg(target_os = \"macos\")"]
 [target."cfg(target_os = \"macos\")".dependencies]
 [target."cfg(target_os = \"macos\")".dependencies.scrybe_core]
 features = ["coreml", "metal"]
-path = "../rust/core"
-[target."cfg(windows)"]
-[target."cfg(windows)".dependencies]
-[target."cfg(windows)".dependencies.scrybe_core]
-features = ["cuda"]
 path = "../rust/core"
