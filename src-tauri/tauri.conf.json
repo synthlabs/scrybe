@@ -22,7 +22,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": "all"
+    "targets": [
+      "deb",
+      "rpm",
+      "nsis",
+      "app",
+      "dmg"
+    ]
   },
   "identifier": "com.scrybe.live",
   "plugins": {
@@ -34,5 +40,5 @@
     }
   },
   "productName": "Scrybe",
-  "version": "0.2.3"
+  "version": "0.2.4"
 }

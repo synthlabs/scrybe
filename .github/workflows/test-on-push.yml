@@ -50,23 +50,42 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         with:
           arch: x64
-      
-      - name: Install CUDA (windows only)
-        uses: Jimver/cuda-toolkit@master
-        if: startsWith(matrix.platform, 'windows')
-        id: cuda-toolkit
-        with:
-          log-file-suffix: '${{matrix.os}}.txt'
 
-      - name: Install rust target (macos only)
-        if: startsWith(matrix.platform, 'macos')
-        run: rustup target add x86_64-apple-darwin
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: startsWith(matrix.platform, 'ubuntu')
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: install dependencies (ubuntu only)
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf librust-alsa-sys-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf librust-alsa-sys-dev xdg-utils
+      
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@master
+        id: cuda-toolkit
+        if: "!startsWith(matrix.platform, 'macos')"
+        with:
+          cuda: '13.0.2'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '${{matrix.os}}.txt'
+
+      - name: Install rust target (macos only)
+        if: startsWith(matrix.platform, 'macos')
+        run: rustup target add x86_64-apple-darwin
 
       - name: Set short SHA
         id: short-sha
@@ -88,3 +107,5 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           CMAKE_OSX_DEPLOYMENT_TARGET: 13.3
+        with:
+          args: ${{ matrix.args }}
