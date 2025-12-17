@@ -4389,7 +4389,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scrybe"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "color-eyre",
@@ -4436,6 +4436,7 @@ dependencies = [
  "samplerate",
  "serde",
  "specta",
+ "tauri-specta",
  "whisper-rs",
 ]
 

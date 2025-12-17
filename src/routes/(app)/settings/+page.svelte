@@ -119,7 +119,6 @@
     <Separator />
     <div class="space-y-4">
         <AudioDevice />
-        <RecordingFormats />
         <div class="max-w-72 space-y-2 pb-4">
             <Label
                 id="audio_segment_size-label"
