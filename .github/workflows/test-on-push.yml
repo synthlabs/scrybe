@@ -10,11 +10,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - platform: 'windows-latest'
+            args: ''
           - platform: 'macos-14'
             args: '--target universal-apple-darwin'
           - platform: 'ubuntu-latest'
-            args: ''
-          - platform: 'windows-latest'
             args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -100,6 +100,11 @@ jobs:
       - name: Var check
         run: echo "SHORT_SHA=${{ steps.short-sha.outputs.SHORT_SHA }}, VERSION=${{ steps.tauri-version.outputs.VERSION }}"
         shell: bash
+
+      - name: Copy CUDA DLLs (windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublas64_13.dll" ".\src-tauri\"
+        shell: pwsh
 
       - uses: tauri-apps/tauri-action@v0
         env:
