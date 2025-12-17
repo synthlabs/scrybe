@@ -105,7 +105,9 @@ jobs:
 
       - name: Copy CUDA DLLs (windows only)
         if: startsWith(matrix.platform, 'windows')
-        run: cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublas64_13.dll" ".\src-tauri\"
+        run: |
+          cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublas64_13.dll" ".\src-tauri\"
+          cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublasLt64_13.dll" ".\src-tauri\"
         shell: pwsh
       
       - name: Read SUMRY file
