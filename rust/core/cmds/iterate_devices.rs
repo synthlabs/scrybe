@@ -1,17 +1,5 @@
 use cpal::traits::{DeviceTrait, HostTrait};
 
-// struct DeviceName(String);
-
-// impl DeviceName {
-//     fn display_name(self) -> String {
-//         self.0
-//     }
-
-//     fn id_name(self) -> String {
-
-//     }
-// }
-
 fn main() {
     println!("Supported hosts:\n  {:?}", cpal::ALL_HOSTS);
     let available_hosts = cpal::available_hosts();

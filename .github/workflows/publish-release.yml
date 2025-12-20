@@ -34,7 +34,7 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          version: 10.24.0
+          version: 10.26.1
           run_install: true
 
       - name: install Rust stable
@@ -102,13 +102,6 @@ jobs:
       - name: Var check
         run: echo "SHORT_SHA=${{ steps.short-sha.outputs.SHORT_SHA }}, VERSION=${{ steps.tauri-version.outputs.VERSION }}"
         shell: bash
-
-      - name: Copy CUDA DLLs (windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublas64_13.dll" ".\src-tauri\"
-          cp "${{steps.cuda-toolkit.outputs.CUDA_PATH}}\bin\x64\cublasLt64_13.dll" ".\src-tauri\"
-        shell: pwsh
       
       - name: Read SUMRY file
         id: sumry

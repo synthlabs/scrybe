@@ -1,8 +1,8 @@
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
 #[serde(default)]
 pub struct AppState {
-    pub current_device: AudioDevice,
-    pub audio_format: AudioFormat,
+    pub current_device: scrybe_core::devices::AudioDevice,
+    pub audio_format: scrybe_core::devices::AudioFormat,
     pub model_path: String,
     pub audio_segment_size: u64,
     pub overlay_config: OverlayConfig,
@@ -13,8 +13,8 @@ pub struct AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            current_device: AudioDevice::default(),
-            audio_format: AudioFormat::default(),
+            current_device: scrybe_core::devices::AudioDevice::default(),
+            audio_format: scrybe_core::devices::AudioFormat::default(),
             model_path: Default::default(),
             audio_segment_size: 15,
             overlay_config: OverlayConfig::default(),
@@ -22,29 +22,6 @@ impl Default for AppState {
             advanced_settings: AdvancedSettings::default(),
         }
     }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
-#[serde(default)]
-pub struct AudioDevice {
-    pub name: String,
-    pub id: String,
-}
-
-impl Default for AudioDevice {
-    fn default() -> Self {
-        Self {
-            name: "default".to_string(),
-            id: Default::default(),
-        }
-    }
-}
-
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
-#[serde(default)]
-pub struct AudioFormat {
-    pub name: String,
-    pub id: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]

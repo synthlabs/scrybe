@@ -1,9 +1,6 @@
 {
     "identifier": "com.scrybe.live",
     "bundle": {
-        "resources": [
-            "cublas64_13.dll",
-            "cublasLt64_13.dll"
-        ]
+        "resources": []
     }
 }

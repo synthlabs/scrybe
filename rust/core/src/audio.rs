@@ -26,11 +26,11 @@ pub fn trim_silence(samples: &mut Vec<f32>, threshold: f32) {
 
 pub fn get_default_input_device(host: &Host) -> Result<Device, anyhow::Error> {
     // Set up the input device
-    #[cfg(target_os = "macos")]
-    let device = host
-        .default_input_device()
-        .expect("failed to find default input device");
-    #[cfg(not(target_os = "macos"))]
+    // #[cfg(target_os = "macos")]
+    // let device = host
+    //     .default_input_device()
+    //     .expect("failed to find default input device");
+    // #[cfg(not(target_os = "macos"))]
     let device = host
         .default_input_device()
         .expect("failed to find default input device");
@@ -40,14 +40,12 @@ pub fn get_default_input_device(host: &Host) -> Result<Device, anyhow::Error> {
 
 pub fn get_default_output_device(host: &Host) -> Result<Device, anyhow::Error> {
     // Set up the output device
-    #[cfg(target_os = "macos")]
-    let device = host
-        .default_output_device()
-        .expect("failed to find default output device");
-    #[cfg(not(target_os = "macos"))]
-    let device = host
-        .default_output_device()
-        .expect("failed to find default output device");
+    // #[cfg(target_os = "macos")]
+    // let device = host
+    //     .default_output_device()
+    //     .expect("failed to find default output device");
+    // #[cfg(not(target_os = "macos"))]
+    let device = host.default_output_device().unwrap();
 
     Ok(device)
 }
@@ -72,22 +70,34 @@ impl AudioManager {
         Self::new(buffer, host, device)
     }
 
+    pub fn new_with_default_output(buffer: Arc<Mutex<Vec<f32>>>) -> Result<Self, anyhow::Error> {
+        // Use ScreenCaptureKit host
+        // #[cfg(target_os = "macos")]
+        // let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
+        // #[cfg(not(target_os = "macos"))]
+        let host = cpal::default_host();
+
+        let device = get_default_output_device(&host)?;
+
+        Self::new(buffer, host, device)
+    }
+
     pub fn new(
         buffer: Arc<Mutex<Vec<f32>>>,
         host: Host,
         device: Device,
     ) -> Result<Self, anyhow::Error> {
-        println!("Input device: {}", device.name()?);
+        println!("Input device: {:?}", device.description()?);
 
         // #[cfg(target_os = "macos")]
-        let config = device
-            .default_input_config()
-            .expect("Failed to get default input config");
+        // let config = device
+        //     .default_input_config()
+        //     .expect("Failed to get default input config");
 
         // #[cfg(not(target_os = "macos"))]
-        // let config = device
-        //     .default_output_config()
-        //     .expect("Failed to get default input config");
+        let config = device
+            .default_output_config()
+            .expect("Failed to get default input config");
 
         println!("Default config: {:?}", config);
 
@@ -95,7 +105,7 @@ impl AudioManager {
             eprintln!("an error occurred on stream: {}", err);
         };
 
-        let sample_rate = config.sample_rate().0;
+        let sample_rate = config.sample_rate();
         let channels = config.channels();
 
         let stream = match config.sample_format() {
@@ -172,8 +182,8 @@ impl AudioManager {
             Self::audio_resample(&samples, sample_rate, 16000, channels);
 
         if channels > 1 {
-            todo!("support resampling to mono audio");
-            // resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
+            // todo!("support resampling to mono audio");
+            resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
         }
 
         if let Ok(mut guard) = buffer.lock() {
@@ -192,7 +202,7 @@ impl AudioManager {
     fn _wav_spec_from_config(config: &cpal::SupportedStreamConfig) -> hound::WavSpec {
         hound::WavSpec {
             channels: config.channels() as _,
-            sample_rate: config.sample_rate().0 as _,
+            sample_rate: config.sample_rate() as _,
             bits_per_sample: (config.sample_format().sample_size() * 8) as _,
             sample_format: Self::_sample_format(config.sample_format()),
         }

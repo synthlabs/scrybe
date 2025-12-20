@@ -1,6 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use crate::types::{AppState, WebsocketResponse};
 use hf_hub::api::sync::Api;
 use rust_embed::RustEmbed;
 use scrybe_core::{
@@ -60,7 +59,7 @@ fn emit_state(
 
     match name.as_str() {
         "internal_state" => state_syncer.emit::<InternalState>("internal_state"),
-        "app_state" => state_syncer.emit::<AppState>("app_state"),
+        "app_state" => state_syncer.emit::<types::AppState>("app_state"),
         _ => return false,
     };
 
@@ -101,7 +100,7 @@ fn update_state(
             };
         }
         "app_state" => {
-            let new_app_state: AppState = match serde_json::from_str(state.value.as_str()) {
+            let new_app_state: types::AppState = match serde_json::from_str(state.value.as_str()) {
                 Ok(res) => res,
                 Err(_) => {
                     error!("failed to parse app state");
@@ -109,7 +108,10 @@ fn update_state(
                 }
             };
 
-            if new_app_state.model_path != state_syncer.snapshot::<AppState>("app_state").model_path
+            if new_app_state.model_path
+                != state_syncer
+                    .snapshot::<types::AppState>("app_state")
+                    .model_path
             {
                 setup_whisper_manager(&app, new_app_state.clone());
             }
@@ -195,7 +197,7 @@ fn start_transcribe<'a>(
         let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager = AudioManager::new_with_default_input(writer.clone())
+        let mut audio_manager = AudioManager::new_with_default_output(writer.clone())
             .expect("unable to create audio manager");
 
         {
@@ -217,7 +219,7 @@ fn start_transcribe<'a>(
         let mut samples: Vec<f32> = Vec::new();
         loop {
             let internal_state_ref = state_syncer_ref.snapshot::<InternalState>("internal_state");
-            let app_state_ref = state_syncer_ref.snapshot::<AppState>("app_state");
+            let app_state_ref = state_syncer_ref.snapshot::<types::AppState>("app_state");
 
             let whisper_params = app_state_ref.whisper_params.clone();
             debug!(
@@ -301,7 +303,7 @@ fn start_transcribe<'a>(
     Ok(())
 }
 
-fn setup_whisper_manager(app: &AppHandle, mut state: AppState) {
+fn setup_whisper_manager(app: &AppHandle, mut state: types::AppState) {
     if state.model_path == "" {
         info!("empty model path, pulling default model");
         let api = Api::new().unwrap();
@@ -347,10 +349,8 @@ pub fn main() {
 
     let handlers = tauri_specta::Builder::<tauri::Wry>::new()
         .typ::<InternalState>()
-        .typ::<AppState>()
+        .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
-        .typ::<types::AudioDevice>()
-        .typ::<types::AudioFormat>()
         .typ::<types::OverlayConfig>()
         .typ::<types::WebsocketRequest>()
         .typ::<types::WebsocketResponse>()
@@ -403,7 +403,7 @@ pub fn main() {
                 },
                 app.handle().clone(),
             );
-            let _ = state_syncer.load::<AppState>("app_state");
+            let _ = state_syncer.load::<types::AppState>("app_state");
 
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");
             internal_state.version = app.package_info().version.to_string();
@@ -422,7 +422,7 @@ pub fn main() {
             let ws_manager_ref = ws_manager.clone();
             app.listen("segment_update", move |event| {
                 debug!("got segment update: {:?}", event.payload());
-                let response = WebsocketResponse {
+                let response = types::WebsocketResponse {
                     kind: "segment_update".to_owned(),
                     data: event.payload().to_string(),
                     is_error: false,

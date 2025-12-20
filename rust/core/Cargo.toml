@@ -9,7 +9,9 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0"
-cpal = "~0.15.3"
+# cpal = { git = "https://github.com/xjerod/cpal.git" }
+# cpal = { path = "../../../cpal" }
+cpal = "^0.17.0"
 hound = "3.5.1"
 # samplerate = "0.2.4"
 samplerate = { git = "https://github.com/xjerod/rust-samplerate.git" }
