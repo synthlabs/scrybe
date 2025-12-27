@@ -3,6 +3,8 @@ use cpal::{Device, FromSample, Host, Sample, Stream, SupportedStreamConfig};
 use std::sync::{Arc, Mutex};
 use tracing::{debug, error, info};
 
+use crate::devices::AudioDevice;
+
 pub fn avg_threshold(samples: &[f32]) -> f32 {
     let sum: f32 = samples.iter().map(|&x| x.abs()).sum();
     sum / samples.len() as f32
@@ -37,6 +39,31 @@ pub fn get_default_output_device() -> Result<Device, anyhow::Error> {
     let device = host.default_output_device().unwrap();
 
     Ok(device)
+}
+
+pub fn get_devices() -> Result<Vec<AudioDevice>, anyhow::Error> {
+    Ok(vec![
+        AudioDevice {
+            name: "Nokia Microphone".to_string(),
+            id: "1234".to_string(),
+        },
+        AudioDevice {
+            name: "NDI Audio".to_string(),
+            id: "5678".to_string(),
+        },
+        AudioDevice {
+            name: "MacBook Pro Microphone".to_string(),
+            id: "9012".to_string(),
+        },
+        AudioDevice {
+            name: "MacBook Pro Speakers".to_string(),
+            id: "3456".to_string(),
+        },
+        AudioDevice {
+            name: "NDI Audio".to_string(),
+            id: "7890".to_string(),
+        },
+    ])
 }
 
 pub struct AudioManager {

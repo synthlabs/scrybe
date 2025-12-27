@@ -101,26 +101,22 @@ fn update_state(
             };
         }
         "app_state" => {
-            let new_app_state: types::AppState = match serde_json::from_str(state.value.as_str()) {
-                Ok(res) => res,
-                Err(_) => {
-                    error!("failed to parse app state");
-                    return false;
-                }
-            };
+            let mut new_app_state: types::AppState =
+                match serde_json::from_str(state.value.as_str()) {
+                    Ok(res) => res,
+                    Err(_) => {
+                        error!("failed to parse app state");
+                        return false;
+                    }
+                };
 
-            if new_app_state.model_path
-                != state_syncer
-                    .snapshot::<types::AppState>("app_state")
-                    .model_path
-            {
-                let app_state_ref = state_syncer.get::<types::AppState>("app_state");
-                let mut app_state = app_state_ref.lock().unwrap();
-
-                info!("setting up whisper manager");
-                let model_path = setup_whisper_manager(&app, app_state.model_path.clone());
-                app_state.model_path = model_path;
+            let app_state_snapshot = state_syncer.snapshot::<types::AppState>("app_state");
+            if new_app_state.model_path != app_state_snapshot.model_path {
+                info!("Model path changed, re-setting up whisper manager");
+                let model_path = setup_whisper_manager(&app, app_state_snapshot.model_path.clone());
+                new_app_state.model_path = model_path;
             }
+            state_syncer.update("app_state", new_app_state.clone());
 
             let response = WebsocketManager::to_ws_response(
                 "app_state_update".to_owned(),
@@ -145,28 +141,10 @@ fn update_state(
 fn get_audio_devices(
     _state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> Result<Vec<AudioDevice>, String> {
-    Ok(vec![
-        AudioDevice {
-            name: "Nokia Microphone".to_string(),
-            id: "1234".to_string(),
-        },
-        AudioDevice {
-            name: "NDI Audio".to_string(),
-            id: "5678".to_string(),
-        },
-        AudioDevice {
-            name: "MacBook Pro Microphone".to_string(),
-            id: "9012".to_string(),
-        },
-        AudioDevice {
-            name: "MacBook Pro Speakers".to_string(),
-            id: "3456".to_string(),
-        },
-        AudioDevice {
-            name: "NDI Audio".to_string(),
-            id: "7890".to_string(),
-        },
-    ])
+    match audio::get_devices() {
+        Ok(devices) => Ok(devices),
+        Err(err) => Err(err.to_string()),
+    }
 }
 
 #[tauri::command]
