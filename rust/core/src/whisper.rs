@@ -1,5 +1,6 @@
 use std::time::SystemTime;
 
+use tracing::debug;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
@@ -90,7 +91,7 @@ impl WhisperManager {
     ) -> Result<Vec<WhisperText>, anyhow::Error> {
         let mut full_params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        println!("params: {:#?}", params);
+        debug!("params: {:#?}", params);
 
         full_params.set_suppress_blank(params.toggles.suppress_blanks);
         full_params.set_print_special(params.toggles.print_special);
@@ -113,7 +114,7 @@ impl WhisperManager {
 
         let end = SystemTime::now();
 
-        println!(
+        debug!(
             "Inference took {}ms",
             end.duration_since(start).unwrap().as_millis()
         );
@@ -130,7 +131,7 @@ impl WhisperManager {
                 text: segment_text.to_string(),
             });
 
-            println!("{}", segment_text);
+            debug!("{}", segment_text);
 
             let new_prompt = segment_text.to_string();
             if new_prompt != self.last_prompt {

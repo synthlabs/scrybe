@@ -118,7 +118,7 @@
     </div>
     <Separator />
     <div class="space-y-4">
-        <AudioDevice />
+        <AudioDevice {app_state} />
         <div class="max-w-72 space-y-2 pb-4">
             <Label
                 id="audio_segment_size-label"

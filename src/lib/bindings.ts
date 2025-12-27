@@ -21,6 +21,17 @@ export const commands = {
     async getTranscribeRunning(): Promise<boolean> {
         return await TAURI_INVOKE("get_transcribe_running");
     },
+    async getAudioDevices(): Promise<Result<AudioDevice[], string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("get_audio_devices"),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
     async emitState(name: string): Promise<boolean> {
         return await TAURI_INVOKE("emit_state", { name });
     },

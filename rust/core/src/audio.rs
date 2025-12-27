@@ -1,6 +1,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, Host, Sample, Stream, SupportedStreamConfig};
 use std::sync::{Arc, Mutex};
+use tracing::{debug, error, info};
 
 pub fn avg_threshold(samples: &[f32]) -> f32 {
     let sum: f32 = samples.iter().map(|&x| x.abs()).sum();
@@ -24,27 +25,15 @@ pub fn trim_silence(samples: &mut Vec<f32>, threshold: f32) {
     }
 }
 
-pub fn get_default_input_device(host: &Host) -> Result<Device, anyhow::Error> {
-    // Set up the input device
-    // #[cfg(target_os = "macos")]
-    // let device = host
-    //     .default_input_device()
-    //     .expect("failed to find default input device");
-    // #[cfg(not(target_os = "macos"))]
-    let device = host
-        .default_input_device()
-        .expect("failed to find default input device");
+pub fn get_default_input_device() -> Result<Device, anyhow::Error> {
+    let host = cpal::default_host();
+    let device = host.default_input_device().unwrap();
 
     Ok(device)
 }
 
-pub fn get_default_output_device(host: &Host) -> Result<Device, anyhow::Error> {
-    // Set up the output device
-    // #[cfg(target_os = "macos")]
-    // let device = host
-    //     .default_output_device()
-    //     .expect("failed to find default output device");
-    // #[cfg(not(target_os = "macos"))]
+pub fn get_default_output_device() -> Result<Device, anyhow::Error> {
+    let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
 
     Ok(device)
@@ -59,50 +48,38 @@ pub struct AudioManager {
 
 impl AudioManager {
     pub fn new_with_default_input(buffer: Arc<Mutex<Vec<f32>>>) -> Result<Self, anyhow::Error> {
-        // // Use ScreenCaptureKit host
-        // #[cfg(target_os = "macos")]
-        // let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
-        // #[cfg(not(target_os = "macos"))]
-        let host = cpal::default_host();
+        let device = get_default_input_device()?;
 
-        let device = get_default_input_device(&host)?;
-
-        Self::new(buffer, host, device)
+        Self::new(buffer, device)
     }
 
     pub fn new_with_default_output(buffer: Arc<Mutex<Vec<f32>>>) -> Result<Self, anyhow::Error> {
-        // Use ScreenCaptureKit host
-        // #[cfg(target_os = "macos")]
-        // let host = cpal::host_from_id(cpal::HostId::ScreenCaptureKit)?;
-        // #[cfg(not(target_os = "macos"))]
-        let host = cpal::default_host();
+        let device = get_default_output_device()?;
 
-        let device = get_default_output_device(&host)?;
-
-        Self::new(buffer, host, device)
+        Self::new(buffer, device)
     }
 
-    pub fn new(
-        buffer: Arc<Mutex<Vec<f32>>>,
-        host: Host,
-        device: Device,
-    ) -> Result<Self, anyhow::Error> {
-        println!("Input device: {:?}", device.description()?);
+    pub fn new(buffer: Arc<Mutex<Vec<f32>>>, device: Device) -> Result<Self, anyhow::Error> {
+        debug!("input device: {:?}", device.description()?);
 
-        // #[cfg(target_os = "macos")]
-        // let config = device
-        //     .default_input_config()
-        //     .expect("Failed to get default input config");
+        let host = cpal::default_host();
 
-        // #[cfg(not(target_os = "macos"))]
-        let config = device
-            .default_output_config()
-            .expect("Failed to get default input config");
+        // TODO: for now we just default to trying as input first then output
+        let config = match device.default_input_config() {
+            Ok(conf) => conf,
+            Err(err) => {
+                debug!(
+                    "failed to get input config, trying output config: {}",
+                    err.to_string()
+                );
+                device.default_output_config()?
+            }
+        };
 
-        println!("Default config: {:?}", config);
+        debug!("stream config: {:?}", config);
 
         let err_fn = move |err| {
-            eprintln!("an error occurred on stream: {}", err);
+            error!("an error occurred on stream: {}", err);
         };
 
         let sample_rate = config.sample_rate();
@@ -158,7 +135,7 @@ impl AudioManager {
 
     pub fn play_stream(&mut self) -> Result<(), anyhow::Error> {
         self.stream.play()?;
-        println!("stream started");
+        info!("stream started");
         Ok(())
     }
 

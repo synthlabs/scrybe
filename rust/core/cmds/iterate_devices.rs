@@ -17,10 +17,12 @@ fn main() {
         let devices = host.devices().expect("failed to get device");
         println!("  Devices: ");
         for (device_index, device) in devices.enumerate() {
+            let description = device.description().unwrap();
             println!(
-                "  {}. \"{}\"",
+                "  {}. \"{}\" ({})",
                 device_index + 1,
-                device.name().expect("failed to get name")
+                description.name(),
+                device.id().unwrap(),
             );
 
             // Input configs

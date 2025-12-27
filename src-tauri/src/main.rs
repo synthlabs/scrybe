@@ -4,6 +4,7 @@ use hf_hub::api::sync::Api;
 use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
+    devices::AudioDevice,
     whisper::WhisperManager,
 };
 use serde::{Deserialize, Serialize};
@@ -137,6 +138,35 @@ fn update_state(
 
 #[tauri::command]
 #[specta::specta]
+fn get_audio_devices(
+    _state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
+) -> Result<Vec<AudioDevice>, String> {
+    Ok(vec![
+        AudioDevice {
+            name: "Nokia Microphone".to_string(),
+            id: "1234".to_string(),
+        },
+        AudioDevice {
+            name: "NDI Audio".to_string(),
+            id: "5678".to_string(),
+        },
+        AudioDevice {
+            name: "MacBook Pro Microphone".to_string(),
+            id: "9012".to_string(),
+        },
+        AudioDevice {
+            name: "MacBook Pro Speakers".to_string(),
+            id: "3456".to_string(),
+        },
+        AudioDevice {
+            name: "NDI Audio".to_string(),
+            id: "7890".to_string(),
+        },
+    ])
+}
+
+#[tauri::command]
+#[specta::specta]
 fn get_transcribe_running(
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> bool {
@@ -197,7 +227,7 @@ fn start_transcribe<'a>(
         let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager = AudioManager::new_with_default_output(writer.clone())
+        let mut audio_manager = AudioManager::new_with_default_input(writer.clone())
             .expect("unable to create audio manager");
 
         {
@@ -362,6 +392,7 @@ pub fn main() {
             start_transcribe,
             stop_transcribe,
             get_transcribe_running,
+            get_audio_devices,
             emit_state,
             update_state,
         ]);
@@ -471,6 +502,9 @@ pub fn main() {
                 .inner_size(800.0, 600.0);
 
             let _window = win_builder.build().unwrap();
+
+            #[cfg(debug_assertions)]
+            _window.open_devtools();
 
             Ok(())
         })

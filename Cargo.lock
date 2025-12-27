@@ -4359,6 +4359,8 @@ dependencies = [
  "serde",
  "specta",
  "tauri-specta",
+ "tracing",
+ "tracing-subscriber",
  "whisper-rs",
 ]
 
