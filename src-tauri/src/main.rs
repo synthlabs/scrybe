@@ -114,9 +114,13 @@ fn update_state(
                     .snapshot::<types::AppState>("app_state")
                     .model_path
             {
-                setup_whisper_manager(&app, new_app_state.clone());
+                let app_state_ref = state_syncer.get::<types::AppState>("app_state");
+                let mut app_state = app_state_ref.lock().unwrap();
+
+                info!("setting up whisper manager");
+                let model_path = setup_whisper_manager(&app, app_state.model_path.clone());
+                app_state.model_path = model_path;
             }
-            state_syncer.update("app_state", new_app_state.clone());
 
             let response = WebsocketManager::to_ws_response(
                 "app_state_update".to_owned(),
@@ -333,8 +337,8 @@ fn start_transcribe<'a>(
     Ok(())
 }
 
-fn setup_whisper_manager(app: &AppHandle, mut state: types::AppState) {
-    if state.model_path == "" {
+fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> String {
+    if model_path == "" {
         info!("empty model path, pulling default model");
         let api = Api::new().unwrap();
         let repo = api.model("ggerganov/whisper.cpp".to_string());
@@ -342,16 +346,18 @@ fn setup_whisper_manager(app: &AppHandle, mut state: types::AppState) {
 
         debug!("{:?}", filename);
 
-        state.model_path = filename.to_string_lossy().into_owned();
+        model_path = filename.to_string_lossy().into_owned();
     }
 
-    info!("Model path {}", state.model_path);
+    info!("Model path {}", model_path);
 
     debug!("creating whisper context");
 
-    let whisper_manager = WhisperManager::new(state.model_path.clone().as_str(), true).unwrap();
+    let whisper_manager = WhisperManager::new(model_path.clone().as_str(), true).unwrap();
 
     app.manage(Arc::new(Mutex::new(whisper_manager)));
+
+    return model_path;
 }
 
 pub fn main() {
@@ -440,8 +446,14 @@ pub fn main() {
             internal_state.version = app.package_info().version.to_string();
             internal_state.name = app.package_info().name.to_string();
 
-            info!("setting up whisper manager");
-            setup_whisper_manager(app.handle(), state_syncer.snapshot("app_state"));
+            {
+                let app_state_ref = state_syncer.get::<types::AppState>("app_state");
+                let mut app_state = app_state_ref.lock().unwrap();
+
+                info!("setting up whisper manager");
+                let model_path = setup_whisper_manager(app.handle(), app_state.model_path.clone());
+                app_state.model_path = model_path;
+            }
 
             app.manage::<StateSyncer>(state_syncer.clone());
 
