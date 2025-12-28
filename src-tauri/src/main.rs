@@ -88,7 +88,7 @@ fn update_state(
                     return false;
                 }
             };
-            state_syncer.update("internal_state", new_internal_state.clone());
+            state_syncer.update("internal_state", new_internal_state.clone(), true);
 
             let response = WebsocketManager::to_ws_response(
                 "internal_state_update".to_owned(),
@@ -116,7 +116,7 @@ fn update_state(
                 let model_path = setup_whisper_manager(&app, app_state_snapshot.model_path.clone());
                 new_app_state.model_path = model_path;
             }
-            state_syncer.update("app_state", new_app_state.clone());
+            state_syncer.update("app_state", new_app_state.clone(), true);
 
             let response = WebsocketManager::to_ws_response(
                 "app_state_update".to_owned(),
@@ -209,8 +209,13 @@ fn start_transcribe<'a>(
         let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager = AudioManager::new_with_default_input(writer.clone())
-            .expect("unable to create audio manager");
+        let mut audio_manager = AudioManager::new_with_device(
+            writer.clone(),
+            state_syncer_ref
+                .snapshot::<types::AppState>("app_state")
+                .current_device,
+        )
+        .expect("unable to create audio manager");
 
         {
             let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");

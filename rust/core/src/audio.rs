@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, Host, Sample, Stream, SupportedStreamConfig};
 use std::sync::{Arc, Mutex};
@@ -76,6 +77,27 @@ pub fn get_devices_with_host(host: Host) -> Result<Vec<AudioDevice>, anyhow::Err
     Ok(devices)
 }
 
+pub fn get_raw_device(id: String) -> Result<Device, anyhow::Error> {
+    let host = cpal::default_host();
+    get_raw_device_with_host(id, host)
+}
+
+pub fn get_raw_device_with_host(id: String, host: Host) -> Result<Device, anyhow::Error> {
+    let raw_devices = host.devices()?;
+
+    let device = raw_devices.into_iter().find(|d| {
+        if let Ok(d_id) = d.id() {
+            return d_id.to_string().eq(&id);
+        }
+        false
+    });
+
+    match device {
+        Some(device) => Ok(device),
+        None => Err(anyhow!("unable to find device: id={}", id)),
+    }
+}
+
 pub struct AudioManager {
     _host: Host,
     _device: Device,
@@ -96,20 +118,33 @@ impl AudioManager {
         Self::new(buffer, device)
     }
 
-    pub fn new(buffer: Arc<Mutex<Vec<f32>>>, device: Device) -> Result<Self, anyhow::Error> {
-        debug!("input device: {:?}", device.description()?);
+    pub fn new_with_device(
+        buffer: Arc<Mutex<Vec<f32>>>,
+        audio_device: AudioDevice,
+    ) -> Result<Self, anyhow::Error> {
+        debug!(
+            "creating audio manager with device={:?}",
+            audio_device.clone()
+        );
+        let raw_device = get_raw_device(audio_device.id.clone())?;
+
+        Self::new(buffer, raw_device)
+    }
+
+    pub fn new(buffer: Arc<Mutex<Vec<f32>>>, raw_device: Device) -> Result<Self, anyhow::Error> {
+        debug!("input device: {:?}", raw_device.description()?);
 
         let host = cpal::default_host();
 
         // TODO: for now we just default to trying as input first then output
-        let config = match device.default_input_config() {
+        let config = match raw_device.default_input_config() {
             Ok(conf) => conf,
             Err(err) => {
                 debug!(
                     "failed to get input config, trying output config: {}",
                     err.to_string()
                 );
-                device.default_output_config()?
+                raw_device.default_output_config()?
             }
         };
 
@@ -123,7 +158,7 @@ impl AudioManager {
         let channels = config.channels();
 
         let stream = match config.sample_format() {
-            cpal::SampleFormat::I8 => device.build_input_stream(
+            cpal::SampleFormat::I8 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
                     Self::write_input_data::<i8, i8>(data, buffer.clone(), sample_rate, channels)
@@ -131,7 +166,7 @@ impl AudioManager {
                 err_fn,
                 None,
             )?,
-            cpal::SampleFormat::I16 => device.build_input_stream(
+            cpal::SampleFormat::I16 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
                     Self::write_input_data::<i16, i16>(data, buffer.clone(), sample_rate, channels)
@@ -139,7 +174,7 @@ impl AudioManager {
                 err_fn,
                 None,
             )?,
-            cpal::SampleFormat::I32 => device.build_input_stream(
+            cpal::SampleFormat::I32 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
                     Self::write_input_data::<i32, i32>(data, buffer.clone(), sample_rate, channels)
@@ -147,7 +182,7 @@ impl AudioManager {
                 err_fn,
                 None,
             )?,
-            cpal::SampleFormat::F32 => device.build_input_stream(
+            cpal::SampleFormat::F32 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
                     Self::write_input_data::<f32, f32>(data, buffer.clone(), sample_rate, channels)
@@ -164,7 +199,7 @@ impl AudioManager {
 
         Ok(AudioManager {
             _host: host,
-            _device: device.clone(),
+            _device: raw_device.clone(),
             _config: config.clone(),
             stream,
         })
