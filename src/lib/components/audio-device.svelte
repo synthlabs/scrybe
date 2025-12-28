@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { commands, type AppState, type AudioDevice } from "$lib/bindings";
+    import {
+        commands,
+        type AppState,
+        type AudioDevice,
+        type InternalState,
+    } from "$lib/bindings";
     import { Label } from "$lib/components/ui/label/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import { SyncedState } from "tauri-svelte-synced-store";
@@ -7,9 +12,14 @@
 
     interface Props {
         app_state: SyncedState<AppState>;
+        internal_state: SyncedState<InternalState>;
     }
-    let { app_state }: Props = $props();
+    let { app_state, internal_state }: Props = $props();
     let audio_devices: AudioDevice[] = $state([]);
+    // disable device selection when transcription is active
+    let device_selector_disabled = $derived(
+        internal_state.obj.transcribe_running,
+    );
 
     commands
         .getAudioDevices()
@@ -28,9 +38,7 @@
     );
 
     const onUpdate = (device_id: string) => {
-        Logger.debug(
-            `updating selected device: ${app_state.obj.current_device.id} -> ${device_id}`,
-        );
+        Logger.debug(`updating selected device: ${device_id}`);
         const new_device = audio_devices.find((f) => f.id === device_id) || {
             id: device_id,
             name: "Default",
@@ -52,6 +60,7 @@
         type="single"
         onValueChange={onUpdate}
         bind:value={app_state.obj.current_device.id}
+        disabled={device_selector_disabled}
     >
         <Select.Trigger class="">{triggerContent}</Select.Trigger>
         <Select.Content>

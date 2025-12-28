@@ -10,14 +10,23 @@
     import { open } from "@tauri-apps/plugin-dialog";
     import { onDestroy } from "svelte";
     import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState } from "$lib/defaults";
+    import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
     import { type UnlistenFn } from "@tauri-apps/api/event";
-    import type { AppState, WhisperToggles } from "$lib/bindings";
+    import type {
+        AppState,
+        InternalState,
+        WhisperToggles,
+    } from "$lib/bindings";
     import Logger from "$utils/log";
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
+    let internal_state = new SyncedState<InternalState>(
+        "internal_state",
+        DefaultInternalState,
+    );
 
     $inspect(app_state.obj);
+    $inspect(internal_state.obj);
 
     let un_sub: UnlistenFn;
 
@@ -118,7 +127,7 @@
     </div>
     <Separator />
     <div class="space-y-4">
-        <AudioDevice {app_state} />
+        <AudioDevice {app_state} {internal_state} />
         <div class="max-w-72 space-y-2 pb-4">
             <Label
                 id="audio_segment_size-label"

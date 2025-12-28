@@ -42,28 +42,38 @@ pub fn get_default_output_device() -> Result<Device, anyhow::Error> {
 }
 
 pub fn get_devices() -> Result<Vec<AudioDevice>, anyhow::Error> {
-    Ok(vec![
-        AudioDevice {
-            name: "Nokia Microphone".to_string(),
-            id: "1234".to_string(),
-        },
-        AudioDevice {
-            name: "NDI Audio".to_string(),
-            id: "5678".to_string(),
-        },
-        AudioDevice {
-            name: "MacBook Pro Microphone".to_string(),
-            id: "9012".to_string(),
-        },
-        AudioDevice {
-            name: "MacBook Pro Speakers".to_string(),
-            id: "3456".to_string(),
-        },
-        AudioDevice {
-            name: "NDI Audio".to_string(),
-            id: "7890".to_string(),
-        },
-    ])
+    let host = cpal::default_host();
+    get_devices_with_host(host)
+}
+
+pub fn get_devices_with_host(host: Host) -> Result<Vec<AudioDevice>, anyhow::Error> {
+    let raw_devices = host.devices()?;
+
+    let devices: Vec<AudioDevice> = raw_devices
+        .into_iter()
+        .filter_map(|d| {
+            let id = match d.id() {
+                Ok(id) => id,
+                Err(err) => {
+                    error!("failed to get device id: {}", err.to_string());
+                    return None;
+                }
+            };
+            let description = match d.description() {
+                Ok(description) => description,
+                Err(err) => {
+                    error!("failed to get device description: {}", err.to_string());
+                    return None;
+                }
+            };
+            Some(AudioDevice {
+                id: id.to_string(),
+                name: description.name().to_string(),
+            })
+        })
+        .collect();
+
+    Ok(devices)
 }
 
 pub struct AudioManager {

@@ -16,7 +16,7 @@ Currently most programs available to add subtitles to your own broadcasts requir
 
 ## Plans
 
-This is still in very early development so it's not really usable as-is. If you're really interested before I finish updating this, you can message me on discord and I can help you set it up.
+This is still in very early development so it's not really usable as-is. If you're really interested before I finish updating this, you can send me an [email](mailto:scrybe@synth.sh) and I can help you set it up.
 
 Some features planned:
 
