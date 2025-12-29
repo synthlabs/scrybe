@@ -4318,6 +4318,7 @@ dependencies = [
  "eyre",
  "futures",
  "hf-hub",
+ "mime_guess",
  "rust-embed",
  "scrybe_core",
  "serde",

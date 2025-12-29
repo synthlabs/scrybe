@@ -15,10 +15,9 @@
     import Logger from "$utils/log";
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
+    const OVERLAY_URL = "http://localhost:3030/app/v1/overlay";
 
-    $inspect(app_state.obj.overlay_config.background_color);
-    $inspect(app_state.obj.overlay_config.transparency);
-    $inspect(app_state.obj.overlay_config.text_alignment);
+    $inspect(app_state.obj.overlay_config);
 
     let un_sub: UnlistenFn;
     let current_segment: WhisperSegment = $state({
@@ -141,8 +140,13 @@
                     />
                 </div>
             </div>
-            <div class="flex flex-col gap-2 pt-4">another setting</div>
-            <div class="flex flex-col gap-2 pt-4">another setting</div>
+            <div class="gap-2 pt-4">
+                Add the url <a
+                    href={OVERLAY_URL}
+                    target="_blank"
+                    class="inline-flex underline">{OVERLAY_URL}</a
+                > as a browser source in OBS to show the subtitles
+            </div>
         </div>
     </div>
 </div>

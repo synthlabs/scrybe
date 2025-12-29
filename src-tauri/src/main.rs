@@ -343,6 +343,16 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> String {
     return model_path;
 }
 
+struct EmbedFile {
+    data: std::borrow::Cow<'static, [u8]>,
+}
+
+impl warp::reply::Reply for EmbedFile {
+    fn into_response(self) -> warp::reply::Response {
+        warp::reply::Response::new(self.data.into())
+    }
+}
+
 pub fn main() {
     color_eyre::install().expect("failed to install color_eyre");
 
@@ -411,10 +421,6 @@ pub fn main() {
             let working_dir = env::current_dir().expect("unable to get working dir");
             info!("Current working dir {}", working_dir.display());
 
-            // info!("getting default input device");
-            // let device = scrybe_core::audio::get_default_input_device()
-            //     .expect("unable to get default device");
-
             info!("setting up state");
             let state_syncer = StateSyncer::new(
                 StateSyncerConfig {
@@ -465,7 +471,36 @@ pub fn main() {
             let _server_handle = tauri::async_runtime::spawn(async move {
                 let static_files = warp::path("app")
                     .and(warp::get())
-                    .and(warp_embed::embed(&Static))
+                    .and(warp::path::tail())
+                    .and_then(move |tail: warp::path::Tail| {
+                        let tail_str = tail.as_str();
+                        debug!("GET {}", tail_str);
+
+                        // Try paths in order: exact path, path with .html, path/index.html
+                        let paths_to_try = if tail_str.is_empty() {
+                            vec!["index.html".to_string()]
+                        } else {
+                            vec![
+                                tail_str.to_string(),
+                                format!("{}.html", tail_str),
+                                format!("{}/index.html", tail_str),
+                            ]
+                        };
+
+                        async move {
+                            for path in paths_to_try {
+                                if let Some(file) = Static::get(&path) {
+                                    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+                                    return Ok(warp::reply::with_header(
+                                        EmbedFile { data: file.data },
+                                        "content-type",
+                                        mime.as_ref(),
+                                    ));
+                                }
+                            }
+                            Err(warp::reject::not_found())
+                        }
+                    })
                     .boxed();
 
                 let ws_route = warp::path("ws")
