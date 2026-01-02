@@ -141,6 +141,7 @@
                 id="audio_segment_size"
                 class="max-w-24"
                 bind:value={app_state.obj.audio_segment_size}
+                oninput={() => app_state.sync()}
             />
         </div>
     </div>
@@ -190,6 +191,7 @@
                 type="single"
                 bind:value={app_state.obj.whisper_params.language}
                 name="language"
+                onValueChange={() => app_state.sync()}
             >
                 <Select.Trigger>
                     {app_state.obj.whisper_params.language
@@ -224,6 +226,7 @@
                         id={name}
                         bind:checked={store_toggles[setting.key]}
                         aria-labelledby="{name}-label"
+                        onCheckedChange={() => app_state.sync()}
                     />
                 </div>
             </div>
