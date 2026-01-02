@@ -40,6 +40,6 @@ Function InstallFailed
 FunctionEnd
 
 Function Cleanup
-    DetailedPrint "Cleaning up CUDA installer"
+    DetailPrint "Cleaning up CUDA installer"
     Delete "$TEMP\cuda_windows.exe"
 FunctionEnd
