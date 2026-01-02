@@ -5,12 +5,12 @@ Section
     ${If} $0 != ""
         DetailPrint "Nvidia CUDA v13 found! Skipping installation."
     ${Else}
-        StrCpy $0 "https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda_13.1.0_windows.exe"
+        StrCpy $0 "https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda_13.0.2_windows.exe"
         StrCpy $1 "$TEMP\cuda_windows.exe"
 
         inetc::get $0 $1
         Pop $0
-        ${If} $0 == "success"
+        ${If} $0 == "OK"
             DetailPrint "Nvidia CUDA downloaded successfully"
         ${Else}
             DetailPrint "Nvidia CUDA failed to download"
@@ -36,7 +36,7 @@ Function InstallFailed
     ; Show a message box to inform the user
     MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to download Nvidia CUDA. Please download and install it manually."
     ; Open the URL in the default browser
-    ExecShell "open" "https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda_13.1.0_windows.exe"
+    ExecShell "open" "https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda_13.0.2_windows.exe"
 FunctionEnd
 
 Function Cleanup
