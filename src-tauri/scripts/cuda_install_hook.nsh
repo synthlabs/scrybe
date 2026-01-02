@@ -8,7 +8,7 @@ Section
         StrCpy $0 "https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda_13.1.0_windows.exe"
         StrCpy $1 "$TEMP\cuda_windows.exe"
 
-        NSISdl::download $0 $1
+        inetc::get $0 $1
         Pop $0
         ${If} $0 == "success"
             DetailPrint "Nvidia CUDA downloaded successfully"
