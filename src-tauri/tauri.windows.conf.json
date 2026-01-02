@@ -1,6 +1,11 @@
 {
     "identifier": "com.scrybe.live",
     "bundle": {
-        "resources": []
+        "resources": [],
+        "windows": {
+            "nsis": {
+                "installerHooks": "scripts/cuda_install_hook.nsh"
+            }
+        }
     }
 }
