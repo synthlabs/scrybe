@@ -14,6 +14,11 @@ Currently most programs available to add subtitles to your own broadcasts requir
 
 </span>
 
+## Development setup
+
+1. **Check dependencies.** Run `./install_deps.sh` (macOS/Linux) or `./install_deps.ps1` (Windows) to verify every tool the build needs; missing tools are printed with install hints. Pass `--ci` / `-CI` to install them automatically.
+2. **Build & run.** `pnpm install && pnpm tauri dev`.
+
 ## Plans
 
 This is still in very early development so it's not really usable as-is. If you're really interested before I finish updating this, you can send me an [email](mailto:scrybe@synth.sh) and I can help you set it up.

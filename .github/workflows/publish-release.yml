@@ -70,12 +70,16 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: install dependencies (ubuntu only)
-        if: startsWith(matrix.platform, 'ubuntu')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf librust-alsa-sys-dev xdg-utils
-      
+      - name: install system dependencies (unix)
+        if: "!startsWith(matrix.platform, 'windows')"
+        shell: bash
+        run: ./install_deps.sh --ci
+
+      - name: install system dependencies (windows)
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        run: ./install_deps.ps1 -CI
+
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@master
         id: cuda-toolkit
@@ -84,10 +88,6 @@ jobs:
           cuda: '13.0.2'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{matrix.os}}.txt'
-
-      - name: Install rust target (macos only)
-        if: startsWith(matrix.platform, 'macos')
-        run: rustup target add x86_64-apple-darwin
 
       - name: Set short SHA
         id: short-sha
@@ -117,7 +117,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          CMAKE_OSX_DEPLOYMENT_TARGET: 13.3
         with:
           tagName: app-${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}
           releaseName: 'Scrybe v${{ steps.tauri-version.outputs.VERSION }}-${{ steps.short-sha.outputs.SHORT_SHA }}'
