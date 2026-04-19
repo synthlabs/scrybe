@@ -30,16 +30,14 @@ pub fn trim_silence(samples: &mut Vec<f32>, threshold: f32) {
 
 pub fn get_default_input_device() -> Result<Device, anyhow::Error> {
     let host = cpal::default_host();
-    let device = host.default_input_device().unwrap();
-
-    Ok(device)
+    host.default_input_device()
+        .ok_or_else(|| anyhow!("no default input device available"))
 }
 
 pub fn get_default_output_device() -> Result<Device, anyhow::Error> {
     let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-
-    Ok(device)
+    host.default_output_device()
+        .ok_or_else(|| anyhow!("no default output device available"))
 }
 
 pub fn get_devices() -> Result<Vec<AudioDevice>, anyhow::Error> {
@@ -83,6 +81,12 @@ pub fn get_raw_device(id: String) -> Result<Device, anyhow::Error> {
 }
 
 pub fn get_raw_device_with_host(id: String, host: Host) -> Result<Device, anyhow::Error> {
+    if id.is_empty() {
+        return host
+            .default_input_device()
+            .ok_or_else(|| anyhow!("no default input device available"));
+    }
+
     let raw_devices = host.devices()?;
 
     let device = raw_devices.into_iter().find(|d| {

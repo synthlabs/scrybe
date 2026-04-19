@@ -209,13 +209,21 @@ fn start_transcribe<'a>(
         let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager = AudioManager::new_with_device(
+        let mut audio_manager = match AudioManager::new_with_device(
             writer.clone(),
             state_syncer_ref
                 .snapshot::<types::AppState>("app_state")
                 .current_device,
-        )
-        .expect("unable to create audio manager");
+        ) {
+            Ok(am) => am,
+            Err(err) => {
+                error!("unable to create audio manager: {}", err);
+                let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
+                let mut state = internal_state_ref.lock().unwrap();
+                state.transcribe_running = false;
+                return;
+            }
+        };
 
         {
             let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
@@ -225,7 +233,13 @@ fn start_transcribe<'a>(
 
         info!("Begin recording...");
 
-        audio_manager.play_stream().expect("unable play stream");
+        if let Err(err) = audio_manager.play_stream() {
+            error!("unable to play stream: {}", err);
+            let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
+            let mut state = internal_state_ref.lock().unwrap();
+            state.transcribe_running = false;
+            return;
+        }
 
         let mut current_segment = scrybe_core::whisper::WhisperSegment {
             id: Uuid::new_v4().to_string(),
