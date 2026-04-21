@@ -113,7 +113,7 @@ fn update_state(
             let app_state_snapshot = state_syncer.snapshot::<types::AppState>("app_state");
             if new_app_state.model_path != app_state_snapshot.model_path {
                 info!("Model path changed, re-setting up whisper manager");
-                let model_path = setup_whisper_manager(&app, app_state_snapshot.model_path.clone());
+                let model_path = setup_whisper_manager(&app, new_app_state.model_path.clone());
                 new_app_state.model_path = model_path;
             }
             state_syncer.update("app_state", new_app_state.clone(), true);
@@ -145,6 +145,26 @@ fn get_audio_devices(
         Ok(devices) => Ok(devices),
         Err(err) => Err(err.to_string()),
     }
+}
+
+#[tauri::command]
+#[specta::specta]
+fn list_model_presets() -> Vec<types::ModelPreset> {
+    types::model_presets()
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn download_model_preset(preset_id: String) -> Result<String, String> {
+    let preset = types::model_presets()
+        .into_iter()
+        .find(|p| p.id == preset_id)
+        .ok_or_else(|| format!("unknown preset: {}", preset_id))?;
+
+    tauri::async_runtime::spawn_blocking(move || download_preset_file(&preset))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -334,16 +354,27 @@ fn start_transcribe<'a>(
     Ok(())
 }
 
+fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::Error> {
+    info!(
+        "downloading model preset {} ({}/{})",
+        preset.id, preset.repo, preset.filename
+    );
+    let api = Api::new()?;
+    let repo = api.model(preset.repo.clone());
+    let filename = repo.get(&preset.filename)?;
+    debug!("downloaded to {:?}", filename);
+    Ok(filename.to_string_lossy().into_owned())
+}
+
 fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> String {
     if model_path == "" {
         info!("empty model path, pulling default model");
-        let api = Api::new().unwrap();
-        let repo = api.model("ggerganov/whisper.cpp".to_string());
-        let filename = repo.get("ggml-small-q8_0.bin").unwrap();
-
-        debug!("{:?}", filename);
-
-        model_path = filename.to_string_lossy().into_owned();
+        let default_preset = types::model_presets()
+            .into_iter()
+            .find(|p| p.id == types::DEFAULT_MODEL_PRESET_ID)
+            .expect("default model preset missing from model_presets()");
+        model_path =
+            download_preset_file(&default_preset).expect("failed to download default model preset");
     }
 
     info!("Model path {}", model_path);
@@ -397,6 +428,7 @@ pub fn main() {
         .typ::<types::OverlayConfig>()
         .typ::<types::WebsocketRequest>()
         .typ::<types::WebsocketResponse>()
+        .typ::<types::ModelPreset>()
         .typ::<scrybe_core::whisper::WhisperParams>()
         .typ::<scrybe_core::whisper::WhisperToggles>()
         .typ::<scrybe_core::whisper::WhisperSegment>()
@@ -406,6 +438,8 @@ pub fn main() {
             stop_transcribe,
             get_transcribe_running,
             get_audio_devices,
+            list_model_presets,
+            download_model_preset,
             emit_state,
             update_state,
         ]);
@@ -438,7 +472,7 @@ pub fn main() {
             info!("setting up state");
             let state_syncer = StateSyncer::new(
                 StateSyncerConfig {
-                    sync_to_disk: true,
+                    default_persist: true,
                     ..Default::default()
                 },
                 app.handle().clone(),

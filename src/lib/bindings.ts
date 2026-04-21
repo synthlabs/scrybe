@@ -32,6 +32,22 @@ export const commands = {
             else return { status: "error", error: e as any };
         }
     },
+    async listModelPresets(): Promise<ModelPreset[]> {
+        return await TAURI_INVOKE("list_model_presets");
+    },
+    async downloadModelPreset(
+        presetId: string,
+    ): Promise<Result<string, string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("download_model_preset", { presetId }),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
     async emitState(name: string): Promise<boolean> {
         return await TAURI_INVOKE("emit_state", { name });
     },
@@ -63,6 +79,13 @@ export type InternalState = {
     audio_step_size: number;
     version: string;
     name: string;
+};
+export type ModelPreset = {
+    id: string;
+    label: string;
+    description: string;
+    repo: string;
+    filename: string;
 };
 export type OverlayConfig = {
     name: string;

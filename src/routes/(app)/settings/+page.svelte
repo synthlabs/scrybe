@@ -9,13 +9,16 @@
     import RecordingFormats from "$lib/components/recording-formats.svelte";
     import { open } from "@tauri-apps/plugin-dialog";
     import { onDestroy } from "svelte";
+    import { toast } from "svelte-sonner";
     import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
     import { type UnlistenFn } from "@tauri-apps/api/event";
-    import type {
-        AppState,
-        InternalState,
-        WhisperToggles,
+    import {
+        commands,
+        type AppState,
+        type InternalState,
+        type ModelPreset,
+        type WhisperToggles,
     } from "$lib/bindings";
     import Logger from "$utils/log";
 
@@ -116,6 +119,71 @@
         }
         app_state.sync();
     };
+
+    let model_presets: ModelPreset[] = $state([]);
+    let selected_preset_id: string = $state("");
+    let downloading_preset = $state(false);
+
+    commands
+        .listModelPresets()
+        .then((list) => {
+            model_presets = list;
+        })
+        .catch(Logger.error);
+
+    $effect(() => {
+        if (!app_state.ready) return;
+        if (downloading_preset) return;
+        if (model_presets.length === 0) return;
+        const path = app_state.obj.model_path;
+        const match = model_presets.find(
+            (p) =>
+                path.endsWith("/" + p.filename) ||
+                path.endsWith("\\" + p.filename),
+        );
+        selected_preset_id = match?.id ?? "";
+    });
+
+    const preset_trigger = $derived(
+        model_presets.find((p) => p.id === selected_preset_id)?.label ??
+            "Choose a preset",
+    );
+
+    const onPresetChange = async (id: string) => {
+        if (!id || downloading_preset) return;
+        selected_preset_id = id;
+        downloading_preset = true;
+        const preset = model_presets.find((p) => p.id === id);
+        const label = preset?.label ?? id;
+        const toast_id = toast.loading(`Downloading ${label}…`, {
+            duration: Number.POSITIVE_INFINITY,
+        });
+        try {
+            const result = await commands.downloadModelPreset(id);
+            if (result.status === "ok") {
+                app_state.obj.model_path = result.data;
+                app_state.sync();
+                toast.success(`Loaded ${label}`, {
+                    id: toast_id,
+                    duration: 4000,
+                });
+            } else {
+                Logger.error("preset download failed", result.error);
+                toast.error(`Failed to download ${label}: ${result.error}`, {
+                    id: toast_id,
+                    duration: 6000,
+                });
+            }
+        } catch (e) {
+            Logger.error("preset download threw", e);
+            toast.error(`Failed to download ${label}: ${e}`, {
+                id: toast_id,
+                duration: 6000,
+            });
+        } finally {
+            downloading_preset = false;
+        }
+    };
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">
@@ -154,6 +222,36 @@
     <Separator />
     <div class="space-y-4 pb-4">
         <div class="flex w-full max-w-lg flex-col gap-y-2">
+            <Label for="model-preset" class="">Preset</Label>
+            <Select.Root
+                type="single"
+                bind:value={selected_preset_id}
+                onValueChange={onPresetChange}
+                name="model-preset"
+                disabled={downloading_preset}
+            >
+                <Select.Trigger id="model-preset">
+                    {downloading_preset ? "Downloading…" : preset_trigger}
+                </Select.Trigger>
+                <Select.Content>
+                    {#each model_presets as preset}
+                        <Select.Item value={preset.id} label={preset.label}>
+                            <div class="flex flex-col">
+                                <span>{preset.label}</span>
+                                <span class="text-xs text-muted-foreground">
+                                    {preset.description}
+                                </span>
+                            </div>
+                        </Select.Item>
+                    {/each}
+                </Select.Content>
+            </Select.Root>
+            <p class="text-sm text-muted-foreground">
+                Pick a known whisper.cpp model. Selecting a preset downloads (or
+                reuses the cached copy) and activates it.
+            </p>
+        </div>
+        <div class="flex w-full max-w-lg flex-col gap-y-2">
             <Label for="model-input" class="">Location</Label>
             <div class="flex flex-row gap-2">
                 <Button type="button" onclick={select_file}>Choose File</Button>
@@ -167,7 +265,7 @@
                 />
             </div>
             <p class="text-sm text-muted-foreground">
-                Enter the full path to the model file to use
+                Or point at a custom .bin file on disk.
             </p>
         </div>
     </div>
