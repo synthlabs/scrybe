@@ -1,3 +1,7 @@
+[[bin]]
+name = "scrybe"
+path = "src/main.rs"
+
 [build-dependencies]
 [build-dependencies.tauri-build]
 features = []
@@ -50,8 +54,21 @@ version = "1.42.0"
 features = ["v4", "fast-rng", "macro-diagnostics"]
 version = "1.12.0"
 
+[[example]]
+name = "gen_bindings"
+required-features = ["gen_bindings"]
+
+[features]
+gen_bindings = []
+
+[lib]
+crate-type = ["staticlib", "cdylib", "rlib"]
+name = "scrybe_lib"
+
 [package]
 authors = ["you"]
+autobins = false
+default-run = "scrybe"
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"

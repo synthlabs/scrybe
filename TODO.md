@@ -1,12 +1,7 @@
-- move toggles to a collapsable
-- add a new "real-time" slider that adjusts the step size
-- add transcript to top bar if not on the main page
-- add a mechanism for pushing updates, emit `x_update` event, and clients recreate state by calling `get_x`
-- tune acceptance params https://github.com/ggerganov/whisper.cpp/blob/master/include/whisper.h#L493-L499
-- model manager
-    - download models
-    - download coreml models
-- ship a test piece of audio to init the model after selecting it (specifically for coreml)
-- automatically detect silence and trim it
-- see how easy it is to detect speaking from an audio format perspective, or maybe even see how easy it is to isolate the voice
-- create a semantic hash of segments (normalized to no punctuation, no case, etc) to reduce formatting difference updates on the UI
+# TODO
+
+- [x] model manager
+    - [x] download models
+- [x] automatically detect silence and trim it
+- [x] create a semantic hash of segments (normalized to no punctuation, no case, etc) to reduce formatting difference updates on the UI
+- [ ] upgrade tailwind v3 to v4
