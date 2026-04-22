@@ -71,12 +71,12 @@ jobs:
       - name: install system dependencies (unix)
         if: "!startsWith(matrix.platform, 'windows')"
         shell: bash
-        run: ./install_deps.sh --ci
+        run: ./utils/scripts/install_deps.sh --ci
 
       - name: install system dependencies (windows)
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
-        run: ./install_deps.ps1 -CI
+        run: ./utils/scripts/install_deps.ps1 -CI
 
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@master
