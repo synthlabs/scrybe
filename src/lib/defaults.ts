@@ -38,4 +38,6 @@ export let DefaultAppState: AppState = {
 export let DefaultInternalState: InternalState = {
     transcribe_running: false,
     audio_step_size: 0,
+    version: "",
+    name: "",
 };
