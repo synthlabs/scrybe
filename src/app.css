@@ -10,8 +10,8 @@
         --card-foreground: 224 71.4% 4.1%;
         --popover: 0 0% 100%;
         --popover-foreground: 224 71.4% 4.1%;
-        --primary: 262.1 83.3% 57.8%;
-        --primary-foreground: 210 20% 98%;
+        --primary: 17 75% 65%;
+        --primary-foreground: 24 60% 5%;
         --secondary: 220 14.3% 95.9%;
         --secondary-foreground: 220.9 39.3% 11%;
         --muted: 220 14.3% 95.9%;
@@ -22,39 +22,50 @@
         --destructive-foreground: 210 20% 98%;
         --border: 220 13% 91%;
         --input: 220 13% 91%;
-        --ring: 262.1 83.3% 57.8%;
+        --ring: 17 75% 75%;
         --radius: 0.3rem;
     }
     .dark {
         --background: 221.1 71.4% 5.5%;
-        --foreground: 210 20% 98%;
+        --foreground: 240 7% 94%;
         --card: 221.1 71.4% 5.5%;
-        --card-foreground: 210 20% 98%;
+        --card-foreground: 240 7% 94%;
         --popover: 221.1 71.4% 5.5%;
-        --popover-foreground: 210 20% 98%;
-        --primary: 263.4 70% 50.4%;
-        --primary-foreground: 210 20% 98%;
+        --popover-foreground: 240 7% 94%;
+        --primary: 17 75% 65%;
+        --primary-foreground: 24 60% 5%;
         --secondary: 215 27.9% 16.9%;
-        --secondary-foreground: 210 20% 98%;
+        --secondary-foreground: 240 7% 94%;
         --muted: 215 27.9% 16.9%;
         --muted-foreground: 217.9 10.6% 64.9%;
         --accent: 215 27.9% 21%;
-        --accent-foreground: 210 20% 98%;
+        --accent-foreground: 240 7% 94%;
         --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 20% 98%;
+        --destructive-foreground: 240 7% 94%;
         --border: 215 27.9% 16.9%;
         --input: 215 27.9% 16.9%;
-        --ring: 263.4 70% 50.4%;
+        --ring: 17 75% 75%;
 
         /* hsl(221.05deg 32.2% 11.57%) */
         --sidebar-background: 221.1 32.2% 11.57%;
         --sidebar-foreground: 240 4.8% 95.9%;
-        --sidebar-primary: 263.4 69.96% 50.39%;
-        --sidebar-primary-foreground: 0 0% 100%;
+        --sidebar-primary: 17 75% 65%;
+        --sidebar-primary-foreground: 24 60% 5%;
         --sidebar-accent: 221.1 31.65% 9.1%;
         --sidebar-accent-foreground: 240 4.8% 95.9%;
         --sidebar-border: 240 3.7% 15.9%;
         --sidebar-ring: 240 4.9% 83.9%;
+
+        /* Scrybe product identity — warm orange sampled from the hummingbird logo */
+        --c-scrybe: 17 75% 65%;
+        --c-scrybe-soft: 17 75% 65% / 0.18;
+        --c-scrybe-ring: 17 75% 75%;
+        --c-scrybe-press: 17 75% 45%;
+        --c-scrybe-gradient: linear-gradient(
+            135deg,
+            hsl(17 75% 65%),
+            hsl(330 81% 65%)
+        );
     }
 }
 
@@ -70,4 +81,20 @@
         height: 100%;
         width: 100%;
     }
+}
+
+/* Product-scoped scrollbar — warm orange thumb for Scrybe */
+.product-scrybe *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+.product-scrybe *::-webkit-scrollbar-track {
+    background: transparent;
+}
+.product-scrybe *::-webkit-scrollbar-thumb {
+    background: hsl(17 75% 65% / 0.75);
+    border-radius: 9999px;
+}
+.product-scrybe *::-webkit-scrollbar-thumb:hover {
+    background: hsl(17 75% 65%);
 }

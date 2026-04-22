@@ -59,6 +59,12 @@ const config = {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
         		},
+				scrybe: {
+					DEFAULT: "hsl(var(--c-scrybe) / <alpha-value>)",
+					soft: "hsl(var(--c-scrybe-soft))",
+					ring: "hsl(var(--c-scrybe-ring) / <alpha-value>)",
+					press: "hsl(var(--c-scrybe-press) / <alpha-value>)",
+				},
 			},
 			borderRadius: {
 				xl: "calc(var(--radius) + 4px)",

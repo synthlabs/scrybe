@@ -1,0 +1,16 @@
+name: Trigger scrybe.cc rebuild
+
+on:
+  workflow_run:
+    workflows: ["publish"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  trigger-netlify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST to Netlify build hook
+        run: |
+          curl -X POST -d '{}' "${{ secrets.SCRYBE_CC_NETLIFY_BUILD_HOOK }}"

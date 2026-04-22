@@ -35,7 +35,7 @@
 
 <div class="flex gap-2 text-sm text-muted-foreground">
     {#if internal_state.obj.transcribe_running}
-        Lisening ({app_state.obj.current_device.name})
+        Listening ({app_state.obj.current_device.name})
     {:else}
         Not Listening
     {/if}
@@ -50,7 +50,7 @@
         {#if internal_state.obj.transcribe_running}
             <LoaderCircle class="animate-spin text-primary" />
         {:else}
-            <Play />
+            <Play class="text-primary" />
         {/if}
     </Button>
 </div>

@@ -26,7 +26,6 @@
 </script>
 
 <Sidebar.Group>
-    <Sidebar.GroupLabel>Scrybe</Sidebar.GroupLabel>
     <Sidebar.Menu>
         {#each items as mainItem (mainItem.title)}
             <Collapsible.Root open={isActivePath(mainItem.url)}>
