@@ -9,7 +9,7 @@
 Currently most programs available to add subtitles to your own broadcasts require sending your audio to a third-party service. This is a basic attempt at a fully local, livestream-native subtitling program.
 
 <p align="center">
-  <img src="screenshots/scrybe_GAidxc0qbb.png" height="500">
+  <img src="screenshots/scrybe_Oq0GQVQ2NT.png" height="500">
 </p>
 
 </span>
