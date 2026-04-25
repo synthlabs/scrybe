@@ -428,13 +428,20 @@ impl warp::reply::Reply for EmbedFile {
 pub fn run() {
     color_eyre::install().expect("failed to install color_eyre");
 
-    tracing_subscriber::fmt()
-        // enable everything
-        .with_max_level(tracing::Level::DEBUG)
-        // sets this to be the default, global collector for this application.
-        .init();
-
     let builder = tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .max_file_size(1_000_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .level(log::LevelFilter::Debug)
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: None,
+                    }),
+                ])
+                .build(),
+        )
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
@@ -600,8 +607,8 @@ pub fn run() {
                     let ns_window = &*(window.ns_window().unwrap() as *mut NSWindow);
                     let bg_color = NSColor::colorWithRed_green_blue_alpha(
                         20.0 / 255.0,
-                        31.0 / 255.0,
-                        42.0 / 255.0,
+                        26.0 / 255.0,
+                        39.0 / 255.0,
                         1.0,
                     );
                     ns_window.setBackgroundColor(bg_color.downcast_ref());
@@ -623,8 +630,8 @@ pub fn run() {
                         &use_dark_mode as *const i32 as *const std::ffi::c_void,
                         std::mem::size_of::<i32>() as u32,
                     );
-                    // RGB(20, 31, 42) -> COLORREF 0x00BBGGRR = 0x002A1F14
-                    let caption_color = COLORREF(0x002A1F14);
+                    // RGB(20, 26, 39) -> COLORREF 0x00BBGGRR = 0x00271A14
+                    let caption_color = COLORREF(0x00271A14);
                     let _ = DwmSetWindowAttribute(
                         hwnd,
                         DWMWA_CAPTION_COLOR,
