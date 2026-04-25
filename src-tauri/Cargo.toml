@@ -74,7 +74,7 @@ default-run = "scrybe"
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"
-version = "0.2.9"
+version = "0.2.10"
 
 [target]
 [target."cfg(not(target_os = \"macos\"))"]
@@ -89,8 +89,8 @@ objc2-app-kit = "0.3.2"
 [target."cfg(target_os = \"macos\")".dependencies.scrybe_core]
 features = ["coreml", "metal"]
 path = "../rust/core"
-
 [target."cfg(target_os = \"windows\")"]
+[target."cfg(target_os = \"windows\")".dependencies]
 [target."cfg(target_os = \"windows\")".dependencies.windows]
-version = "0.61"
 features = ["Win32_Graphics_Dwm", "Win32_Foundation"]
+version = "0.61"
