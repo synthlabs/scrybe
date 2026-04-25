@@ -14,6 +14,8 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
+#[cfg(target_os = "macos")]
+use tauri::TitleBarStyle;
 use tauri_specta::collect_commands;
 use tauri_svelte_synced_store::{StateSyncer, StateSyncerConfig};
 use tracing::{debug, error, info};
@@ -586,10 +588,54 @@ pub fn run() {
                 ))
                 .inner_size(800.0, 600.0);
 
-            let _window = win_builder.build().unwrap();
+            #[cfg(target_os = "macos")]
+            let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
+
+            let window = win_builder.build().unwrap();
+
+            #[cfg(target_os = "macos")]
+            {
+                use objc2_app_kit::{NSColor, NSWindow};
+                unsafe {
+                    let ns_window = &*(window.ns_window().unwrap() as *mut NSWindow);
+                    let bg_color = NSColor::colorWithRed_green_blue_alpha(
+                        20.0 / 255.0,
+                        31.0 / 255.0,
+                        42.0 / 255.0,
+                        1.0,
+                    );
+                    ns_window.setBackgroundColor(bg_color.downcast_ref());
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                use windows::Win32::Foundation::COLORREF;
+                use windows::Win32::Graphics::Dwm::{
+                    DwmSetWindowAttribute, DWMWA_CAPTION_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                };
+                let hwnd = window.hwnd().unwrap();
+                unsafe {
+                    let use_dark_mode: i32 = 1;
+                    let _ = DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_USE_IMMERSIVE_DARK_MODE,
+                        &use_dark_mode as *const i32 as *const std::ffi::c_void,
+                        std::mem::size_of::<i32>() as u32,
+                    );
+                    // RGB(20, 31, 42) -> COLORREF 0x00BBGGRR = 0x002A1F14
+                    let caption_color = COLORREF(0x002A1F14);
+                    let _ = DwmSetWindowAttribute(
+                        hwnd,
+                        DWMWA_CAPTION_COLOR,
+                        &caption_color as *const COLORREF as *const std::ffi::c_void,
+                        std::mem::size_of::<COLORREF>() as u32,
+                    );
+                }
+            }
 
             #[cfg(debug_assertions)]
-            _window.open_devtools();
+            window.open_devtools();
 
             Ok(())
         })

@@ -38,12 +38,6 @@
 </script>
 
 <Sidebar.Root bind:ref {variant} {...restProps}>
-    <Sidebar.Header>
-        <div class="flex items-center gap-2 px-2 py-1.5">
-            <img src="/scrybe-logo.png" alt="" class="size-7 shrink-0" />
-            <span class="text-base font-semibold tracking-tight">scrybe</span>
-        </div>
-    </Sidebar.Header>
     <Sidebar.Content>
         <NavMain items={navMain} />
         <NavSecondary items={navSecondary} class="mt-auto" />

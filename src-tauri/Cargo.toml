@@ -81,6 +81,13 @@ features = ["cuda"]
 path = "../rust/core"
 [target."cfg(target_os = \"macos\")"]
 [target."cfg(target_os = \"macos\")".dependencies]
+objc2 = "0.6.4"
+objc2-app-kit = "0.3.2"
 [target."cfg(target_os = \"macos\")".dependencies.scrybe_core]
 features = ["coreml", "metal"]
 path = "../rust/core"
+
+[target."cfg(target_os = \"windows\")"]
+[target."cfg(target_os = \"windows\")".dependencies.windows]
+version = "0.61"
+features = ["Win32_Graphics_Dwm", "Win32_Foundation"]
