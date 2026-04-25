@@ -13,6 +13,7 @@
     import { onMount, onDestroy } from "svelte";
     import type { AppState, WhisperSegment } from "$lib/bindings";
     import Logger from "$utils/log";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
     const OVERLAY_URL = "http://localhost:3030/app/v1/overlay";
@@ -47,9 +48,9 @@
 
 <div class="mx-auto w-full space-y-4 pb-4">
     <div>
-        <h3 class="text-lg font-medium" id="audio">Overlay</h3>
+        <h3 class="text-lg font-medium" id="audio">{msgs.overlay_heading()}</h3>
         <p class="text-sm text-muted-foreground">
-            Manage the look of the subtitles that will be shown on the overlay.
+            {msgs.overlay_intro()}
         </p>
     </div>
     <Separator />
@@ -70,7 +71,7 @@
                     for="align"
                     class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    Align
+                    {msgs.overlay_align_label()}
                 </Label>
                 <div id="align" class="row flex flex-row">
                     <button
@@ -120,7 +121,7 @@
                     for="bg-color"
                     class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    Background Color
+                    {msgs.overlay_background_color_label()}
                 </Label>
                 <div id="bg-color" class="flex flex-grow flex-row items-center">
                     <input
@@ -141,11 +142,11 @@
                 </div>
             </div>
             <div class="gap-2 pt-4">
-                Add the url <a
+                {msgs.overlay_obs_help_prefix()} <a
                     href={OVERLAY_URL}
                     target="_blank"
                     class="inline-flex underline">{OVERLAY_URL}</a
-                > as a browser source in OBS to show the subtitles
+                > {msgs.overlay_obs_help_suffix()}
             </div>
         </div>
     </div>

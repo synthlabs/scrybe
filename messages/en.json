@@ -1,0 +1,74 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+
+	"sidebar_home": "Home",
+	"sidebar_overlay": "Overlay",
+	"sidebar_settings": "Settings",
+	"sidebar_about": "About",
+	"sidebar_settings_audio": "Audio",
+	"sidebar_settings_model": "Model",
+	"sidebar_settings_whisper": "Whisper",
+
+	"settings_audio_heading": "Audio",
+	"settings_audio_intro": "Set the audio device and audio recording properties for Scrybe.",
+	"settings_audio_segment_size": "Audio Segment Size (seconds)",
+
+	"settings_model_heading": "Model",
+	"settings_model_intro": "Configure advanced properties for the model being used.",
+	"settings_model_preset_label": "Preset",
+	"settings_model_preset_choose": "Choose a preset",
+	"settings_model_preset_downloading": "Downloading…",
+	"settings_model_preset_help": "Pick a known whisper.cpp model. Selecting a preset downloads (or reuses the cached copy) and activates it.",
+	"settings_model_location_label": "Location",
+	"settings_model_choose_file": "Choose File",
+	"settings_model_path_placeholder": "Model Path",
+	"settings_model_location_help": "Or point at a custom .bin file on disk.",
+	"settings_dialog_model_file": "Model File",
+
+	"settings_whisper_heading": "Whisper",
+	"settings_whisper_intro": "Configure different parameters for the Whisper model.",
+	"settings_transcription_language_label": "Transcription Language",
+	"settings_display_language_label": "Display Language",
+
+	"settings_toggle_translate_label": "Translate",
+	"settings_toggle_translate_desc": "Translate the recorded audio to English",
+	"settings_toggle_suppress_blanks_label": "Suppress Blanks",
+	"settings_toggle_suppress_blanks_desc": "By disabling this, blank [BLNK] special tokens will be included in the output",
+	"settings_toggle_print_special_label": "Print Special",
+	"settings_toggle_print_special_desc": "Enable the internal whisper special tokens in the output",
+	"settings_toggle_print_progress_label": "Print Progress",
+	"settings_toggle_print_progress_desc": "Hook into the progress callbacks for the whisper model",
+	"settings_toggle_token_timestamps_label": "Token Timestamps",
+	"settings_toggle_token_timestamps_desc": "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
+	"settings_toggle_single_segment_label": "Single Segment",
+	"settings_toggle_single_segment_desc": "Reduces the output of each transcript iteration to a single text segment",
+	"settings_toggle_split_on_word_label": "Split on word",
+	"settings_toggle_split_on_word_desc": "An internal whisper setting for splitting new tokens based on words",
+	"settings_toggle_tdrz_label": "TDRZ",
+	"settings_toggle_tdrz_desc": "Enable diarization which identifies the different speakers in the audio (currently unstable)",
+
+	"toast_downloading": "Downloading {label}…",
+	"toast_loaded": "Loaded {label}",
+	"toast_download_failed": "Failed to download {label}: {error}",
+
+	"overlay_heading": "Overlay",
+	"overlay_intro": "Manage the look of the subtitles that will be shown on the overlay.",
+	"overlay_align_label": "Align",
+	"overlay_background_color_label": "Background Color",
+	"overlay_obs_help_prefix": "Add the url",
+	"overlay_obs_help_suffix": "as a browser source in OBS to show the subtitles",
+	"overlay_test_text": "I'm an example of a subtitle, and how I will look on the overlay browser source.",
+
+	"about_intro": "A toy subtitle program useful for providing subtitles to currently playing audio, or for integrating with OBS to provide subtitles to your stream.",
+
+	"transcript_listening": "Listening ({device})",
+	"transcript_not_listening": "Not Listening",
+
+	"audio_device_label": "Device",
+	"audio_device_default": "Default",
+
+	"recording_format_label": "Recording Format",
+
+	"locale_label_en": "English",
+	"locale_label_ru": "Русский"
+}

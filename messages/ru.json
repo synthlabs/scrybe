@@ -1,0 +1,74 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+
+	"sidebar_home": "Главная",
+	"sidebar_overlay": "Оверлей",
+	"sidebar_settings": "Настройки",
+	"sidebar_about": "О программе",
+	"sidebar_settings_audio": "Аудио",
+	"sidebar_settings_model": "Модель",
+	"sidebar_settings_whisper": "Whisper",
+
+	"settings_audio_heading": "Аудио",
+	"settings_audio_intro": "Настройте аудиоустройство и параметры записи для Scrybe.",
+	"settings_audio_segment_size": "Размер аудиосегмента (секунды)",
+
+	"settings_model_heading": "Модель",
+	"settings_model_intro": "Дополнительные параметры используемой модели.",
+	"settings_model_preset_label": "Пресет",
+	"settings_model_preset_choose": "Выберите пресет",
+	"settings_model_preset_downloading": "Загрузка…",
+	"settings_model_preset_help": "Выберите известную модель whisper.cpp. Выбор пресета загружает её (или использует кешированную копию) и активирует.",
+	"settings_model_location_label": "Расположение",
+	"settings_model_choose_file": "Выбрать файл",
+	"settings_model_path_placeholder": "Путь к модели",
+	"settings_model_location_help": "Или укажите свой .bin файл на диске.",
+	"settings_dialog_model_file": "Файл модели",
+
+	"settings_whisper_heading": "Whisper",
+	"settings_whisper_intro": "Настройка различных параметров модели Whisper.",
+	"settings_transcription_language_label": "Язык транскрипции",
+	"settings_display_language_label": "Язык интерфейса",
+
+	"settings_toggle_translate_label": "Перевод",
+	"settings_toggle_translate_desc": "Переводить записанное аудио на английский",
+	"settings_toggle_suppress_blanks_label": "Подавлять пустоты",
+	"settings_toggle_suppress_blanks_desc": "При отключении специальные токены [BLNK] будут включены в вывод",
+	"settings_toggle_print_special_label": "Печатать специальные токены",
+	"settings_toggle_print_special_desc": "Включить внутренние специальные токены Whisper в вывод",
+	"settings_toggle_print_progress_label": "Показывать прогресс",
+	"settings_toggle_print_progress_desc": "Подключиться к колбэкам прогресса модели Whisper",
+	"settings_toggle_token_timestamps_label": "Временные метки токенов",
+	"settings_toggle_token_timestamps_desc": "Проставлять временные метки на выходные токены модели Whisper. Отключение может привести к ошибкам, например, дубликатам.",
+	"settings_toggle_single_segment_label": "Один сегмент",
+	"settings_toggle_single_segment_desc": "Сводит вывод каждой итерации транскрипции к одному текстовому сегменту",
+	"settings_toggle_split_on_word_label": "Разделение по словам",
+	"settings_toggle_split_on_word_desc": "Внутренний параметр Whisper для разделения новых токенов по словам",
+	"settings_toggle_tdrz_label": "TDRZ",
+	"settings_toggle_tdrz_desc": "Включить диаризацию — распознавание разных говорящих в аудио (пока нестабильно)",
+
+	"toast_downloading": "Загрузка {label}…",
+	"toast_loaded": "Загружено: {label}",
+	"toast_download_failed": "Не удалось загрузить {label}: {error}",
+
+	"overlay_heading": "Оверлей",
+	"overlay_intro": "Управляйте внешним видом субтитров на оверлее.",
+	"overlay_align_label": "Выравнивание",
+	"overlay_background_color_label": "Цвет фона",
+	"overlay_obs_help_prefix": "Добавьте URL",
+	"overlay_obs_help_suffix": "как браузерный источник в OBS, чтобы отобразить субтитры",
+	"overlay_test_text": "Я пример субтитра — так я буду выглядеть в браузерном источнике оверлея.",
+
+	"about_intro": "Программа для генерации субтитров. Подходит для добавления субтитров к воспроизводимому аудио или интеграции с OBS для трансляций.",
+
+	"transcript_listening": "Слушаю ({device})",
+	"transcript_not_listening": "Не слушаю",
+
+	"audio_device_label": "Устройство",
+	"audio_device_default": "По умолчанию",
+
+	"recording_format_label": "Формат записи",
+
+	"locale_label_en": "English",
+	"locale_label_ru": "Русский"
+}

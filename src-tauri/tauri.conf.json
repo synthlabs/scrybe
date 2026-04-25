@@ -28,7 +28,15 @@
             "nsis",
             "app",
             "dmg"
-        ]
+        ],
+        "windows": {
+            "nsis": {
+                "languages": [
+                    "English",
+                    "Russian"
+                ]
+            }
+        }
     },
     "identifier": "com.scrybe.live",
     "plugins": {

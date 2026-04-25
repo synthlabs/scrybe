@@ -1,14 +1,13 @@
 <script lang="ts">
     import { Separator } from "$lib/components/ui/separator/index.ts";
+    import { m as msgs } from "$lib/paraglide/messages";
 </script>
 
 <div class="container space-y-4 pb-4">
     <div>
         <h3 class="text-lg font-medium" id="whisper">Scrybe</h3>
         <p class="text-sm text-muted-foreground">
-            A toy subtitle program useful for providing subtitles to currently
-            playing audio, or for integrating with OBS to provide subtitles to
-            your stream.
+            {msgs.about_intro()}
         </p>
     </div>
     <Separator />

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Label } from "$lib/components/ui/label/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     const recording_formats = [
         { value: "1234", label: "Nokia Microphone" },
@@ -13,7 +14,8 @@
     let value = $state("");
 
     const triggerContent = $derived(
-        recording_formats.find((f) => f.value === value)?.label ?? "Default",
+        recording_formats.find((f) => f.value === value)?.label ??
+            msgs.audio_device_default(),
     );
 </script>
 
@@ -23,7 +25,7 @@
         for="audio_device"
         class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
     >
-        Recording Format
+        {msgs.recording_format_label()}
     </Label>
     <Select.Root type="single" bind:value>
         <Select.Trigger class="">{triggerContent}</Select.Trigger>

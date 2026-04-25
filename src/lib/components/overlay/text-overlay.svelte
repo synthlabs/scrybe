@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { WhisperSegment } from "$lib/bindings";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     function hexToRgb(hex: string) {
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
@@ -34,7 +35,7 @@
     let {
         justify,
         test_mode = false,
-        test_text = "I'm an example of a subtitle, and how I will look on the overlay browser source.",
+        test_text = msgs.overlay_test_text(),
         background = "",
         transparency = 100,
         current_segment = {

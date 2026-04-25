@@ -4,17 +4,20 @@
     "private": false,
     "scripts": {
         "build": "vite build",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && i18n-lint ./messages",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
         "dev": "vite dev",
         "preview": "vite preview",
-        "tauri": "tauri"
+        "tauri": "tauri",
+        "test:i18n": "node --test scripts/i18n-detect.test.mjs"
     },
     "devDependencies": {
+        "@inlang/paraglide-js": "^2.16.1",
         "@lucide/svelte": "^1.8.0",
         "@sveltejs/adapter-static": "^3.0.10",
         "@sveltejs/kit": "^2.57.1",
-        "@sveltejs/vite-plugin-svelte": "^5.1.1",
+        "@sveltejs/vite-plugin-svelte": "^7.0.0",
+        "@synthlabs/i18n": "link:../utils/js/i18n",
         "@tailwindcss/vite": "^4.2.2",
         "@tauri-apps/cli": "^2.10.1",
         "@types/node": "^24.12.2",
@@ -32,7 +35,7 @@
         "tailwindcss": "^4.2.2",
         "tw-animate-css": "^1.4.0",
         "typescript": "^5.9.3",
-        "vite": "^6.4.2"
+        "vite": "^8.0.10"
     },
     "type": "module",
     "dependencies": {

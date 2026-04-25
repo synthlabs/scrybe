@@ -9,6 +9,7 @@
     import * as Select from "$lib/components/ui/select/index.ts";
     import { SyncedState } from "tauri-svelte-synced-store";
     import Logger from "$utils/log";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     interface Props {
         app_state: SyncedState<AppState>;
@@ -34,14 +35,14 @@
 
     const triggerContent = $derived(
         audio_devices.find((f) => f.id === app_state.obj.current_device.id)
-            ?.name ?? "Default",
+            ?.name ?? msgs.audio_device_default(),
     );
 
     const onUpdate = (device_id: string) => {
         Logger.debug(`updating selected device: ${device_id}`);
         const new_device = audio_devices.find((f) => f.id === device_id) || {
             id: device_id,
-            name: "Default",
+            name: msgs.audio_device_default(),
         };
         app_state.obj.current_device = new_device;
         app_state.sync();
@@ -54,7 +55,7 @@
         for="audio_device"
         class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
     >
-        Device
+        {msgs.audio_device_label()}
     </Label>
     <Select.Root
         type="single"

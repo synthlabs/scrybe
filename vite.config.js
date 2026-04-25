@@ -1,12 +1,13 @@
 import { defineConfig, searchForWorkspaceRoot } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { defineParaglide } from "@synthlabs/i18n";
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-    plugins: [sveltekit(), tailwindcss()],
+    plugins: [sveltekit(), tailwindcss(), defineParaglide()],
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //

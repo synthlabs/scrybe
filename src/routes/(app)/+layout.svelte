@@ -10,6 +10,7 @@
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
     import { onMount } from "svelte";
     import { checkForAppUpdates } from "$utils/updater";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     import TranscriptControls from "$lib/components/transcript-controls.svelte";
 
@@ -21,35 +22,30 @@
 
     let navMain = [
         {
-            title: "Home",
+            title: msgs.sidebar_home(),
             url: "/",
             icon: House,
         },
-        // {
-        //     title: "Models",
-        //     url: "/models",
-        //     icon: Bot,
-        // },
         {
-            title: "Overlay",
+            title: msgs.sidebar_overlay(),
             url: "/overlay",
             icon: Projector,
         },
         {
-            title: "Settings",
+            title: msgs.sidebar_settings(),
             url: "/settings",
             icon: Settings2,
             items: [
                 {
-                    title: "Audio",
+                    title: msgs.sidebar_settings_audio(),
                     url: "/settings#audio",
                 },
                 {
-                    title: "Model",
+                    title: msgs.sidebar_settings_model(),
                     url: "/settings#model",
                 },
                 {
-                    title: "Whisper",
+                    title: msgs.sidebar_settings_whisper(),
                     url: "/settings#whisper",
                 },
             ],
@@ -58,7 +54,7 @@
 
     let navSecondary = [
         {
-            title: "About",
+            title: msgs.sidebar_about(),
             url: "/about",
             icon: LifeBuoy,
         },

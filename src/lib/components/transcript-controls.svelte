@@ -8,6 +8,7 @@
     import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
     import Logger from "$utils/log";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
     let internal_state = new SyncedState<InternalState>(
@@ -35,9 +36,9 @@
 
 <div class="flex gap-2 text-sm text-muted-foreground">
     {#if internal_state.obj.transcribe_running}
-        Listening ({app_state.obj.current_device.name})
+        {msgs.transcript_listening({ device: app_state.obj.current_device.name })}
     {:else}
-        Not Listening
+        {msgs.transcript_not_listening()}
     {/if}
 </div>
 <div class="flex gap-2 px-4">

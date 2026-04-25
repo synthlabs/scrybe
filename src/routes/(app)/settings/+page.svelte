@@ -21,6 +21,15 @@
         type WhisperToggles,
     } from "$lib/bindings";
     import Logger from "$utils/log";
+    import { m as msgs } from "$lib/paraglide/messages";
+    import { LanguageController, LanguageSwitcher } from "@synthlabs/i18n/svelte";
+    import * as paraglideRuntime from "$lib/paraglide/runtime";
+
+    const language = new LanguageController(paraglideRuntime);
+    const localeLabels: Record<string, string> = {
+        en: msgs.locale_label_en(),
+        ru: msgs.locale_label_ru(),
+    };
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
     let internal_state = new SyncedState<InternalState>(
@@ -38,8 +47,8 @@
     });
 
     type ConfigToggle = {
-        label: string;
-        description: string;
+        label: () => string;
+        description: () => string;
         key: string;
     };
 
@@ -53,50 +62,43 @@
 
     let toggle_metadata: { [key: string]: ConfigToggle } = {
         translate: {
-            label: "Translate",
-            description: "Translate the recorded audio to english",
+            label: msgs.settings_toggle_translate_label,
+            description: msgs.settings_toggle_translate_desc,
             key: "translate",
         },
         suppress_blanks: {
-            label: "Suppress Blanks",
-            description:
-                "By disabling this, blank [BLNK] special tokens will be included in the output",
+            label: msgs.settings_toggle_suppress_blanks_label,
+            description: msgs.settings_toggle_suppress_blanks_desc,
             key: "suppress_blanks",
         },
         print_special: {
-            label: "Print Special",
-            description:
-                "Enable the internal whisper special tokens in the output",
+            label: msgs.settings_toggle_print_special_label,
+            description: msgs.settings_toggle_print_special_desc,
             key: "print_special",
         },
         print_progress: {
-            label: "Print Progress",
-            description:
-                "Hook into the progress callbacks for the whisper model",
+            label: msgs.settings_toggle_print_progress_label,
+            description: msgs.settings_toggle_print_progress_desc,
             key: "print_progress",
         },
         token_timestamps: {
-            label: "Token Timestamps",
-            description:
-                "Timestamp the tokens coming out of the whisper model. Disabling this will result in some errors in the output such as duplications.",
+            label: msgs.settings_toggle_token_timestamps_label,
+            description: msgs.settings_toggle_token_timestamps_desc,
             key: "token_timestamps",
         },
         single_segment: {
-            label: "Single Segment",
-            description:
-                "Reduces the output of each transcript iteration to a single text segment",
+            label: msgs.settings_toggle_single_segment_label,
+            description: msgs.settings_toggle_single_segment_desc,
             key: "single_segment",
         },
         split_on_word: {
-            label: "Split on word",
-            description:
-                "An internal whisper setting for splitting new tokens based on words",
+            label: msgs.settings_toggle_split_on_word_label,
+            description: msgs.settings_toggle_split_on_word_desc,
             key: "split_on_word",
         },
         tdrz_enable: {
-            label: "TDRZ",
-            description:
-                "Enable diarization which identifies the different speakers in the audio (currently unstable)",
+            label: msgs.settings_toggle_tdrz_label,
+            description: msgs.settings_toggle_tdrz_desc,
             key: "tdrz_enable",
         },
     };
@@ -107,7 +109,7 @@
         const selected = await open({
             directory: false,
             multiple: false,
-            filters: [{ name: "Model File", extensions: ["bin"] }],
+            filters: [{ name: msgs.settings_dialog_model_file(), extensions: ["bin"] }],
         });
         if (Array.isArray(selected) || selected === null) {
             // user selected multiple directories
@@ -146,7 +148,7 @@
 
     const preset_trigger = $derived(
         model_presets.find((p) => p.id === selected_preset_id)?.label ??
-            "Choose a preset",
+            msgs.settings_model_preset_choose(),
     );
 
     const onPresetChange = async (id: string) => {
@@ -155,7 +157,7 @@
         downloading_preset = true;
         const preset = model_presets.find((p) => p.id === id);
         const label = preset?.label ?? id;
-        const toast_id = toast.loading(`Downloading ${label}…`, {
+        const toast_id = toast.loading(msgs.toast_downloading({ label }), {
             duration: Number.POSITIVE_INFINITY,
         });
         try {
@@ -163,20 +165,20 @@
             if (result.status === "ok") {
                 app_state.obj.model_path = result.data;
                 app_state.sync();
-                toast.success(`Loaded ${label}`, {
+                toast.success(msgs.toast_loaded({ label }), {
                     id: toast_id,
                     duration: 4000,
                 });
             } else {
                 Logger.error("preset download failed", result.error);
-                toast.error(`Failed to download ${label}: ${result.error}`, {
-                    id: toast_id,
-                    duration: 6000,
-                });
+                toast.error(
+                    msgs.toast_download_failed({ label, error: String(result.error) }),
+                    { id: toast_id, duration: 6000 },
+                );
             }
         } catch (e) {
             Logger.error("preset download threw", e);
-            toast.error(`Failed to download ${label}: ${e}`, {
+            toast.error(msgs.toast_download_failed({ label, error: String(e) }), {
                 id: toast_id,
                 duration: 6000,
             });
@@ -187,10 +189,17 @@
 </script>
 
 <div class="mx-auto w-full max-w-2xl space-y-4 pb-4">
+    <div class="flex items-center justify-between gap-4 pb-2">
+        <Label for="display-language" class="text-sm font-medium">
+            {msgs.settings_display_language_label()}
+        </Label>
+        <LanguageSwitcher controller={language} labels={localeLabels} />
+    </div>
+    <Separator />
     <div>
-        <h3 class="scroll-mt-20 text-lg font-medium" id="audio">Audio</h3>
+        <h3 class="scroll-mt-20 text-lg font-medium" id="audio">{msgs.settings_audio_heading()}</h3>
         <p class="text-sm text-muted-foreground">
-            Set the audio device and audio recording properties for Scrybe.
+            {msgs.settings_audio_intro()}
         </p>
     </div>
     <Separator />
@@ -202,7 +211,7 @@
                 for="audio_segment_size"
                 class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-                Audio Segment Size (seconds)
+                {msgs.settings_audio_segment_size()}
             </Label>
             <Input
                 type="number"
@@ -214,15 +223,15 @@
         </div>
     </div>
     <div>
-        <h3 class="scroll-mt-20 text-lg font-medium" id="model">Model</h3>
+        <h3 class="scroll-mt-20 text-lg font-medium" id="model">{msgs.settings_model_heading()}</h3>
         <p class="text-sm text-muted-foreground">
-            Configure advanced properties for the model being used.
+            {msgs.settings_model_intro()}
         </p>
     </div>
     <Separator />
     <div class="space-y-4 pb-4">
         <div class="flex w-full max-w-lg flex-col gap-y-2">
-            <Label for="model-preset" class="">Preset</Label>
+            <Label for="model-preset" class="">{msgs.settings_model_preset_label()}</Label>
             <Select.Root
                 type="single"
                 bind:value={selected_preset_id}
@@ -231,7 +240,7 @@
                 disabled={downloading_preset}
             >
                 <Select.Trigger id="model-preset">
-                    {downloading_preset ? "Downloading…" : preset_trigger}
+                    {downloading_preset ? msgs.settings_model_preset_downloading() : preset_trigger}
                 </Select.Trigger>
                 <Select.Content>
                     {#each model_presets as preset}
@@ -247,32 +256,31 @@
                 </Select.Content>
             </Select.Root>
             <p class="text-sm text-muted-foreground">
-                Pick a known whisper.cpp model. Selecting a preset downloads (or
-                reuses the cached copy) and activates it.
+                {msgs.settings_model_preset_help()}
             </p>
         </div>
         <div class="flex w-full max-w-lg flex-col gap-y-2">
-            <Label for="model-input" class="">Location</Label>
+            <Label for="model-input" class="">{msgs.settings_model_location_label()}</Label>
             <div class="flex flex-row gap-2">
-                <Button type="button" onclick={select_file}>Choose File</Button>
+                <Button type="button" onclick={select_file}>{msgs.settings_model_choose_file()}</Button>
                 <Input
                     type="text"
                     id="model-input"
-                    placeholder="Model Path"
+                    placeholder={msgs.settings_model_path_placeholder()}
                     class=""
                     bind:value={app_state.obj.model_path}
                     disabled
                 />
             </div>
             <p class="text-sm text-muted-foreground">
-                Or point at a custom .bin file on disk.
+                {msgs.settings_model_location_help()}
             </p>
         </div>
     </div>
     <div>
-        <h3 class="scroll-mt-20 text-lg font-medium" id="whisper">Whisper</h3>
+        <h3 class="scroll-mt-20 text-lg font-medium" id="whisper">{msgs.settings_whisper_heading()}</h3>
         <p class="text-sm text-muted-foreground">
-            Configure different parameters for the Whisper model.
+            {msgs.settings_whisper_intro()}
         </p>
     </div>
     <Separator />
@@ -283,7 +291,7 @@
                 for="language"
                 class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-                Language
+                {msgs.settings_transcription_language_label()}
             </Label>
             <Select.Root
                 type="single"
@@ -313,10 +321,10 @@
                         for={name}
                         class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                        {setting.label}
+                        {setting.label()}
                     </Label>
                     <div class="text-sm text-muted-foreground">
-                        {setting.description}
+                        {setting.description()}
                     </div>
                 </div>
                 <div class="px-2">
