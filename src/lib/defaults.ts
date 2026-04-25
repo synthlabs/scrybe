@@ -18,6 +18,11 @@ export let DefaultAppState: AppState = {
         background_color: "",
         transparency: 0,
         font_size: 0,
+        corner_radius: 0,
+        padding_x: 0,
+        padding_y: 0,
+        font_weight: 0,
+        drop_shadow: false,
     },
     whisper_params: {
         toggles: {

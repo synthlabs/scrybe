@@ -64,6 +64,9 @@
 	"transcript_listening": "Слушаю ({device})",
 	"transcript_not_listening": "Не слушаю",
 
+	"header_status_listening": "Слушает",
+	"header_status_idle": "Ожидает",
+
 	"audio_device_label": "Устройство",
 	"audio_device_default": "По умолчанию",
 

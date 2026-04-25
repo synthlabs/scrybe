@@ -593,7 +593,9 @@ pub fn run() {
                     internal_state.name.clone(),
                     internal_state.version.clone()
                 ))
-                .inner_size(800.0, 600.0);
+                .inner_size(1000.0, 640.0)
+                .min_inner_size(880.0, 560.0)
+                .resizable(true);
 
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);

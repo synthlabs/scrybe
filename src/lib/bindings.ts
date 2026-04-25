@@ -94,6 +94,11 @@ export type OverlayConfig = {
     background_color: string;
     transparency: number;
     font_size: number;
+    corner_radius: number;
+    padding_x: number;
+    padding_y: number;
+    font_weight: number;
+    drop_shadow: boolean;
 };
 export type StateUpdate = {
     version: number | null;

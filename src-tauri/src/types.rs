@@ -34,6 +34,11 @@ pub struct OverlayConfig {
     pub background_color: String,
     pub transparency: i32,
     pub font_size: i32,
+    pub corner_radius: i32,
+    pub padding_x: i32,
+    pub padding_y: i32,
+    pub font_weight: i32,
+    pub drop_shadow: bool,
 }
 
 impl Default for OverlayConfig {
@@ -44,7 +49,12 @@ impl Default for OverlayConfig {
             text_alignment: "center".to_string(), //TODO: make this an enum
             background_color: "#030712".to_string(),
             transparency: 75,
-            font_size: 16,
+            font_size: 28,
+            corner_radius: 4,
+            padding_x: 12,
+            padding_y: 6,
+            font_weight: 600,
+            drop_shadow: true,
         }
     }
 }

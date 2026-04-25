@@ -64,6 +64,9 @@
 	"transcript_listening": "Listening ({device})",
 	"transcript_not_listening": "Not Listening",
 
+	"header_status_listening": "Listening",
+	"header_status_idle": "Idle",
+
 	"audio_device_label": "Device",
 	"audio_device_default": "Default",
 

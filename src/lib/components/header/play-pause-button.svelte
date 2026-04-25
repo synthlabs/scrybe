@@ -8,7 +8,7 @@
     import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
     import Logger from "$utils/log";
-    import { m as msgs } from "$lib/paraglide/messages";
+    import { cn } from "$lib/utils";
 
     let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
     let internal_state = new SyncedState<InternalState>(
@@ -17,13 +17,11 @@
     );
 
     let debounce = $state(false);
-    let disabled_state = $derived(debounce);
+    let listening = $derived(internal_state.obj.transcribe_running);
 
-    $inspect(internal_state.obj.transcribe_running);
-
-    const toggle_transcripts = () => {
+    const toggle = () => {
         debounce = true;
-        if (internal_state.obj.transcribe_running) {
+        if (listening) {
             Logger.info("Currently running, stopping...");
             invoke("stop_transcribe");
         } else {
@@ -34,24 +32,24 @@
     };
 </script>
 
-<div class="flex gap-2 text-sm text-muted-foreground">
-    {#if internal_state.obj.transcribe_running}
-        {msgs.transcript_listening({ device: app_state.obj.current_device.name })}
+<Button
+    variant="ghost"
+    size="icon"
+    onclick={toggle}
+    disabled={debounce}
+    class={cn(
+        "h-8 w-8 transition-colors",
+        listening
+            ? "bg-scrybe text-primary-foreground hover:bg-scrybe-press"
+            : "text-scrybe hover:bg-scrybe-soft hover:text-scrybe",
+    )}
+    aria-label={listening ? "Pause" : "Play"}
+>
+    {#if debounce}
+        <LoaderCircle class="animate-spin" />
+    {:else if listening}
+        <Pause />
     {:else}
-        {msgs.transcript_not_listening()}
+        <Play />
     {/if}
-</div>
-<div class="flex gap-2 px-4">
-    <Button
-        variant="outline"
-        size="icon"
-        onclick={toggle_transcripts}
-        disabled={disabled_state}
-    >
-        {#if internal_state.obj.transcribe_running}
-            <LoaderCircle class="animate-spin text-primary" />
-        {:else}
-            <Play class="text-primary" />
-        {/if}
-    </Button>
-</div>
+</Button>

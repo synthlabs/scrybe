@@ -48,6 +48,10 @@
     --color-scrybe-ring: hsl(var(--c-scrybe-ring));
     --color-scrybe-press: hsl(var(--c-scrybe-press));
 
+    --color-status-live: hsl(var(--c-status-live));
+    --color-status-warn: hsl(var(--c-status-warn));
+    --color-status-idle: hsl(var(--c-status-idle));
+
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
@@ -56,6 +60,8 @@
     --animate-accordion-down: accordion-down 0.2s ease-out;
     --animate-accordion-up: accordion-up 0.2s ease-out;
     --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+    --animate-scrybe-pulse: scrybe-pulse 1.6s ease-out infinite;
+    --animate-scrybe-cap-in: scrybe-cap-in 0.35s ease-out;
 }
 
 @keyframes accordion-down {
@@ -85,6 +91,27 @@
         opacity: 0;
     }
 }
+@keyframes scrybe-pulse {
+    0% {
+        transform: scale(0.7);
+        opacity: 0.8;
+    }
+    70%,
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+@keyframes scrybe-cap-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 :root {
     --background: 0 0% 100%;
@@ -107,6 +134,10 @@
     --input: 220 13% 91%;
     --ring: 17 75% 75%;
     --radius: 0.3rem;
+
+    --c-status-live: 140 60% 55%;
+    --c-status-warn: 40 90% 65%;
+    --c-status-idle: 217 11% 35%;
 }
 .dark {
     --background: 221.1 71.4% 5.5%;
@@ -149,6 +180,10 @@
         hsl(17 75% 65%),
         hsl(330 81% 65%)
     );
+
+    --c-status-live: 140 60% 55%;
+    --c-status-warn: 40 90% 65%;
+    --c-status-idle: 217 11% 35%;
 }
 
 @layer base {
@@ -170,5 +205,26 @@
         height: 100%;
         width: 100%;
     }
+}
+
+.product-scrybe {
+    scrollbar-color: hsl(17 75% 65% / 0.75) transparent;
+    scrollbar-width: thin;
+}
+.product-scrybe ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+.product-scrybe ::-webkit-scrollbar-track {
+    background: transparent;
+}
+.product-scrybe ::-webkit-scrollbar-thumb {
+    background: hsl(17 75% 65% / 0.75);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+.product-scrybe ::-webkit-scrollbar-thumb:hover {
+    background: hsl(17 75% 65%);
 }
 

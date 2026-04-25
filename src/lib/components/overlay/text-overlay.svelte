@@ -29,6 +29,12 @@
         test_text?: string;
         background?: string;
         transparency?: number;
+        font_size?: number;
+        font_weight?: number;
+        corner_radius?: number;
+        padding_x?: number;
+        padding_y?: number;
+        drop_shadow?: boolean;
         current_segment?: WhisperSegment;
     }
 
@@ -38,6 +44,12 @@
         test_text = msgs.overlay_test_text(),
         background = "",
         transparency = 100,
+        font_size = 28,
+        font_weight = 600,
+        corner_radius = 4,
+        padding_x = 12,
+        padding_y = 6,
+        drop_shadow = true,
         current_segment = {
             id: "",
             index: 0,
@@ -49,7 +61,16 @@
     let derived_opacity = $derived(transparency / 100.0);
     let outer_style = $derived(`text-align: ${justify};`);
     let inner_style = $derived(
-        `--tw-bg-opacity: ${derived_opacity}; background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / var(--tw-bg-opacity, 1));`,
+        [
+            `background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${derived_opacity})`,
+            `border-radius: ${corner_radius}px`,
+            `padding: ${padding_y}px ${padding_x}px`,
+            `font-size: ${font_size}px`,
+            `font-weight: ${font_weight}`,
+            drop_shadow
+                ? "text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6)"
+                : "text-shadow: none",
+        ].join("; "),
     );
     let has_segment = $derived(current_segment.items.length > 0);
 </script>
@@ -60,7 +81,7 @@
         style={outer_style}
     >
         <div
-            class="flex h-full w-full flex-col justify-center rounded-xl p-4"
+            class="flex h-full w-full flex-col justify-center"
             style={inner_style}
         >
             {#if has_segment}
