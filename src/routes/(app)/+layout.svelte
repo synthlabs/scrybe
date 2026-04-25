@@ -1,8 +1,8 @@
 <script lang="ts">
-    import LifeBuoy from "lucide-svelte/icons/life-buoy";
-    import House from "lucide-svelte/icons/house";
-    import Settings2 from "lucide-svelte/icons/settings-2";
-    import Projector from "lucide-svelte/icons/projector";
+    import LifeBuoy from "@lucide/svelte/icons/life-buoy";
+    import House from "@lucide/svelte/icons/house";
+    import Settings2 from "@lucide/svelte/icons/settings-2";
+    import Projector from "@lucide/svelte/icons/projector";
     import { page } from "$app/state";
     import AppSidebar from "$lib/components/app-sidebar.svelte";
     import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.ts";

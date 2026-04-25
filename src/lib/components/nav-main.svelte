@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
-    import ChevronRight from "lucide-svelte/icons/chevron-right";
+    import ChevronRight from "@lucide/svelte/icons/chevron-right";
     import { page } from "$app/state";
 
     const isActivePath = (current: string): boolean => {
@@ -14,7 +14,7 @@
         items: {
             title: string;
             url: string;
-            // This should be `Component` after lucide-svelte updates types
+            // This should be `Component` after @lucide/svelte updates types
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             icon: any;
             items?: {

@@ -2,10 +2,10 @@
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
     import { useSidebar } from "$lib/components/ui/sidebar/index.ts";
-    import Ellipsis from "lucide-svelte/icons/ellipsis";
-    import Folder from "lucide-svelte/icons/folder";
-    import Share from "lucide-svelte/icons/share";
-    import Trash2 from "lucide-svelte/icons/trash-2";
+    import Ellipsis from "@lucide/svelte/icons/ellipsis";
+    import Folder from "@lucide/svelte/icons/folder";
+    import Share from "@lucide/svelte/icons/share";
+    import Trash2 from "@lucide/svelte/icons/trash-2";
 
     let {
         projects,
@@ -13,7 +13,7 @@
         projects: {
             name: string;
             url: string;
-            // This should be `Component` after lucide-svelte updates types
+            // This should be `Component` after @lucide/svelte updates types
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             icon: any;
         }[];

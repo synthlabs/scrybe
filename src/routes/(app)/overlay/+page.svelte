@@ -1,7 +1,7 @@
 <script lang="ts">
-    import AlignLeft from "lucide-svelte/icons/align-left";
-    import AlignCenter from "lucide-svelte/icons/align-center";
-    import AlignRight from "lucide-svelte/icons/align-right";
+    import AlignLeft from "@lucide/svelte/icons/align-left";
+    import AlignCenter from "@lucide/svelte/icons/align-center";
+    import AlignRight from "@lucide/svelte/icons/align-right";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { Label } from "$lib/components/ui/label/index.ts";

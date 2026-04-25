@@ -1,9 +1,9 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button/index.ts";
     import type { AppState, InternalState } from "$lib/bindings";
-    import Play from "lucide-svelte/icons/play";
-    import LoaderCircle from "lucide-svelte/icons/loader-circle";
-    import Pause from "lucide-svelte/icons/pause";
+    import Play from "@lucide/svelte/icons/play";
+    import LoaderCircle from "@lucide/svelte/icons/loader-circle";
+    import Pause from "@lucide/svelte/icons/pause";
     import { invoke } from "@tauri-apps/api/core";
     import { SyncedState } from "tauri-svelte-synced-store";
     import { DefaultAppState, DefaultInternalState } from "$lib/defaults";

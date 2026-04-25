@@ -1,10 +1,10 @@
 <script lang="ts">
-    import BadgeCheck from "lucide-svelte/icons/badge-check";
-    import Bell from "lucide-svelte/icons/bell";
-    import ChevronsUpDown from "lucide-svelte/icons/chevrons-up-down";
-    import CreditCard from "lucide-svelte/icons/credit-card";
-    import LogOut from "lucide-svelte/icons/log-out";
-    import Sparkles from "lucide-svelte/icons/sparkles";
+    import BadgeCheck from "@lucide/svelte/icons/badge-check";
+    import Bell from "@lucide/svelte/icons/bell";
+    import ChevronsUpDown from "@lucide/svelte/icons/chevrons-up-down";
+    import CreditCard from "@lucide/svelte/icons/credit-card";
+    import LogOut from "@lucide/svelte/icons/log-out";
+    import Sparkles from "@lucide/svelte/icons/sparkles";
 
     import * as Avatar from "$lib/components/ui/avatar/index.ts";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.ts";
@@ -53,7 +53,7 @@
                 {/snippet}
             </DropdownMenu.Trigger>
             <DropdownMenu.Content
-                class="w-[--bits-dropdown-menu-anchor-width] min-w-56 rounded-lg"
+                class="w-(--bits-dropdown-menu-anchor-width) min-w-56 rounded-lg"
                 side={sidebar.isMobile ? "bottom" : "right"}
                 align="end"
                 sideOffset={4}
