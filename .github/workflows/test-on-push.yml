@@ -68,6 +68,10 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Install gcloud SDK (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: install system dependencies (unix)
         if: "!startsWith(matrix.platform, 'windows')"
         shell: bash

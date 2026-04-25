@@ -49,8 +49,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0(svelte@5.55.4)(vite@8.0.10(@types/node@24.12.2)(jiti@2.6.1)(yaml@2.8.1))
       '@synthlabs/i18n':
-        specifier: link:../utils/js/i18n
-        version: link:../utils/js/i18n
+        specifier: link:./utils/js/i18n
+        version: link:./utils/js/i18n
       '@tailwindcss/vite':
         specifier: ^4.2.2
         version: 4.2.4(vite@8.0.10(@types/node@24.12.2)(jiti@2.6.1)(yaml@2.8.1))
