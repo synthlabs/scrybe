@@ -54,6 +54,12 @@
     justify={overlay_config.text_alignment}
     background={overlay_config.background_color}
     transparency={overlay_config.transparency}
+    font_size={overlay_config.font_size}
+    font_weight={overlay_config.font_weight}
+    corner_radius={overlay_config.corner_radius}
+    padding_x={overlay_config.padding_x}
+    padding_y={overlay_config.padding_y}
+    drop_shadow={overlay_config.drop_shadow}
     {current_segment}
 />
 

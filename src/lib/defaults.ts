@@ -1,8 +1,13 @@
 import type { InternalState, AppState } from "./bindings";
 
+// These mirror the Rust `Default` impls in src-tauri/src/types.rs and
+// rust/core/src/whisper.rs. They MUST stay in sync — if a sync() ever fires
+// before SyncedState receives the backend's emit response, the frontend's
+// snapshot is what gets persisted to disk, so zero placeholders would corrupt
+// real persisted state.
 export let DefaultAppState: AppState = {
     current_device: {
-        name: "",
+        name: "default",
         id: "",
     },
     audio_format: {
@@ -10,39 +15,39 @@ export let DefaultAppState: AppState = {
         id: "",
     },
     model_path: "",
-    audio_segment_size: 0,
+    audio_segment_size: 15,
     overlay_config: {
-        name: "",
+        name: "default",
         id: "",
-        text_alignment: "left",
-        background_color: "",
-        transparency: 0,
-        font_size: 0,
-        corner_radius: 0,
-        padding_x: 0,
-        padding_y: 0,
-        font_weight: 0,
-        drop_shadow: false,
+        text_alignment: "center",
+        background_color: "#030712",
+        transparency: 75,
+        font_size: 28,
+        corner_radius: 4,
+        padding_x: 12,
+        padding_y: 6,
+        font_weight: 600,
+        drop_shadow: true,
     },
     whisper_params: {
         toggles: {
             translate: false,
-            suppress_blanks: false,
+            suppress_blanks: true,
             print_special: false,
             print_progress: false,
-            token_timestamps: false,
-            single_segment: false,
+            token_timestamps: true,
+            single_segment: true,
             split_on_word: false,
             tdrz_enable: false,
         },
-        language: "",
+        language: "auto",
     },
     advanced_settings: {},
 };
 
 export let DefaultInternalState: InternalState = {
     transcribe_running: false,
-    audio_step_size: 0,
+    audio_step_size: 500,
     version: "",
     name: "",
 };
