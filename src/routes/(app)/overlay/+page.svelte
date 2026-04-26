@@ -46,7 +46,7 @@
     };
 </script>
 
-<div class="mx-auto w-full space-y-4 pb-4">
+<div class="flex w-full flex-col gap-4 p-4">
     <div>
         <h3 class="text-lg font-medium" id="audio">{msgs.overlay_heading()}</h3>
         <p class="text-sm text-muted-foreground">
