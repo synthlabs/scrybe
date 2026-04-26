@@ -22,7 +22,10 @@
     <Sidebar.Menu>
         {#each items as item (item.title)}
             <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={isActivePath(item.url)}>
+                <Sidebar.MenuButton
+                    isActive={isActivePath(item.url)}
+                    class="data-[active=true]:bg-scrybe-soft data-[active=true]:text-scrybe data-[active=true]:[&>svg]:text-scrybe data-[active=true]:shadow-[inset_2px_0_0_0_hsl(var(--c-scrybe))] data-[active=true]:hover:bg-scrybe-soft data-[active=true]:hover:text-scrybe"
+                >
                     {#snippet tooltipContent()}
                         {item.title}
                     {/snippet}

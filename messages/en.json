@@ -1,14 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-
 	"sidebar_home": "Home",
 	"sidebar_overlay": "Overlay",
 	"sidebar_settings": "Settings",
 	"sidebar_about": "About",
-	"sidebar_settings_audio": "Audio",
-	"sidebar_settings_model": "Model",
-	"sidebar_settings_whisper": "Whisper",
-
 	"settings_subtitle": "Tune capture, model, and Whisper behavior in real time.",
 	"settings_search_placeholder": "Search settings",
 	"settings_reset_button": "Reset to defaults",
@@ -23,28 +18,18 @@
 	"settings_model_cache_label": "Cache",
 	"settings_cache_copy_aria": "Copy path",
 	"settings_cache_copied": "Path copied",
-
 	"settings_audio_heading": "Audio",
-	"settings_audio_intro": "Set the audio device and audio recording properties for Scrybe.",
 	"settings_audio_segment_size": "Audio Segment Size (seconds)",
-
 	"settings_model_heading": "Model",
-	"settings_model_intro": "Configure advanced properties for the model being used.",
 	"settings_model_preset_label": "Preset",
 	"settings_model_preset_choose": "Choose a preset",
 	"settings_model_preset_downloading": "Downloading…",
-	"settings_model_preset_help": "Pick a known whisper.cpp model. Selecting a preset downloads (or reuses the cached copy) and activates it.",
 	"settings_model_location_label": "Location",
 	"settings_model_choose_file": "Choose File",
 	"settings_model_path_placeholder": "Model Path",
-	"settings_model_location_help": "Or point at a custom .bin file on disk.",
 	"settings_dialog_model_file": "Model File",
-
 	"settings_whisper_heading": "Whisper",
-	"settings_whisper_intro": "Configure different parameters for the Whisper model.",
 	"settings_transcription_language_label": "Transcription Language",
-	"settings_display_language_label": "Display Language",
-
 	"settings_toggle_translate_label": "Translate",
 	"settings_toggle_translate_desc": "Translate the recorded audio to English",
 	"settings_toggle_suppress_blanks_label": "Suppress Blanks",
@@ -61,19 +46,13 @@
 	"settings_toggle_split_on_word_desc": "An internal whisper setting for splitting new tokens based on words",
 	"settings_toggle_tdrz_label": "TDRZ",
 	"settings_toggle_tdrz_desc": "Enable diarization which identifies the different speakers in the audio (currently unstable)",
-
 	"toast_downloading": "Downloading {label}…",
 	"toast_loaded": "Loaded {label}",
 	"toast_download_failed": "Failed to download {label}: {error}",
-
 	"overlay_heading": "Overlay",
 	"overlay_intro": "Manage the look of the subtitles that will be shown on the overlay.",
 	"overlay_align_label": "Align",
-	"overlay_background_color_label": "Background Color",
-	"overlay_obs_help_prefix": "Add the url",
-	"overlay_obs_help_suffix": "as a browser source in OBS to show the subtitles",
 	"overlay_test_text": "I'm an example of a subtitle, and how I will look on the overlay browser source.",
-
 	"overlay_column_layout": "Layout",
 	"overlay_column_text": "Text",
 	"overlay_column_browser": "Browser source",
@@ -89,7 +68,6 @@
 	"overlay_font_size_label_cinematic": "cinematic",
 	"overlay_color_label": "Text color",
 	"overlay_padding_label": "Padding",
-	"overlay_padding_link_aria": "Link padding axes",
 	"overlay_drop_shadow_label": "Drop shadow",
 	"overlay_url_label": "OBS URL",
 	"overlay_url_copy_aria": "Copy OBS URL",
@@ -99,33 +77,22 @@
 	"overlay_howto_step2": "Paste the URL above and set the size to match your scene.",
 	"overlay_howto_step3": "Captions appear when Scrybe is listening.",
 	"overlay_server_running": "Server running on port 3030",
-
 	"about_intro": "A toy subtitle program useful for providing subtitles to currently playing audio, or for integrating with OBS to provide subtitles to your stream.",
-
-	"transcript_listening": "Listening ({device})",
-	"transcript_not_listening": "Not Listening",
-
 	"header_status_listening": "Listening",
 	"header_status_idle": "Idle",
-
 	"home_rail_session": "Session",
 	"home_rail_started": "Started",
 	"home_rail_duration": "Duration",
 	"home_rail_segments": "Segments",
 	"home_rail_words": "Words",
 	"home_minute_label": "MINUTE {minute}",
-	"home_partial_label": "partial",
 	"home_toolbar_pause": "Pause",
 	"home_toolbar_resume": "Resume",
 	"home_toolbar_new_session": "New session",
 	"home_toolbar_copy": "Copy",
 	"home_toolbar_copied": "Transcript copied",
-
 	"audio_device_label": "Device",
 	"audio_device_default": "Default",
-
-	"recording_format_label": "Recording Format",
-
 	"locale_label_en": "English",
 	"locale_label_ru": "Русский"
 }

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import LifeBuoy from "@lucide/svelte/icons/life-buoy";
     import House from "@lucide/svelte/icons/house";
     import Settings2 from "@lucide/svelte/icons/settings-2";
     import Projector from "@lucide/svelte/icons/projector";
@@ -34,14 +33,6 @@
             title: msgs.sidebar_settings(),
             url: "/settings",
             icon: Settings2,
-        },
-    ];
-
-    let navSecondary = [
-        {
-            title: msgs.sidebar_about(),
-            url: "/about",
-            icon: LifeBuoy,
         },
     ];
 
@@ -82,7 +73,7 @@
 </script>
 
 <Sidebar.Provider style="--sidebar-width: 200px">
-    <AppSidebar {navMain} {navSecondary} />
+    <AppSidebar {navMain} />
     <Sidebar.Inset>
         <header
             class="bg-background sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b pr-3 pl-2"
@@ -96,7 +87,7 @@
                 <Separator orientation="vertical" class="mx-1 h-4" />
                 {@render header.extras()}
             {/if}
-            <!-- <div class="flex grow"></div> -->
+            <div class="flex grow"></div>
             {#if header.extras_right}
                 {@render header.extras_right()}
                 <Separator orientation="vertical" class="mx-1 h-4" />

@@ -18,8 +18,6 @@
 
     let overlay_config: OverlayConfig = $state(DefaultAppState.overlay_config);
 
-    $inspect(overlay_config);
-
     const ws = new WebSocket("ws://localhost:3030/ws");
     ws.onmessage = (ws_event) => {
         let event: WebsocketResponse = JSON.parse(ws_event.data);

@@ -7,6 +7,7 @@
     import { LanguageController, LanguageSwitcher } from "@synthlabs/i18n/svelte";
     import * as paraglideRuntime from "$lib/paraglide/runtime";
     import { m as msgs } from "$lib/paraglide/messages";
+    import LifeBuoy from "@lucide/svelte/icons/life-buoy";
 
     interface NavItem {
         title: string;
@@ -16,7 +17,6 @@
     interface Props {
         ref?: any;
         navMain: NavItem[];
-        navSecondary: NavItem[];
         side?: "left" | "right";
         variant?: "sidebar" | "floating" | "inset";
         collapsible?: "offcanvas" | "icon" | "none";
@@ -25,7 +25,6 @@
     let {
         ref = $bindable(null),
         navMain,
-        navSecondary,
         variant,
         ...restProps
     }: Props = $props();
@@ -67,21 +66,16 @@
     <Sidebar.Content>
         <NavMain items={navMain} />
     </Sidebar.Content>
-    <Sidebar.Footer class="gap-2 p-3">
-        <LanguageSwitcher controller={language} labels={localeLabels} />
-        {#each navSecondary as item (item.title)}
-            <Sidebar.Menu>
-                <Sidebar.MenuItem>
-                    <Sidebar.MenuButton size="sm">
-                        {#snippet child({ props })}
-                            <a href={item.url} {...props}>
-                                <item.icon />
-                                <span>{item.title}</span>
-                            </a>
-                        {/snippet}
-                    </Sidebar.MenuButton>
-                </Sidebar.MenuItem>
-            </Sidebar.Menu>
-        {/each}
+    <Sidebar.Footer class="p-3">
+        <div class="flex items-center justify-between gap-2">
+            <LanguageSwitcher controller={language} labels={localeLabels} />
+            <a
+                href="/about"
+                aria-label={msgs.sidebar_about()}
+                class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+                <LifeBuoy class="size-4" />
+            </a>
+        </div>
     </Sidebar.Footer>
 </Sidebar.Root>
