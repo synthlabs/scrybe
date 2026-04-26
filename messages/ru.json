@@ -108,6 +108,19 @@
 	"header_status_listening": "Слушает",
 	"header_status_idle": "Ожидает",
 
+	"home_rail_session": "Сессия",
+	"home_rail_started": "Начало",
+	"home_rail_duration": "Длительность",
+	"home_rail_segments": "Сегменты",
+	"home_rail_words": "Слова",
+	"home_minute_label": "МИНУТА {minute}",
+	"home_partial_label": "ещё пишется",
+	"home_toolbar_pause": "Пауза",
+	"home_toolbar_resume": "Продолжить",
+	"home_toolbar_new_session": "Новая сессия",
+	"home_toolbar_copy": "Копировать",
+	"home_toolbar_copied": "Транскрипт скопирован",
+
 	"audio_device_label": "Устройство",
 	"audio_device_default": "По умолчанию",
 

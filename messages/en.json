@@ -108,6 +108,19 @@
 	"header_status_listening": "Listening",
 	"header_status_idle": "Idle",
 
+	"home_rail_session": "Session",
+	"home_rail_started": "Started",
+	"home_rail_duration": "Duration",
+	"home_rail_segments": "Segments",
+	"home_rail_words": "Words",
+	"home_minute_label": "MINUTE {minute}",
+	"home_partial_label": "partial",
+	"home_toolbar_pause": "Pause",
+	"home_toolbar_resume": "Resume",
+	"home_toolbar_new_session": "New session",
+	"home_toolbar_copy": "Copy",
+	"home_toolbar_copied": "Transcript copied",
+
 	"audio_device_label": "Device",
 	"audio_device_default": "Default",
 
