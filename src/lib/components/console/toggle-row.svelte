@@ -10,7 +10,7 @@
         label: string;
         description: string;
         checked: boolean;
-        onChange: (next: boolean) => void;
+        onChange?: (next: boolean) => void;
         match?: boolean;
     }
 

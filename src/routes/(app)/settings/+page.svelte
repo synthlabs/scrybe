@@ -39,9 +39,22 @@
     );
 
     type IndexedToggle = WhisperToggles & { [key: string]: boolean };
-    let store_toggles = $derived(
-        app_state.obj.whisper_params.toggles as IndexedToggle,
-    );
+
+    let draft_toggles = $state<WhisperToggles>({
+        ...app_state.obj.whisper_params.toggles,
+    });
+    let draft_language = $state<string>(app_state.obj.whisper_params.language);
+    let draft_initialized = $state(false);
+
+    $effect(() => {
+        if (!app_state.ready) return;
+        if (draft_initialized) return;
+        draft_toggles = { ...app_state.obj.whisper_params.toggles };
+        draft_language = app_state.obj.whisper_params.language;
+        draft_initialized = true;
+    });
+
+    let store_toggles = $derived(draft_toggles as IndexedToggle);
 
     interface ToggleMeta {
         key: keyof WhisperToggles;
@@ -132,22 +145,32 @@
     };
 
     let dirty = $derived.by(() => {
-        const defaults = default_toggle_state() as IndexedToggle;
-        return TOGGLES.some((t) => store_toggles[t.key] !== defaults[t.key]);
+        if (!draft_initialized) return false;
+        if (draft_language !== app_state.obj.whisper_params.language)
+            return true;
+        const stored = app_state.obj.whisper_params.toggles as IndexedToggle;
+        return TOGGLES.some(
+            (t) => (draft_toggles as IndexedToggle)[t.key] !== stored[t.key],
+        );
     });
 
     const onResetDefaults = () => {
         const defaults = default_toggle_state();
+        const default_language = DefaultAppState.whisper_params.language;
         app_state.obj.whisper_params.toggles = defaults;
+        app_state.obj.whisper_params.language = default_language;
         app_state.sync();
-        toast.success(msgs.settings_reset_button());
+        draft_toggles = { ...defaults };
+        draft_language = default_language;
+        toast.success(msgs.settings_reset_msg());
     };
 
     const onSave = () => {
-        // Changes are auto-applied via app_state.sync(); button serves as
-        // a UX acknowledgement of the dirty state.
-        // TODO: switch to buffered-save semantics if backend ever supports it.
-        toast.success(msgs.settings_save_button());
+        if (!draft_initialized) return;
+        app_state.obj.whisper_params.toggles = { ...draft_toggles };
+        app_state.obj.whisper_params.language = draft_language;
+        app_state.sync();
+        toast.success(msgs.settings_save_msg());
     };
 
     let audio_devices: AudioDevice[] = $state([]);
@@ -339,7 +362,7 @@
                     class="h-8 w-52 pl-8 text-xs"
                 />
             </div>
-            {#if dirty}
+            {#if dirty && draft_initialized}
                 <Button
                     variant="ghost"
                     size="sm"
@@ -531,7 +554,7 @@
                         class="text-muted-foreground/70 hover:text-foreground focus-visible:text-foreground transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
                     >
                         {#if cache_copied}
-                            <Check class="size-3.5 text-status-live" />
+                            <Check class="text-status-live size-3.5" />
                         {:else}
                             <Copy class="size-3.5" />
                         {/if}
@@ -562,10 +585,9 @@
                 </Label>
                 <SegmentedControl
                     options={LANGUAGE_OPTIONS}
-                    value={app_state.obj.whisper_params.language || "auto"}
+                    value={draft_language || "auto"}
                     onChange={(v) => {
-                        app_state.obj.whisper_params.language = v;
-                        app_state.sync();
+                        draft_language = v;
                     }}
                     ariaLabel="Transcription language"
                 />
@@ -578,8 +600,9 @@
                         id={toggle.key}
                         {label}
                         {description}
-                        bind:checked={store_toggles[toggle.key]}
-                        onChange={() => app_state.sync()}
+                        bind:checked={
+                            (draft_toggles as IndexedToggle)[toggle.key]
+                        }
                         match={matchesSearch(label, description)}
                     />
                 {/each}
@@ -606,8 +629,9 @@
                             id={toggle.key}
                             {label}
                             {description}
-                            bind:checked={store_toggles[toggle.key]}
-                            onChange={() => app_state.sync()}
+                            bind:checked={
+                                (draft_toggles as IndexedToggle)[toggle.key]
+                            }
                             match={matchesSearch(label, description)}
                         />
                     {/each}
