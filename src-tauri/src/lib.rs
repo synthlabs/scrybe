@@ -597,7 +597,7 @@ pub fn run() {
                 .min_inner_size(880.0, 560.0)
                 .resizable(true)
                 .visible(false)
-                .background_color(tauri::webview::Color(20, 26, 39, 255));
+                .background_color(tauri::webview::Color(26, 30, 35, 255));
 
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
@@ -610,9 +610,9 @@ pub fn run() {
                 unsafe {
                     let ns_window = &*(window.ns_window().unwrap() as *mut NSWindow);
                     let bg_color = NSColor::colorWithRed_green_blue_alpha(
-                        20.0 / 255.0,
                         26.0 / 255.0,
-                        39.0 / 255.0,
+                        30.0 / 255.0,
+                        35.0 / 255.0,
                         1.0,
                     );
                     ns_window.setBackgroundColor(bg_color.downcast_ref());
@@ -634,8 +634,8 @@ pub fn run() {
                         &use_dark_mode as *const i32 as *const std::ffi::c_void,
                         std::mem::size_of::<i32>() as u32,
                     );
-                    // RGB(20, 26, 39) -> COLORREF 0x00BBGGRR = 0x00271A14
-                    let caption_color = COLORREF(0x00271A14);
+                    // RGB(26, 30, 35) -> COLORREF 0x00BBGGRR = 0x00231E1A
+                    let caption_color = COLORREF(0x00231E1A);
                     let _ = DwmSetWindowAttribute(
                         hwnd,
                         DWMWA_CAPTION_COLOR,

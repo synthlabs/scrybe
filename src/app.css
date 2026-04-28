@@ -227,3 +227,24 @@
     background: hsl(17 75% 65%);
 }
 
+[data-sonner-toaster].toaster {
+    font-family: inherit;
+    --border-radius: var(--radius);
+    --gray1: hsl(var(--secondary));
+    --gray2: hsl(var(--accent));
+    --gray4: hsl(var(--border));
+    --gray5: hsl(var(--border));
+    --gray11: hsl(var(--muted-foreground));
+    --gray12: hsl(var(--foreground));
+}
+[data-sonner-toaster].toaster[data-theme="light"] {
+    --normal-bg: hsl(var(--popover));
+    --normal-border: hsl(var(--c-scrybe) / 0.3);
+    --normal-text: hsl(var(--foreground));
+}
+[data-sonner-toaster].toaster[data-theme="dark"] {
+    --normal-bg: hsl(var(--secondary));
+    --normal-border: hsl(var(--c-scrybe) / 0.3);
+    --normal-text: hsl(var(--foreground));
+}
+

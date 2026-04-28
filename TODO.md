@@ -22,6 +22,6 @@
     - [ ] brainstorm other possible approaches
 - [ ] when transcribe isn't running, the active cursor blinker should stop on the main page
 - [ ] on the settings page, when you click save for changing settings the save and reset buttons stay
-- [ ] the toast popup isn't scrybe themed so it stands out
+- [x] the toast popup isn't scrybe themed so it stands out
 - [x] on startup the window appears in the default location with a white background before loading and then jumping to the saved positioning
 - [ ] on the overlay page, when you change the background color to one of the presents, we should save your custom color so you can switch back to it
