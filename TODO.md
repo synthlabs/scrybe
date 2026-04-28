@@ -7,4 +7,21 @@
 - [x] harmonize `bits-ui` and Tailwind versions with pepo
 - [x] upgrade tailwind v3 to v4
 - [x] support tauri-plugin-log and match parity with pepo for logging
-- [ ] title bar on macos should match color to sidebar
+- [x] title bar on macos should match color to sidebar
+- [ ] on the homepage the rightrail and footer with the buttons should be static and only the inner section with the segments should scroll
+- [ ] every segment on the backend should be generated with a unique id, and then the frontend can use it to key the list of segments
+- [ ] if a transcribe is running and you click new session it doesn't properly stop the old session, or at least the ui updates double segments
+- [ ] add a small "clear transcript" button on the home page that simply clears the segments rendered but doesn't start a new session
+- [ ] instead of using a static audio segment size support dynamic segments
+    - [ ] support creating a new segment after X amount of silence
+    - [ ] support speaker turn to delineate segments
+- [ ] while a segment is being generated the text often updates unnecessarily, sometimes even temporarily going blank, come up with ways to mitigate this
+    - [ ] possibly incorporate confidence into the emit segment update logic (with a setting for it)
+    - [ ] don't emit a segment if the text changed too drastically
+    - [ ] try to resupport setting the transcript text input to the transcribe context
+    - [ ] brainstorm other possible approaches
+- [ ] when transcribe isn't running, the active cursor blinker should stop on the main page
+- [ ] on the settings page, when you click save for changing settings the save and reset buttons stay
+- [ ] the toast popup isn't scrybe themed so it stands out
+- [x] on startup the window appears in the default location with a white background before loading and then jumping to the saved positioning
+- [ ] on the overlay page, when you change the background color to one of the presents, we should save your custom color so you can switch back to it

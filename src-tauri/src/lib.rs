@@ -595,7 +595,9 @@ pub fn run() {
                 ))
                 .inner_size(1000.0, 640.0)
                 .min_inner_size(880.0, 560.0)
-                .resizable(true);
+                .resizable(true)
+                .visible(false)
+                .background_color(tauri::webview::Color(20, 26, 39, 255));
 
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
