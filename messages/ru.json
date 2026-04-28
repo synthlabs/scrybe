@@ -66,7 +66,7 @@
 	"overlay_font_size_label": "Размер шрифта",
 	"overlay_font_size_label_compact": "компактный",
 	"overlay_font_size_label_cinematic": "крупный",
-	"overlay_color_label": "Цвет текста",
+	"overlay_color_label": "Цвет Фон",
 	"overlay_padding_label": "Отступы",
 	"overlay_drop_shadow_label": "Тень текста",
 	"overlay_url_label": "OBS URL",

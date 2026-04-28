@@ -140,35 +140,34 @@
     --c-status-idle: 217 11% 35%;
 }
 .dark {
-    --background: 221.1 71.4% 5.5%;
-    --foreground: 240 7% 94%;
-    --card: 221.1 71.4% 5.5%;
-    --card-foreground: 240 7% 94%;
-    --popover: 221.1 71.4% 5.5%;
-    --popover-foreground: 240 7% 94%;
+    --background: 215 16% 7%;
+    --foreground: 210 8% 94%;
+    --card: 215 16% 7%;
+    --card-foreground: 210 8% 94%;
+    --popover: 215 16% 7%;
+    --popover-foreground: 210 8% 94%;
     --primary: 17 75% 65%;
     --primary-foreground: 24 60% 5%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 240 7% 94%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 21%;
-    --accent-foreground: 240 7% 94%;
+    --secondary: 215 12% 17%;
+    --secondary-foreground: 210 8% 94%;
+    --muted: 215 12% 17%;
+    --muted-foreground: 215 8% 64%;
+    --accent: 215 12% 21%;
+    --accent-foreground: 210 8% 94%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 240 7% 94%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
+    --destructive-foreground: 210 8% 94%;
+    --border: 215 12% 17%;
+    --input: 215 12% 17%;
     --ring: 17 75% 75%;
 
-    /* hsl(221.05deg 32.2% 11.57%) */
-    --sidebar-background: 221.1 32.2% 11.57%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 215 14% 12%;
+    --sidebar-foreground: 210 8% 96%;
     --sidebar-primary: 17 75% 65%;
     --sidebar-primary-foreground: 24 60% 5%;
-    --sidebar-accent: 221.1 31.65% 9.1%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 240 4.9% 83.9%;
+    --sidebar-accent: 215 14% 10%;
+    --sidebar-accent-foreground: 210 8% 96%;
+    --sidebar-border: 215 10% 17%;
+    --sidebar-ring: 215 8% 84%;
 
     /* Scrybe product identity — warm orange sampled from the hummingbird logo */
     --c-scrybe: 17 75% 65%;
