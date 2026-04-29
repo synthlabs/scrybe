@@ -9,8 +9,8 @@
 - [x] support tauri-plugin-log and match parity with pepo for logging
 - [x] title bar on macos should match color to sidebar
 - [ ] on the homepage the rightrail and footer with the buttons should be static and only the inner section with the segments should scroll
-- [ ] every segment on the backend should be generated with a unique id, and then the frontend can use it to key the list of segments
-- [ ] if a transcribe is running and you click new session it doesn't properly stop the old session, or at least the ui updates double segments
+- [x] every segment on the backend should be generated with a unique id, and then the frontend can use it to key the list of segments
+- [x] if a transcribe is running and you click new session it doesn't properly stop the old session, or at least the ui updates double segments
 - [ ] add a small "clear transcript" button on the home page that simply clears the segments rendered but doesn't start a new session
 - [ ] instead of using a static audio segment size support dynamic segments
     - [ ] support creating a new segment after X amount of silence
@@ -21,7 +21,7 @@
     - [ ] try to resupport setting the transcript text input to the transcribe context
     - [ ] brainstorm other possible approaches
 - [ ] when transcribe isn't running, the active cursor blinker should stop on the main page
-- [ ] on the settings page, when you click save for changing settings the save and reset buttons stay
+- [x] on the settings page, when you click save for changing settings the save and reset buttons stay
 - [x] the toast popup isn't scrybe themed so it stands out
 - [x] on startup the window appears in the default location with a white background before loading and then jumping to the saved positioning
 - [ ] on the overlay page, when you change the background color to one of the presents, we should save your custom color so you can switch back to it

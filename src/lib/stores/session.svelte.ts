@@ -3,6 +3,7 @@ import type { WhisperSegment } from "$lib/bindings";
 
 class Session {
     segments_by_id = new SvelteMap<string, WhisperSegment>();
+    current_segment_id = $state<string | null>(null);
     started_at = $state<number | null>(null);
 
     get segments(): WhisperSegment[] {
@@ -22,23 +23,17 @@ class Session {
     }
 
     get partial_id(): string | null {
-        let max_index = -1;
-        let id: string | null = null;
-        for (const seg of this.segments_by_id.values()) {
-            if (seg.index > max_index) {
-                max_index = seg.index;
-                id = seg.id;
-            }
-        }
-        return id;
+        return this.current_segment_id;
     }
 
     add_segment(seg: WhisperSegment): void {
         this.segments_by_id.set(seg.id, seg);
+        this.current_segment_id = seg.id;
     }
 
     clear(): void {
         this.segments_by_id.clear();
+        this.current_segment_id = null;
         this.started_at = null;
     }
 

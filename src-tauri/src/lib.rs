@@ -31,8 +31,10 @@ const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
 
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
 struct InternalState {
     transcribe_running: bool,
+    active_transcription_run_id: Option<String>,
     audio_step_size: u64,
     version: String,
     name: String,
@@ -42,9 +44,37 @@ impl Default for InternalState {
     fn default() -> Self {
         Self {
             transcribe_running: false,
+            active_transcription_run_id: None,
             audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             version: "".to_owned(),
             name: "".to_owned(),
+        }
+    }
+}
+
+impl InternalState {
+    fn claim_transcription_run(&mut self, run_id: String) -> bool {
+        if self.transcribe_running {
+            return false;
+        }
+
+        self.transcribe_running = true;
+        self.active_transcription_run_id = Some(run_id);
+        true
+    }
+
+    fn stop_transcription(&mut self) {
+        self.transcribe_running = false;
+        self.active_transcription_run_id = None;
+    }
+
+    fn is_transcription_run_active(&self, run_id: &str) -> bool {
+        self.transcribe_running && self.active_transcription_run_id.as_deref() == Some(run_id)
+    }
+
+    fn clear_transcription_run_if_current(&mut self, run_id: &str) {
+        if self.active_transcription_run_id.as_deref() == Some(run_id) {
+            self.stop_transcription();
         }
     }
 }
@@ -225,7 +255,19 @@ fn stop_transcribe(state_syncer: tauri::State<'_, tauri_svelte_synced_store::Sta
     let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
     let mut state = internal_state_ref.lock().unwrap();
 
-    state.transcribe_running = false;
+    state.stop_transcription();
+}
+
+fn transcription_run_is_active(state_syncer: &StateSyncer, run_id: &str) -> bool {
+    state_syncer
+        .snapshot::<InternalState>("internal_state")
+        .is_transcription_run_active(run_id)
+}
+
+fn clear_transcription_run_if_current(state_syncer: &StateSyncer, run_id: &str) {
+    let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
+    let mut state = internal_state_ref.lock().unwrap();
+    state.clear_transcription_run_if_current(run_id);
 }
 
 #[tauri::command]
@@ -242,12 +284,14 @@ fn start_transcribe<'a>(
             .as_millis()
     );
 
-    if state_syncer
-        .snapshot::<InternalState>("internal_state")
-        .transcribe_running
+    let run_id = Uuid::new_v4().to_string();
     {
-        info!("transcribe already running");
-        return Err(());
+        let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
+        let mut state = internal_state_ref.lock().unwrap();
+        if !state.claim_transcription_run(run_id.clone()) {
+            info!("transcribe already running");
+            return Err(());
+        }
     }
 
     let app_handle_ref = app.clone();
@@ -266,26 +310,16 @@ fn start_transcribe<'a>(
             Ok(am) => am,
             Err(err) => {
                 error!("unable to create audio manager: {}", err);
-                let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
-                let mut state = internal_state_ref.lock().unwrap();
-                state.transcribe_running = false;
+                clear_transcription_run_if_current(&state_syncer_ref, &run_id);
                 return;
             }
         };
-
-        {
-            let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
-            let mut state = internal_state_ref.lock().unwrap();
-            state.transcribe_running = true;
-        }
 
         info!("Begin recording...");
 
         if let Err(err) = audio_manager.play_stream() {
             error!("unable to play stream: {}", err);
-            let internal_state_ref = state_syncer_ref.get::<InternalState>("internal_state");
-            let mut state = internal_state_ref.lock().unwrap();
-            state.transcribe_running = false;
+            clear_transcription_run_if_current(&state_syncer_ref, &run_id);
             return;
         }
 
@@ -313,7 +347,7 @@ fn start_transcribe<'a>(
                 internal_state_ref.audio_step_size, internal_state_ref.transcribe_running
             );
 
-            if !internal_state_ref.transcribe_running {
+            if !internal_state_ref.is_transcription_run_active(&run_id) {
                 info!("stopping transcription");
                 break;
             }
@@ -322,6 +356,11 @@ fn start_transcribe<'a>(
             std::thread::sleep(std::time::Duration::from_millis(
                 internal_state_ref.audio_step_size,
             ));
+
+            if !transcription_run_is_active(&state_syncer_ref, &run_id) {
+                info!("stopping transcription");
+                break;
+            }
 
             debug!("copying buffer");
             if let Ok(mut guard) = writer.lock() {
@@ -353,6 +392,11 @@ fn start_transcribe<'a>(
 
                 let current_segment = segment_accumulator.replace_items(segments);
 
+                if !transcription_run_is_active(&state_syncer_ref, &run_id) {
+                    info!("stopping transcription");
+                    break;
+                }
+
                 app_handle_ref
                     .emit("segment_update", current_segment)
                     .expect("failed to emit event");
@@ -372,11 +416,18 @@ fn start_transcribe<'a>(
                 samples.clear();
 
                 segment_start_time = SystemTime::now();
+                if !transcription_run_is_active(&state_syncer_ref, &run_id) {
+                    info!("stopping transcription");
+                    break;
+                }
+
                 app_handle_ref
                     .emit("segment_update", next_segment)
                     .expect("failed to emit event");
             }
         }
+
+        clear_transcription_run_if_current(&state_syncer_ref, &run_id);
     });
 
     info!("done with transcribe command");
@@ -500,6 +551,8 @@ pub fn run() {
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");
             internal_state.version = app.package_info().version.to_string();
             internal_state.name = app.package_info().name.to_string();
+            internal_state.stop_transcription();
+            state_syncer.update("internal_state", internal_state.clone(), true);
 
             {
                 let app_state_ref = state_syncer.get::<types::AppState>("app_state");
@@ -654,4 +707,47 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starting_a_new_run_after_stop_invalidates_the_old_run() {
+        let mut state = InternalState::default();
+
+        assert!(state.claim_transcription_run("old".to_owned()));
+        assert!(state.is_transcription_run_active("old"));
+
+        state.stop_transcription();
+        assert!(!state.is_transcription_run_active("old"));
+
+        assert!(state.claim_transcription_run("new".to_owned()));
+        assert!(!state.is_transcription_run_active("old"));
+        assert!(state.is_transcription_run_active("new"));
+    }
+
+    #[test]
+    fn duplicate_run_claim_is_rejected_until_current_run_stops() {
+        let mut state = InternalState::default();
+
+        assert!(state.claim_transcription_run("first".to_owned()));
+        assert!(!state.claim_transcription_run("second".to_owned()));
+        assert!(state.is_transcription_run_active("first"));
+        assert!(!state.is_transcription_run_active("second"));
+    }
+
+    #[test]
+    fn clearing_stale_run_does_not_stop_newer_run() {
+        let mut state = InternalState::default();
+
+        assert!(state.claim_transcription_run("old".to_owned()));
+        state.stop_transcription();
+        assert!(state.claim_transcription_run("new".to_owned()));
+
+        state.clear_transcription_run_if_current("old");
+
+        assert!(state.is_transcription_run_active("new"));
+    }
 }

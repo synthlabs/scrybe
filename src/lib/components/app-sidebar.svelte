@@ -50,7 +50,11 @@
     </Sidebar.Content>
     <Sidebar.Footer class="p-3">
         <div class="flex items-center justify-between gap-2">
-            <LanguageSwitcher controller={language} labels={localeLabels} />
+            <LanguageSwitcher
+                controller={language}
+                labels={localeLabels}
+                accentColor="hsl(var(--c-scrybe))"
+            />
             <a
                 href="/about"
                 aria-label={msgs.sidebar_about()}

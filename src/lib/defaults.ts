@@ -47,6 +47,7 @@ export let DefaultAppState: AppState = {
 
 export let DefaultInternalState: InternalState = {
     transcribe_running: false,
+    active_transcription_run_id: null,
     audio_step_size: 500,
     version: "",
     name: "",

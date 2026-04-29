@@ -79,14 +79,14 @@
             "h-8 cursor-pointer gap-1.5 transition-colors",
             listening
                 ? "bg-scrybe hover:bg-scrybe-press text-primary-foreground"
-                : "text-scrybe hover:bg-scrybe-soft",
+                : "hover:bg-scrybe-soft hover:text-scrybe",
         )}
     >
         {#if listening}
-            <Pause class="size-3.5" />
+            <Pause class="text-primary-foreground size-3.5 " />
             {msgs.home_toolbar_pause()}
         {:else}
-            <Play class="size-3.5" />
+            <Play class="text-scrybe size-3.5" />
             {msgs.home_toolbar_resume()}
         {/if}
     </Button>
