@@ -36,8 +36,7 @@
     $effect(() => {
         // depend on total character count so partial-segment growth also scrolls
         const _ = session.segments.reduce(
-            (a, s) =>
-                a + s.items.reduce((b, i) => b + i.text.length, 0),
+            (a, s) => a + s.items.reduce((b, i) => b + i.text.length, 0),
             0,
         );
         if (container) {
@@ -51,19 +50,16 @@
 
 <div
     bind:this={container}
-    class="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-3"
+    class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-3"
 >
     {#each groups as group (group.minute)}
         <h3
-            class="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70 first:mt-0"
+            class="text-muted-foreground/70 mt-2 text-[10px] font-bold tracking-[0.08em] uppercase first:mt-0"
         >
             {msgs.home_minute_label({ minute: pad2(group.minute) })}
         </h3>
         {#each group.segments as seg (seg.id)}
-            <SegmentCard
-                segment={seg}
-                partial={seg.id === partial_id}
-            />
+            <SegmentCard segment={seg} partial={seg.id === partial_id} />
         {/each}
     {/each}
 </div>

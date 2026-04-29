@@ -74,7 +74,7 @@
 
 <Sidebar.Provider style="--sidebar-width: 200px">
     <AppSidebar {navMain} />
-    <Sidebar.Inset>
+    <Sidebar.Inset class="h-svh min-h-0 overflow-hidden">
         <header
             class="bg-background sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b pr-3 pl-2"
         >
@@ -95,7 +95,7 @@
             <StatusPill />
             <PlayPauseButton />
         </header>
-        <div class="flex min-h-0 grow flex-col">
+        <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
             {@render children?.()}
         </div>
     </Sidebar.Inset>
