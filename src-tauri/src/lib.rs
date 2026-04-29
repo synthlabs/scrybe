@@ -3,6 +3,7 @@ use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
     devices::AudioDevice,
+    segments::SegmentAccumulator,
     whisper::WhisperManager,
 };
 use serde::{Deserialize, Serialize};
@@ -13,9 +14,9 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
+use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_specta::collect_commands;
 use tauri_svelte_synced_store::{StateSyncer, StateSyncerConfig};
 use tracing::{debug, error, info};
@@ -288,11 +289,14 @@ fn start_transcribe<'a>(
             return;
         }
 
-        let mut current_segment = scrybe_core::whisper::WhisperSegment {
-            id: Uuid::new_v4().to_string(),
-            index: 0,
-            items: vec![],
-        };
+        let mut segment_accumulator = SegmentAccumulator::new(
+            Uuid::new_v4().to_string(),
+            Duration::from_secs(
+                state_syncer_ref
+                    .snapshot::<types::AppState>("app_state")
+                    .audio_segment_size,
+            ),
+        );
         let mut segment_start_time = SystemTime::now();
         let mut samples: Vec<f32> = Vec::new();
         loop {
@@ -347,10 +351,10 @@ fn start_transcribe<'a>(
                         }
                     };
 
-                current_segment.items = segments;
+                let current_segment = segment_accumulator.replace_items(segments);
 
                 app_handle_ref
-                    .emit("segment_update", current_segment.clone())
+                    .emit("segment_update", current_segment)
                     .expect("failed to emit event");
             }
             debug!(
@@ -358,20 +362,18 @@ fn start_transcribe<'a>(
                 segment_start_time.elapsed().unwrap()
             );
 
-            if segment_start_time.elapsed().unwrap()
-                > Duration::from_secs(app_state_ref.audio_segment_size)
-            {
+            segment_accumulator
+                .set_segment_size(Duration::from_secs(app_state_ref.audio_segment_size));
+            if let Some(next_segment) = segment_accumulator.rollover_if_elapsed(
+                segment_start_time.elapsed().unwrap(),
+                Uuid::new_v4().to_string(),
+            ) {
                 debug!("trimming samples, total {}", samples.len(),);
                 samples.clear();
 
                 segment_start_time = SystemTime::now();
-                current_segment = scrybe_core::whisper::WhisperSegment {
-                    id: Uuid::new_v4().to_string(),
-                    index: current_segment.index + 1,
-                    items: vec![],
-                };
                 app_handle_ref
-                    .emit("segment_update", current_segment.clone())
+                    .emit("segment_update", next_segment)
                     .expect("failed to emit event");
             }
         }

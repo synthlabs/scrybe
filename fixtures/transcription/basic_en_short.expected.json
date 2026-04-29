@@ -1,0 +1,19 @@
+{
+    "params": {
+        "toggles": {
+            "translate": false,
+            "suppress_blanks": true,
+            "print_special": false,
+            "print_progress": false,
+            "token_timestamps": true,
+            "single_segment": true,
+            "split_on_word": false,
+            "tdrz_enable": false
+        },
+        "language": "en"
+    },
+    "normalized_text": "scrybe validates local captions",
+    "max_word_error_rate": 0.35,
+    "min_segments": 1,
+    "max_segments": null
+}

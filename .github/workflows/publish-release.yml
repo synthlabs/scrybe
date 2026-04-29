@@ -88,7 +88,7 @@ jobs:
         id: cuda-toolkit
         if: "!startsWith(matrix.platform, 'macos')"
         with:
-          cuda: '13.0.2'
+          cuda: '13.2.1'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{matrix.os}}.txt'
 

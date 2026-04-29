@@ -6,7 +6,13 @@ use tracing::{debug, error, info};
 
 use crate::devices::AudioDevice;
 
+pub const WHISPER_SAMPLE_RATE: u32 = 16_000;
+
 pub fn avg_threshold(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+
     let sum: f32 = samples.iter().map(|&x| x.abs()).sum();
     sum / samples.len() as f32
 }
@@ -26,6 +32,29 @@ pub fn trim_silence(samples: &mut Vec<f32>, threshold: f32) {
         // Handle all-silent or empty cases
         _ => samples.clear(),
     }
+}
+
+pub fn mono_from_interleaved(samples: &[f32], channels: u16) -> Vec<f32> {
+    if channels <= 1 {
+        return samples.to_vec();
+    }
+
+    samples
+        .chunks(channels as usize)
+        .map(|frame| frame.iter().sum::<f32>() / frame.len() as f32)
+        .collect()
+}
+
+pub fn resample_audio(data: &[f32], from_rate: u32, sample_rate: u32, channels: u16) -> Vec<f32> {
+    use samplerate::{convert, ConverterType};
+    convert(
+        from_rate as _,
+        sample_rate as _,
+        channels as _,
+        ConverterType::SincBestQuality,
+        data,
+    )
+    .unwrap_or_default()
 }
 
 pub fn get_default_input_device() -> Result<Device, anyhow::Error> {
@@ -232,11 +261,12 @@ impl AudioManager {
 
         // Resample the stereo audio to the desired sample rate
         let mut resampled_audio: Vec<f32> =
-            Self::audio_resample(&samples, sample_rate, 16000, channels);
+            resample_audio(&samples, sample_rate, WHISPER_SAMPLE_RATE, channels);
 
         if channels > 1 {
-            // todo!("support resampling to mono audio");
-            resampled_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio).unwrap();
+            let mut mono_audio = vec![0.0; resampled_audio.len() / channels as usize];
+            whisper_rs::convert_stereo_to_mono_audio(&resampled_audio, &mut mono_audio).unwrap();
+            resampled_audio = mono_audio;
         }
 
         if let Ok(mut guard) = buffer.lock() {
@@ -260,16 +290,39 @@ impl AudioManager {
             sample_format: Self::_sample_format(config.sample_format()),
         }
     }
+}
 
-    fn audio_resample(data: &[f32], from_rate: u32, sample_rate: u32, channels: u16) -> Vec<f32> {
-        use samplerate::{convert, ConverterType};
-        convert(
-            from_rate as _,
-            sample_rate as _,
-            channels as _,
-            ConverterType::SincBestQuality,
-            data,
-        )
-        .unwrap_or_default()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn avg_threshold_is_zero_for_empty_samples() {
+        assert_eq!(avg_threshold(&[]), 0.0);
+    }
+
+    #[test]
+    fn trims_leading_and_trailing_silence() {
+        let mut samples = vec![0.0, 0.001, 0.02, 0.4, 0.009, 0.0];
+
+        trim_silence(&mut samples, 0.01);
+
+        assert_eq!(samples, vec![0.02, 0.4]);
+    }
+
+    #[test]
+    fn clears_all_silent_samples() {
+        let mut samples = vec![0.0, 0.001, 0.009];
+
+        trim_silence(&mut samples, 0.01);
+
+        assert!(samples.is_empty());
+    }
+
+    #[test]
+    fn averages_interleaved_channels_to_mono() {
+        let samples = mono_from_interleaved(&[1.0, -1.0, 0.25, 0.75], 2);
+
+        assert_eq!(samples, vec![0.0, 0.5]);
     }
 }

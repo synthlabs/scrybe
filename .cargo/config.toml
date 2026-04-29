@@ -1,2 +1,3 @@
 [env]
 CMAKE_OSX_DEPLOYMENT_TARGET = "13.3"
+CMAKE_CUDA_FLAGS = "-Xcompiler=/Zc:preprocessor"

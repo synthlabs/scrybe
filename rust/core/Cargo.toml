@@ -16,8 +16,9 @@ hound = "3.5.1"
 # samplerate = "0.2.4"
 samplerate = { git = "https://github.com/xjerod/rust-samplerate.git" }
 clap = { version = "4.5.23", features = ["derive", "string"] }
-whisper-rs = { version = "=0.15.1"}
+whisper-rs = { version = "=0.16.0"}
 serde = {version = "1.0.216", features = ["derive"]}
+serde_json = "1"
 specta = "=2.0.0-rc.22"
 tracing = "0.1.41"
 [dependencies.tauri-specta]
@@ -40,3 +41,7 @@ path = "cmds/iterate_devices.rs"
 [[bin]]
 name = "iterate_devices_w_device_mngr"
 path = "cmds/iterate_devices_w_device_mngr.rs"
+
+[[bin]]
+name = "transcribe_fixture"
+path = "cmds/transcribe_fixture.rs"

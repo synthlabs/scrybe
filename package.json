@@ -9,7 +9,8 @@
         "dev": "vite dev",
         "preview": "vite preview",
         "tauri": "tauri",
-        "test:i18n": "node --test scripts/i18n-detect.test.mjs"
+        "test:i18n": "node --test scripts/i18n-detect.test.mjs",
+        "validate:transcription": "node scripts/validate-transcription.mjs"
     },
     "devDependencies": {
         "@inlang/paraglide-js": "^2.16.1",
