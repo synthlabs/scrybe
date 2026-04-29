@@ -13,6 +13,7 @@
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
+    import { cn } from "$utils/cn";
 
     let internal_state = new SyncedState<InternalState>(
         "internal_state",
@@ -67,14 +68,19 @@
 </script>
 
 <div
-    class="flex h-12 shrink-0 items-center gap-1 border-t border-border bg-card/40 px-3"
+    class="border-border bg-card/40 flex h-12 shrink-0 items-center gap-1 border-t px-3"
 >
     <Button
         variant="ghost"
         size="sm"
         onclick={toggle}
         disabled={busy}
-        class="h-8 gap-1.5"
+        class={cn(
+            "h-8 cursor-pointer gap-1.5 transition-colors",
+            listening
+                ? "bg-scrybe hover:bg-scrybe-press text-primary-foreground"
+                : "text-scrybe hover:bg-scrybe-soft",
+        )}
     >
         {#if listening}
             <Pause class="size-3.5" />
