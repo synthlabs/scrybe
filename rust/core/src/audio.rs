@@ -264,9 +264,7 @@ impl AudioManager {
             resample_audio(&samples, sample_rate, WHISPER_SAMPLE_RATE, channels);
 
         if channels > 1 {
-            let mut mono_audio = vec![0.0; resampled_audio.len() / channels as usize];
-            whisper_rs::convert_stereo_to_mono_audio(&resampled_audio, &mut mono_audio).unwrap();
-            resampled_audio = mono_audio;
+            resampled_audio = mono_from_interleaved(&resampled_audio, channels);
         }
 
         if let Ok(mut guard) = buffer.lock() {

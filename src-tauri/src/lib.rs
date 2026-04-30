@@ -3,7 +3,7 @@ use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
     devices::AudioDevice,
-    segments::SegmentAccumulator,
+    segments::{SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate},
     whisper::WhisperManager,
 };
 use serde::{Deserialize, Serialize};
@@ -331,6 +331,7 @@ fn start_transcribe<'a>(
                     .audio_segment_size,
             ),
         );
+        let mut segment_emission_gate = SegmentEmissionGate::new();
         let mut segment_start_time = SystemTime::now();
         let mut samples: Vec<f32> = Vec::new();
         loop {
@@ -397,9 +398,16 @@ fn start_transcribe<'a>(
                     break;
                 }
 
-                app_handle_ref
-                    .emit("segment_update", current_segment)
-                    .expect("failed to emit event");
+                match segment_emission_gate.evaluate(current_segment) {
+                    SegmentEmissionDecision::Emit(segment) => {
+                        app_handle_ref
+                            .emit("segment_update", segment)
+                            .expect("failed to emit event");
+                    }
+                    SegmentEmissionDecision::Suppress(reason) => {
+                        debug!("suppressing segment update: {:?}", reason);
+                    }
+                }
             }
             debug!(
                 "{:#?} elapsed since start",
@@ -422,8 +430,9 @@ fn start_transcribe<'a>(
                 }
 
                 app_handle_ref
-                    .emit("segment_update", next_segment)
+                    .emit("segment_update", next_segment.clone())
                     .expect("failed to emit event");
+                segment_emission_gate.reset_with_emitted(&next_segment);
             }
         }
 

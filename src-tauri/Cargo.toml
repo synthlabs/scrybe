@@ -34,6 +34,7 @@ tokio-stream = "0.1.17"
 warp = "0.3.7"
 warp-embed = "0.5.0"
 [dependencies.scrybe_core]
+features = ["whisper-runtime"]
 path = "../rust/core"
 [dependencies.serde]
 features = ["derive"]
@@ -61,6 +62,7 @@ name = "gen_bindings"
 required-features = ["gen_bindings"]
 
 [features]
+cuda = ["scrybe_core/cuda"]
 gen_bindings = []
 
 [lib]
@@ -77,11 +79,6 @@ name = "scrybe"
 version = "0.2.10"
 
 [target]
-[target."cfg(not(target_os = \"macos\"))"]
-[target."cfg(not(target_os = \"macos\"))".dependencies]
-[target."cfg(not(target_os = \"macos\"))".dependencies.scrybe_core]
-features = ["cuda"]
-path = "../rust/core"
 [target."cfg(target_os = \"macos\")"]
 [target."cfg(target_os = \"macos\")".dependencies]
 objc2 = "0.6.4"

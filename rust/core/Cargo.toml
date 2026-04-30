@@ -16,7 +16,7 @@ hound = "3.5.1"
 # samplerate = "0.2.4"
 samplerate = { git = "https://github.com/xjerod/rust-samplerate.git" }
 clap = { version = "4.5.23", features = ["derive", "string"] }
-whisper-rs = { version = "=0.16.0"}
+whisper-rs = { version = "=0.16.0", optional = true }
 serde = {version = "1.0.216", features = ["derive"]}
 serde_json = "1"
 specta = "=2.0.0-rc.22"
@@ -27,12 +27,13 @@ version = "=2.0.0-rc.21"
 
 [features]
 default = []
-coreml = ["whisper-rs/coreml"]
-cuda = ["whisper-rs/cuda"]
-openblas = ["whisper-rs/openblas"]
-metal = ["whisper-rs/metal"]
-rocm = ["whisper-rs/hipblas"]
-vulkan = ["whisper-rs/vulkan"]
+whisper-runtime = ["dep:whisper-rs"]
+coreml = ["whisper-runtime", "whisper-rs/coreml"]
+cuda = ["whisper-runtime", "whisper-rs/cuda"]
+openblas = ["whisper-runtime", "whisper-rs/openblas"]
+metal = ["whisper-runtime", "whisper-rs/metal"]
+rocm = ["whisper-runtime", "whisper-rs/hipblas"]
+vulkan = ["whisper-runtime", "whisper-rs/vulkan"]
 
 [[bin]]
 name = "iterate_devices"
@@ -45,3 +46,4 @@ path = "cmds/iterate_devices_w_device_mngr.rs"
 [[bin]]
 name = "transcribe_fixture"
 path = "cmds/transcribe_fixture.rs"
+required-features = ["whisper-runtime"]

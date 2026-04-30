@@ -1,6 +1,9 @@
+#[cfg(feature = "whisper-runtime")]
 use std::time::SystemTime;
 
+#[cfg(feature = "whisper-runtime")]
 use tracing::debug;
+#[cfg(feature = "whisper-runtime")]
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
@@ -64,12 +67,14 @@ impl Default for WhisperToggles {
     }
 }
 
+#[cfg(feature = "whisper-runtime")]
 pub struct WhisperManager {
     ctx: WhisperContext,
     last_prompt: String,
     segment_index: u64,
 }
 
+#[cfg(feature = "whisper-runtime")]
 impl WhisperManager {
     pub fn new(model_path: &str, use_gpu: bool) -> Result<Self, anyhow::Error> {
         let mut params = WhisperContextParameters::default();
