@@ -3,13 +3,16 @@ use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
     devices::AudioDevice,
-    segments::{SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate},
+    segments::{
+        GateTelemetryState, SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate,
+    },
     whisper::WhisperManager,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(debug_assertions)]
 use specta_typescript::Typescript;
 use std::{
+    collections::HashMap,
     env,
     sync::{Arc, Mutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -95,6 +98,10 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<scrybe_core::whisper::WhisperParams>()
         .typ::<scrybe_core::whisper::WhisperToggles>()
         .typ::<scrybe_core::whisper::WhisperSegment>()
+        .typ::<scrybe_core::segments::GateTelemetryState>()
+        .typ::<scrybe_core::segments::GateEvaluationTelemetryEntry>()
+        .typ::<scrybe_core::segments::SegmentEmissionDecisionKind>()
+        .typ::<scrybe_core::segments::SegmentSuppressionReason>()
         // Then register them (separated by a comma)
         .commands(collect_commands![
             start_transcribe,
@@ -119,6 +126,7 @@ fn emit_state(
     match name.as_str() {
         "internal_state" => state_syncer.emit::<InternalState>("internal_state"),
         "app_state" => state_syncer.emit::<types::AppState>("app_state"),
+        "gate_telemetry" => state_syncer.emit::<GateTelemetryState>("gate_telemetry"),
         _ => return false,
     };
 
@@ -293,6 +301,7 @@ fn start_transcribe<'a>(
             return Err(());
         }
     }
+    state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
 
     let app_handle_ref = app.clone();
     let state_syncer_ref = state_syncer.inner().clone();
@@ -398,7 +407,14 @@ fn start_transcribe<'a>(
                     break;
                 }
 
-                match segment_emission_gate.evaluate(current_segment) {
+                let evaluation = segment_emission_gate.evaluate(current_segment);
+                {
+                    let telemetry_ref = state_syncer_ref.get::<GateTelemetryState>("gate_telemetry");
+                    let mut telemetry = telemetry_ref.lock().unwrap();
+                    telemetry.push(evaluation.telemetry);
+                }
+
+                match evaluation.decision {
                     SegmentEmissionDecision::Emit(segment) => {
                         app_handle_ref
                             .emit("segment_update", segment)
@@ -551,10 +567,12 @@ pub fn run() {
             let state_syncer = StateSyncer::new(
                 StateSyncerConfig {
                     default_persist: true,
+                    persist_keys: HashMap::from([("gate_telemetry".to_owned(), false)]),
                     ..Default::default()
                 },
                 app.handle().clone(),
             );
+            state_syncer.set("gate_telemetry", GateTelemetryState::default());
             let _ = state_syncer.load::<types::AppState>("app_state");
 
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");
