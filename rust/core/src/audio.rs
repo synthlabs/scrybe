@@ -69,6 +69,16 @@ pub fn get_default_output_device() -> Result<Device, anyhow::Error> {
         .ok_or_else(|| anyhow!("no default output device available"))
 }
 
+fn is_default_audio_device_id(id: &str) -> bool {
+    id.is_empty()
+}
+
+fn get_default_audio_device(host: &Host) -> Result<Device, anyhow::Error> {
+    host.default_input_device()
+        .or_else(|| host.default_output_device())
+        .ok_or_else(|| anyhow!("no default input or output device available"))
+}
+
 pub fn get_devices() -> Result<Vec<AudioDevice>, anyhow::Error> {
     let host = cpal::default_host();
     get_devices_with_host(host)
@@ -110,10 +120,8 @@ pub fn get_raw_device(id: String) -> Result<Device, anyhow::Error> {
 }
 
 pub fn get_raw_device_with_host(id: String, host: Host) -> Result<Device, anyhow::Error> {
-    if id.is_empty() {
-        return host
-            .default_input_device()
-            .ok_or_else(|| anyhow!("no default input device available"));
+    if is_default_audio_device_id(&id) {
+        return get_default_audio_device(&host);
     }
 
     let raw_devices = host.devices()?;
@@ -322,5 +330,11 @@ mod tests {
         let samples = mono_from_interleaved(&[1.0, -1.0, 0.25, 0.75], 2);
 
         assert_eq!(samples, vec![0.0, 0.5]);
+    }
+
+    #[test]
+    fn empty_audio_device_id_selects_default_device() {
+        assert!(is_default_audio_device_id(""));
+        assert!(!is_default_audio_device_id("wasapi:{device-id}"));
     }
 }

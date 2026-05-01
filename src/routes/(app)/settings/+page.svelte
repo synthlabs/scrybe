@@ -194,11 +194,19 @@
             ?.name ?? msgs.audio_device_default(),
     );
 
+    const defaultAudioDevice = (): AudioDevice => ({
+        id: "",
+        name: msgs.audio_device_default(),
+    });
+
     const onDeviceChange = (device_id: string) => {
-        const next = audio_devices.find((d) => d.id === device_id) ?? {
-            id: device_id,
-            name: msgs.audio_device_default(),
-        };
+        const next =
+            device_id === ""
+                ? defaultAudioDevice()
+                : (audio_devices.find((d) => d.id === device_id) ?? {
+                      id: device_id,
+                      name: msgs.audio_device_default(),
+                  });
         app_state.obj.current_device = next;
         app_state.sync();
     };
@@ -448,6 +456,9 @@
                         {device_trigger}
                     </Select.Trigger>
                     <Select.Content>
+                        <Select.Item value="" label={msgs.audio_device_default()}>
+                            {msgs.audio_device_default()}
+                        </Select.Item>
                         {#each audio_devices as device (device.id)}
                             <Select.Item value={device.id} label={device.name}>
                                 {device.name}
