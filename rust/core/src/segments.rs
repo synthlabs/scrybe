@@ -222,7 +222,11 @@ impl SegmentEmissionGate {
         telemetry.distance_duration = drastic_change.distance_duration;
 
         if drastic_change.is_drastic {
-            if self.pending_matches(candidate.id.as_str(), normalized_text.as_str()) {
+            if self.pending_confirms(
+                candidate.id.as_str(),
+                normalized_text.as_str(),
+                &candidate_words,
+            ) {
                 return self.emit(candidate, normalized_text, telemetry);
             }
 
@@ -254,11 +258,25 @@ impl SegmentEmissionGate {
         telemetry.emit(candidate)
     }
 
-    fn pending_matches(&self, segment_id: &str, normalized_text: &str) -> bool {
+    fn pending_confirms(
+        &self,
+        segment_id: &str,
+        normalized_text: &str,
+        candidate_words: &[&str],
+    ) -> bool {
         self.pending
             .as_ref()
             .map(|pending| {
-                pending.segment_id == segment_id && pending.normalized_text == normalized_text
+                if pending.segment_id != segment_id {
+                    return false;
+                }
+
+                if pending.normalized_text == normalized_text {
+                    return true;
+                }
+
+                let pending_words = words(&pending.normalized_text);
+                is_prefix_growth(&pending_words, candidate_words)
             })
             .unwrap_or(false)
     }
@@ -618,6 +636,44 @@ mod tests {
         assert_emits(
             gate.evaluate(segment("segment-0", "one two three four")),
             "one two three four",
+        );
+    }
+
+    #[test]
+    fn emission_gate_emits_drastic_rewrite_when_next_update_extends_pending_text() {
+        let mut gate = SegmentEmissionGate::new();
+
+        assert_emits(
+            gate.evaluate(segment("segment-0", "alpha beta gamma delta")),
+            "alpha beta gamma delta",
+        );
+
+        assert_suppresses(
+            gate.evaluate(segment("segment-0", "one two three four")),
+            SegmentSuppressionReason::PendingDrasticChange,
+        );
+        assert_emits(
+            gate.evaluate(segment("segment-0", "one two three four five")),
+            "one two three four five",
+        );
+    }
+
+    #[test]
+    fn emission_gate_keeps_holding_divergent_drastic_rewrites() {
+        let mut gate = SegmentEmissionGate::new();
+
+        assert_emits(
+            gate.evaluate(segment("segment-0", "alpha beta gamma delta")),
+            "alpha beta gamma delta",
+        );
+
+        assert_suppresses(
+            gate.evaluate(segment("segment-0", "one two three four")),
+            SegmentSuppressionReason::PendingDrasticChange,
+        );
+        assert_suppresses(
+            gate.evaluate(segment("segment-0", "nine ten eleven twelve")),
+            SegmentSuppressionReason::PendingDrasticChange,
         );
     }
 
