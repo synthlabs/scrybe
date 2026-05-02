@@ -77,6 +77,13 @@ pub struct WhisperManager {
 #[cfg(feature = "whisper-runtime")]
 impl WhisperManager {
     pub fn new(model_path: &str, use_gpu: bool) -> Result<Self, anyhow::Error> {
+        whisper_rs::install_logging_hooks();
+        debug!(
+            "whisper.cpp system info: {}",
+            whisper_rs::print_system_info()
+        );
+        debug!("creating whisper context with use_gpu={}", use_gpu);
+
         let mut params = WhisperContextParameters::default();
         params.use_gpu = use_gpu;
 

@@ -27,7 +27,7 @@ version = "=2.0.0-rc.21"
 
 [features]
 default = []
-whisper-runtime = ["dep:whisper-rs"]
+whisper-runtime = ["dep:whisper-rs", "whisper-rs/tracing_backend"]
 coreml = ["whisper-runtime", "whisper-rs/coreml"]
 cuda = ["whisper-runtime", "whisper-rs/cuda"]
 openblas = ["whisper-runtime", "whisper-rs/openblas"]
