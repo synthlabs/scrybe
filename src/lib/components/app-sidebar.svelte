@@ -1,9 +1,6 @@
 <script lang="ts">
     import NavMain from "$lib/components/nav-main.svelte";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultInternalState } from "$lib/defaults";
-    import type { InternalState } from "$lib/bindings";
     import {
         LanguageController,
         LanguageSwitcher,
@@ -31,11 +28,6 @@
         variant,
         ...restProps
     }: Props = $props();
-
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
 
     const language = new LanguageController(paraglideRuntime);
     const localeLabels: Record<string, string> = {

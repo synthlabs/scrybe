@@ -1,25 +1,21 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { SyncedState } from "tauri-svelte-synced-store";
     import {
         session,
         fmt_duration,
         fmt_started,
     } from "$lib/stores/session.svelte";
-    import { DefaultGateTelemetryState } from "$lib/defaults";
+    import { audio_metrics, gate_telemetry } from "$lib/stores/state.svelte";
     import type {
         GateEvaluationTelemetryEntry,
-        GateTelemetryState,
         SegmentSuppressionReason,
     } from "$lib/bindings";
     import { m as msgs } from "$lib/paraglide/messages";
 
     let now = $state(Date.now());
     let interval: ReturnType<typeof setInterval> | null = null;
-    let gate_telemetry = new SyncedState<GateTelemetryState>(
-        "gate_telemetry",
-        DefaultGateTelemetryState,
-    );
+    let gate_table_container: HTMLDivElement | null = $state(null);
+    let gate_visible_count = $state(10);
 
     onMount(() => {
         interval = setInterval(() => {
@@ -28,6 +24,19 @@
     });
     onDestroy(() => {
         if (interval) clearInterval(interval);
+    });
+
+    $effect(() => {
+        const container = gate_table_container;
+        if (!container) return;
+
+        sync_gate_visible_count();
+        const resize_observer = new ResizeObserver(sync_gate_visible_count);
+        resize_observer.observe(container);
+
+        return () => {
+            resize_observer.disconnect();
+        };
     });
 
     let elapsed = $derived(
@@ -57,12 +66,79 @@
         },
     ]);
 
+    let has_inference = $derived(
+        audio_metrics.obj.inference_sample_count > 0,
+    );
+
+    let audio_stats = $derived([
+        {
+            label: msgs.home_rail_inference(),
+            value: format_metric_ms(
+                audio_metrics.obj.last_inference_ms,
+                !has_inference,
+            ),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_rms(),
+            value: format_rms(audio_metrics.obj.input_rms),
+            mono: true,
+        },
+    ]);
+
+    let inference_distribution_stats = $derived([
+        {
+            label: msgs.home_rail_inference_deviation(),
+            value: format_metric_ms(
+                audio_metrics.obj.inference_std_dev_ms,
+                !has_inference,
+            ),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_inference_p90(),
+            value: format_metric_ms(
+                audio_metrics.obj.inference_p90_ms,
+                !has_inference,
+            ),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_inference_p95(),
+            value: format_metric_ms(
+                audio_metrics.obj.inference_p95_ms,
+                !has_inference,
+            ),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_inference_p99(),
+            value: format_metric_ms(
+                audio_metrics.obj.inference_p99_ms,
+                !has_inference,
+            ),
+            mono: true,
+        },
+    ]);
+
     let latest_gate_entries = $derived.by(() =>
-        gate_telemetry.obj.entries.slice(-10).reverse(),
+        gate_visible_count <= 0
+            ? []
+            : gate_telemetry.obj.entries.slice(-gate_visible_count).reverse(),
     );
 
     function format_ms(ms: number) {
         return ms < 10 ? ms.toFixed(1) : ms.toFixed(0);
+    }
+
+    function format_metric_ms(ms: number, empty = false) {
+        if (empty || !Number.isFinite(ms)) return "-";
+        return `${format_ms(ms)} ms`;
+    }
+
+    function format_rms(value: number) {
+        if (!Number.isFinite(value) || value <= 0) return "0.000";
+        return value < 1 ? value.toFixed(3) : value.toFixed(2);
     }
 
     function format_distance(entry: GateEvaluationTelemetryEntry) {
@@ -87,13 +163,28 @@
                 return msgs.home_rail_gate_suppress();
         }
     }
+
+    function sync_gate_visible_count() {
+        if (!gate_table_container) return;
+
+        const header_height = 26;
+        const row_height = 29;
+        const available_rows_height = Math.max(
+            0,
+            gate_table_container.clientHeight - header_height,
+        );
+        gate_visible_count = Math.max(
+            0,
+            Math.floor(available_rows_height / row_height),
+        );
+    }
 </script>
 
 <aside
-    class="flex w-[360px] shrink-0 flex-col border-l border-border bg-card/40"
+    class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border bg-card/40"
 >
-    <div class="min-h-0 overflow-y-auto">
-        <section>
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <section class="shrink-0">
             <header class="px-4 pb-2 pt-4">
                 <h2
                     class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
@@ -101,12 +192,12 @@
                     {msgs.home_rail_session()}
                 </h2>
             </header>
-            <dl class="flex flex-col gap-2 px-4 pb-4 text-[12px]">
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
                 {#each stats as stat (stat.label)}
-                    <div class="flex items-baseline justify-between gap-2">
+                    <div class="min-w-0">
                         <dt class="text-muted-foreground">{stat.label}</dt>
                         <dd
-                            class="text-foreground {stat.mono
+                            class="truncate text-foreground {stat.mono
                                 ? 'font-mono tabular-nums'
                                 : ''}"
                         >
@@ -117,7 +208,45 @@
             </dl>
         </section>
 
-        <section class="border-t border-border/70">
+        <section class="shrink-0 border-t border-border/70">
+            <header class="px-4 pb-2 pt-4">
+                <h2
+                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                >
+                    {msgs.home_rail_audio_metrics()}
+                </h2>
+            </header>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
+                {#each audio_stats as stat (stat.label)}
+                    <div class="min-w-0">
+                        <dt class="text-muted-foreground">{stat.label}</dt>
+                        <dd
+                            class="truncate text-foreground {stat.mono
+                                ? 'font-mono tabular-nums'
+                                : ''}"
+                        >
+                            {stat.value}
+                        </dd>
+                    </div>
+                {/each}
+            </dl>
+            <dl class="grid grid-cols-4 gap-x-2 px-4 pb-4 text-[11px]">
+                {#each inference_distribution_stats as stat (stat.label)}
+                    <div class="min-w-0">
+                        <dt class="truncate text-muted-foreground">{stat.label}</dt>
+                        <dd
+                            class="truncate text-foreground {stat.mono
+                                ? 'font-mono tabular-nums'
+                                : ''}"
+                        >
+                            {stat.value}
+                        </dd>
+                    </div>
+                {/each}
+            </dl>
+        </section>
+
+        <section class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border/70">
             <header class="flex items-center justify-between px-4 pb-2 pt-4">
                 <h2
                     class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
@@ -129,12 +258,15 @@
                 </span>
             </header>
 
-            {#if latest_gate_entries.length === 0}
+            {#if gate_telemetry.obj.entries.length === 0}
                 <p class="px-4 pb-4 text-[12px] text-muted-foreground">
                     {msgs.home_rail_gate_empty()}
                 </p>
             {:else}
-                <div class="px-3 pb-4">
+                <div
+                    bind:this={gate_table_container}
+                    class="min-h-0 flex-1 overflow-hidden px-3 pb-4"
+                >
                     <table class="w-full table-fixed text-left text-[11px]">
                         <thead class="text-[10px] text-muted-foreground">
                             <tr>

@@ -3,6 +3,7 @@ use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
     devices::AudioDevice,
+    metrics::{rms_level, AudioMetricsState, InferenceTimingStats},
     segments::{
         GateTelemetryState, SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate,
     },
@@ -15,7 +16,7 @@ use std::{
     collections::HashMap,
     env,
     sync::{Arc, Mutex},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
@@ -98,6 +99,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<scrybe_core::whisper::WhisperParams>()
         .typ::<scrybe_core::whisper::WhisperToggles>()
         .typ::<scrybe_core::whisper::WhisperSegment>()
+        .typ::<AudioMetricsState>()
         .typ::<scrybe_core::segments::GateTelemetryState>()
         .typ::<scrybe_core::segments::GateEvaluationTelemetryEntry>()
         .typ::<scrybe_core::segments::SegmentEmissionDecisionKind>()
@@ -127,6 +129,7 @@ fn emit_state(
         "internal_state" => state_syncer.emit::<InternalState>("internal_state"),
         "app_state" => state_syncer.emit::<types::AppState>("app_state"),
         "gate_telemetry" => state_syncer.emit::<GateTelemetryState>("gate_telemetry"),
+        "audio_metrics" => state_syncer.emit::<AudioMetricsState>("audio_metrics"),
         _ => return false,
     };
 
@@ -302,6 +305,7 @@ fn start_transcribe<'a>(
         }
     }
     state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
+    state_syncer.update("audio_metrics", AudioMetricsState::default(), true);
 
     let app_handle_ref = app.clone();
     let state_syncer_ref = state_syncer.inner().clone();
@@ -343,6 +347,8 @@ fn start_transcribe<'a>(
         let mut segment_emission_gate = SegmentEmissionGate::new();
         let mut segment_start_time = SystemTime::now();
         let mut samples: Vec<f32> = Vec::new();
+        let mut audio_metrics = AudioMetricsState::default();
+        let mut inference_timing_stats = InferenceTimingStats::default();
         loop {
             let internal_state_ref = state_syncer_ref.snapshot::<InternalState>("internal_state");
             let app_state_ref = state_syncer_ref.snapshot::<types::AppState>("app_state");
@@ -373,17 +379,23 @@ fn start_transcribe<'a>(
             }
 
             debug!("copying buffer");
-            if let Ok(mut guard) = writer.lock() {
+            audio_metrics.input_rms = if let Ok(mut guard) = writer.lock() {
+                let input_rms = rms_level(&guard);
                 debug!(
-                    "guard len pre-trim {}, avg threshold {}",
+                    "guard len pre-trim {}, avg threshold {}, rms {}",
                     guard.len(),
-                    audio::avg_threshold(&guard)
+                    audio::avg_threshold(&guard),
+                    input_rms
                 );
                 // TODO: this should be a setting to adjust
                 audio::trim_silence(&mut guard, 0.01);
                 debug!("guard len post-trim {}", guard.len());
                 samples.append(&mut guard);
-            }
+                input_rms
+            } else {
+                0.0
+            };
+            audio_metrics.segment_sample_len = samples.len() as u64;
 
             // 8037 normal samples in 500ms
             if samples.len() > 4000 {
@@ -391,14 +403,24 @@ fn start_transcribe<'a>(
 
                 let mut whisper_manager = wm_state_ref.lock().unwrap();
 
+                let inference_started = Instant::now();
                 let segments =
                     match whisper_manager.process_samples(samples.clone(), whisper_params) {
                         Ok(segments) => segments,
                         Err(err) => {
+                            inference_timing_stats.record(
+                                inference_started.elapsed().as_secs_f64() * 1000.0,
+                                &mut audio_metrics,
+                            );
                             error!("ERROR {}", err);
+                            state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
                             continue;
                         }
                     };
+                inference_timing_stats.record(
+                    inference_started.elapsed().as_secs_f64() * 1000.0,
+                    &mut audio_metrics,
+                );
 
                 let current_segment = segment_accumulator.replace_items(segments);
 
@@ -408,8 +430,19 @@ fn start_transcribe<'a>(
                 }
 
                 let evaluation = segment_emission_gate.evaluate(current_segment);
+                let gate_emitted = match &evaluation.decision {
+                    SegmentEmissionDecision::Emit(_) => true,
+                    SegmentEmissionDecision::Suppress(_) => false,
+                };
+                audio_metrics.gate_total_evaluations += 1;
+                if gate_emitted {
+                    audio_metrics.gate_total_emits += 1;
+                }
+                audio_metrics.gate_emit_rate = audio_metrics.gate_total_emits as f64
+                    / audio_metrics.gate_total_evaluations as f64;
                 {
-                    let telemetry_ref = state_syncer_ref.get::<GateTelemetryState>("gate_telemetry");
+                    let telemetry_ref =
+                        state_syncer_ref.get::<GateTelemetryState>("gate_telemetry");
                     let mut telemetry = telemetry_ref.lock().unwrap();
                     telemetry.push(evaluation.telemetry);
                 }
@@ -438,6 +471,7 @@ fn start_transcribe<'a>(
             ) {
                 debug!("trimming samples, total {}", samples.len(),);
                 samples.clear();
+                audio_metrics.segment_sample_len = 0;
 
                 segment_start_time = SystemTime::now();
                 if !transcription_run_is_active(&state_syncer_ref, &run_id) {
@@ -450,6 +484,7 @@ fn start_transcribe<'a>(
                     .expect("failed to emit event");
                 segment_emission_gate.reset_with_emitted(&next_segment);
             }
+            state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
         }
 
         clear_transcription_run_if_current(&state_syncer_ref, &run_id);
@@ -567,12 +602,16 @@ pub fn run() {
             let state_syncer = StateSyncer::new(
                 StateSyncerConfig {
                     default_persist: true,
-                    persist_keys: HashMap::from([("gate_telemetry".to_owned(), false)]),
+                    persist_keys: HashMap::from([
+                        ("gate_telemetry".to_owned(), false),
+                        ("audio_metrics".to_owned(), false),
+                    ]),
                     ..Default::default()
                 },
                 app.handle().clone(),
             );
             state_syncer.set("gate_telemetry", GateTelemetryState::default());
+            state_syncer.set("audio_metrics", AudioMetricsState::default());
             let _ = state_syncer.load::<types::AppState>("app_state");
 
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");

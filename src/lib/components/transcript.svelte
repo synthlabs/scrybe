@@ -1,12 +1,10 @@
 <script lang="ts">
     import SegmentCard from "$lib/components/home/segment-card.svelte";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState } from "$lib/defaults";
-    import type { AppState, WhisperSegment } from "$lib/bindings";
+    import type { WhisperSegment } from "$lib/bindings";
     import { session } from "$lib/stores/session.svelte";
+    import { app_state } from "$lib/stores/state.svelte";
     import { m as msgs } from "$lib/paraglide/messages";
 
-    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
     let segment_size = $derived(app_state.obj.audio_segment_size || 15);
 
     const minute_of = (seg: WhisperSegment, size_s: number): number =>

@@ -19,24 +19,16 @@
     import Check from "@lucide/svelte/icons/check";
     import { open } from "@tauri-apps/plugin-dialog";
     import { toast } from "svelte-sonner";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
+    import { DefaultAppState } from "$lib/defaults";
     import {
         commands,
-        type AppState,
         type AudioDevice,
-        type InternalState,
         type ModelPreset,
         type WhisperToggles,
     } from "$lib/bindings";
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
-
-    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
+    import { app_state, internal_state } from "$lib/stores/state.svelte";
 
     type IndexedToggle = WhisperToggles & { [key: string]: boolean };
 

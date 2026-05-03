@@ -1,4 +1,9 @@
-import type { InternalState, AppState, GateTelemetryState } from "./bindings";
+import type {
+    InternalState,
+    AppState,
+    GateTelemetryState,
+    AudioMetricsState,
+} from "./bindings";
 
 // These mirror the Rust `Default` impls in src-tauri/src/types.rs and
 // rust/core/src/whisper.rs. They MUST stay in sync — if a sync() ever fires
@@ -55,4 +60,18 @@ export let DefaultInternalState: InternalState = {
 
 export let DefaultGateTelemetryState: GateTelemetryState = {
     entries: [],
+};
+
+export let DefaultAudioMetricsState: AudioMetricsState = {
+    segment_sample_len: 0,
+    input_rms: 0,
+    last_inference_ms: 0,
+    inference_sample_count: 0,
+    inference_std_dev_ms: 0,
+    inference_p90_ms: 0,
+    inference_p95_ms: 0,
+    inference_p99_ms: 0,
+    gate_total_evaluations: 0,
+    gate_total_emits: 0,
+    gate_emit_rate: 0,
 };

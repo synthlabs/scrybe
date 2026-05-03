@@ -60,6 +60,7 @@ export type AdvancedSettings = Record<string, never>
 export type AppState = { current_device: AudioDevice; audio_format: AudioFormat; model_path: string; audio_segment_size: number; overlay_config: OverlayConfig; whisper_params: WhisperParams; advanced_settings: AdvancedSettings }
 export type AudioDevice = { name: string; id: string }
 export type AudioFormat = { name: string; id: string }
+export type AudioMetricsState = { segment_sample_len: number; input_rms: number; last_inference_ms: number; inference_sample_count: number; inference_std_dev_ms: number; inference_p90_ms: number; inference_p95_ms: number; inference_p99_ms: number; gate_total_evaluations: number; gate_total_emits: number; gate_emit_rate: number }
 export type GateEvaluationTelemetryEntry = { sequence: number; segment_id: string; candidate_words: number; last_emitted_words: number; decision: SegmentEmissionDecisionKind; suppression_reason: SegmentSuppressionReason | null; is_drastic: boolean | null; distance: number | null; normalize_ms: number; validation_ms: number; drastic_check_ms: number; distance_ms: number; evaluate_ms: number }
 export type GateTelemetryState = { entries: GateEvaluationTelemetryEntry[] }
 export type InternalState = { transcribe_running: boolean; active_transcription_run_id: string | null; audio_step_size: number; version: string; name: string }

@@ -1,20 +1,12 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button/index.ts";
-    import type { AppState, InternalState } from "$lib/bindings";
     import Play from "@lucide/svelte/icons/play";
     import LoaderCircle from "@lucide/svelte/icons/loader-circle";
     import Pause from "@lucide/svelte/icons/pause";
     import { invoke } from "@tauri-apps/api/core";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
     import Logger from "$utils/log";
     import { cn } from "$lib/utils";
-
-    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
+    import { internal_state } from "$lib/stores/state.svelte";
 
     let debounce = $state(false);
     let listening = $derived(internal_state.obj.transcribe_running);

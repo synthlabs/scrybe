@@ -13,16 +13,13 @@
     import Globe from "@lucide/svelte/icons/globe";
     import Copy from "@lucide/svelte/icons/copy";
     import Check from "@lucide/svelte/icons/check";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState } from "$lib/defaults";
-    import type { AppState, OverlayConfig } from "$lib/bindings";
+    import type { OverlayConfig } from "$lib/bindings";
     import { toast } from "svelte-sonner";
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { onMount, onDestroy } from "svelte";
     import { header } from "$lib/stores/header.svelte";
-
-    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
+    import { app_state } from "$lib/stores/state.svelte";
 
     const OVERLAY_URL = "http://localhost:3030/app/v1/overlay";
 

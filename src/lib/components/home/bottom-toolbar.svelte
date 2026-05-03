@@ -7,18 +7,12 @@
     import Copy from "@lucide/svelte/icons/copy";
     import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultInternalState } from "$lib/defaults";
-    import type { InternalState } from "$lib/bindings";
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
+    import { internal_state } from "$lib/stores/state.svelte";
     import { cn } from "$utils/cn";
 
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
     let listening = $derived(internal_state.obj.transcribe_running);
 
     let busy = $state(false);

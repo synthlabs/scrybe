@@ -1,13 +1,6 @@
 <script lang="ts">
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultInternalState } from "$lib/defaults";
-    import type { InternalState } from "$lib/bindings";
     import { m as msgs } from "$lib/paraglide/messages";
-
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
+    import { internal_state } from "$lib/stores/state.svelte";
 
     let listening = $derived(internal_state.obj.transcribe_running);
 </script>

@@ -1,27 +1,26 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultInternalState } from "$lib/defaults";
-    import type { InternalState } from "$lib/bindings";
+    import { audio_metrics, internal_state } from "$lib/stores/state.svelte";
 
     const BAR_COUNT = 40;
 
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
     let listening = $derived(internal_state.obj.transcribe_running);
 
-    // TODO: replace mock heights with real RMS amplitude from a backend
-    // `audio_meter` event (or piggyback on `segment_update`). Today the
-    // bars are pure animation — they don't reflect actual input level.
     let heights = $state<number[]>(new Array(BAR_COUNT).fill(0.1));
     let interval: ReturnType<typeof setInterval> | null = null;
+
+    function normalized_rms(rms: number) {
+        if (!Number.isFinite(rms) || rms <= 0) return 0.1;
+        return Math.min(1, Math.max(0.1, Math.sqrt(Math.min(1, rms * 12))));
+    }
 
     onMount(() => {
         interval = setInterval(() => {
             if (listening) {
-                heights = heights.map(() => 0.25 + Math.random() * 0.75);
+                heights = [
+                    ...heights.slice(1),
+                    normalized_rms(audio_metrics.obj.input_rms),
+                ];
             } else if (heights.some((h) => h > 0.12)) {
                 heights = new Array(BAR_COUNT).fill(0.1);
             }

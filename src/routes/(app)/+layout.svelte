@@ -9,14 +9,13 @@
     import { checkForAppUpdates } from "$utils/updater";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultInternalState } from "$lib/defaults";
-    import type { InternalState, WhisperSegment } from "$lib/bindings";
+    import type { WhisperSegment } from "$lib/bindings";
 
     import StatusPill from "$lib/components/header/status-pill.svelte";
     import PlayPauseButton from "$lib/components/header/play-pause-button.svelte";
     import { header } from "$lib/stores/header.svelte";
     import { session } from "$lib/stores/session.svelte";
+    import { internal_state } from "$lib/stores/state.svelte";
 
     let navMain = [
         {
@@ -37,11 +36,6 @@
     ];
 
     let { children } = $props();
-
-    let internal_state = new SyncedState<InternalState>(
-        "internal_state",
-        DefaultInternalState,
-    );
 
     let unsub_segment: UnlistenFn | undefined;
 

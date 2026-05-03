@@ -1,12 +1,9 @@
 <script lang="ts">
     import Mic from "@lucide/svelte/icons/mic";
-    import { SyncedState } from "tauri-svelte-synced-store";
-    import { DefaultAppState } from "$lib/defaults";
-    import { commands, type AppState, type ModelPreset } from "$lib/bindings";
+    import { commands, type ModelPreset } from "$lib/bindings";
     import { m as msgs } from "$lib/paraglide/messages";
     import Logger from "$utils/log";
-
-    let app_state = new SyncedState<AppState>("app_state", DefaultAppState);
+    import { app_state } from "$lib/stores/state.svelte";
 
     let model_presets = $state<ModelPreset[]>([]);
     commands
