@@ -5,7 +5,11 @@
         fmt_duration,
         fmt_started,
     } from "$lib/stores/session.svelte";
-    import { audio_metrics, gate_telemetry } from "$lib/stores/state.svelte";
+    import {
+        app_state,
+        audio_metrics,
+        gate_telemetry,
+    } from "$lib/stores/state.svelte";
     import type {
         GateEvaluationTelemetryEntry,
         SegmentSuppressionReason,
@@ -42,6 +46,12 @@
     let elapsed = $derived(
         session.started_at !== null ? now - session.started_at : 0,
     );
+    let show_session = $derived(app_state.obj.home_right_rail.session);
+    let show_audio_metrics = $derived(
+        app_state.obj.home_right_rail.audio_metrics,
+    );
+    let show_gate = $derived(app_state.obj.home_right_rail.gate);
+    let show_rail = $derived(show_session || show_audio_metrics || show_gate);
 
     let stats = $derived([
         {
@@ -180,145 +190,174 @@
     }
 </script>
 
-<aside
-    class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border bg-card/40"
->
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <section class="shrink-0">
-            <header class="px-4 pb-2 pt-4">
-                <h2
-                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-                >
-                    {msgs.home_rail_session()}
-                </h2>
-            </header>
-            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
-                {#each stats as stat (stat.label)}
-                    <div class="min-w-0">
-                        <dt class="text-muted-foreground">{stat.label}</dt>
-                        <dd
-                            class="truncate text-foreground {stat.mono
-                                ? 'font-mono tabular-nums'
-                                : ''}"
+{#if show_rail}
+    <aside
+        class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border bg-card/40"
+    >
+        <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {#if show_session}
+                <section class="shrink-0">
+                    <header class="px-4 pb-2 pt-4">
+                        <h2
+                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
                         >
-                            {stat.value}
-                        </dd>
-                    </div>
-                {/each}
-            </dl>
-        </section>
-
-        <section class="shrink-0 border-t border-border/70">
-            <header class="px-4 pb-2 pt-4">
-                <h2
-                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-                >
-                    {msgs.home_rail_audio_metrics()}
-                </h2>
-            </header>
-            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
-                {#each audio_stats as stat (stat.label)}
-                    <div class="min-w-0">
-                        <dt class="text-muted-foreground">{stat.label}</dt>
-                        <dd
-                            class="truncate text-foreground {stat.mono
-                                ? 'font-mono tabular-nums'
-                                : ''}"
-                        >
-                            {stat.value}
-                        </dd>
-                    </div>
-                {/each}
-            </dl>
-            <dl class="grid grid-cols-4 gap-x-2 px-4 pb-4 text-[11px]">
-                {#each inference_distribution_stats as stat (stat.label)}
-                    <div class="min-w-0">
-                        <dt class="truncate text-muted-foreground">{stat.label}</dt>
-                        <dd
-                            class="truncate text-foreground {stat.mono
-                                ? 'font-mono tabular-nums'
-                                : ''}"
-                        >
-                            {stat.value}
-                        </dd>
-                    </div>
-                {/each}
-            </dl>
-        </section>
-
-        <section class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border/70">
-            <header class="flex items-center justify-between px-4 pb-2 pt-4">
-                <h2
-                    class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
-                >
-                    {msgs.home_rail_gate()}
-                </h2>
-                <span class="font-mono text-[11px] tabular-nums text-muted-foreground">
-                    {gate_telemetry.obj.entries.length}
-                </span>
-            </header>
-
-            {#if gate_telemetry.obj.entries.length === 0}
-                <p class="px-4 pb-4 text-[12px] text-muted-foreground">
-                    {msgs.home_rail_gate_empty()}
-                </p>
-            {:else}
-                <div
-                    bind:this={gate_table_container}
-                    class="min-h-0 flex-1 overflow-hidden px-3 pb-4"
-                >
-                    <table class="w-full table-fixed text-left text-[11px]">
-                        <thead class="text-[10px] text-muted-foreground">
-                            <tr>
-                                <th class="w-10 px-1 pb-2 font-medium">
-                                    {msgs.home_rail_gate_seq()}
-                                </th>
-                                <th class="px-1 pb-2 font-medium">
-                                    {msgs.home_rail_gate_decision()}
-                                </th>
-                                <th class="w-12 px-1 pb-2 text-right font-medium">
-                                    {msgs.home_rail_gate_words()}
-                                </th>
-                                <th class="w-12 px-1 pb-2 text-right font-medium">
-                                    {msgs.home_rail_gate_distance()}
-                                </th>
-                                <th class="w-14 px-1 pb-2 text-right font-medium">
-                                    {msgs.home_rail_gate_time()}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="font-mono tabular-nums">
-                            {#each latest_gate_entries as entry (entry.sequence)}
-                                <tr class="border-t border-border/40">
-                                    <td class="px-1 py-1.5 text-muted-foreground">
-                                        {entry.sequence}
-                                    </td>
-                                    <td class="px-1 py-1.5">
-                                        <span
-                                            class="block truncate {entry.decision ===
-                                            'Emit'
-                                                ? 'text-status-live'
-                                                : 'text-muted-foreground'}"
-                                            title={entry.segment_id}
-                                        >
-                                            {decision_label(entry)}
-                                        </span>
-                                    </td>
-                                    <td class="px-1 py-1.5 text-right">
-                                        {entry.candidate_words}
-                                    </td>
-                                    <td class="px-1 py-1.5 text-right">
-                                        {format_distance(entry)}
-                                    </td>
-                                    <td class="px-1 py-1.5 text-right">
-                                        {format_ms(entry.evaluate_ms)}
-                                    </td>
-                                </tr>
-                            {/each}
-                        </tbody>
-                    </table>
-                </div>
+                            {msgs.home_rail_session()}
+                        </h2>
+                    </header>
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
+                        {#each stats as stat (stat.label)}
+                            <div class="min-w-0">
+                                <dt class="text-muted-foreground">{stat.label}</dt>
+                                <dd
+                                    class="truncate text-foreground {stat.mono
+                                        ? 'font-mono tabular-nums'
+                                        : ''}"
+                                >
+                                    {stat.value}
+                                </dd>
+                            </div>
+                        {/each}
+                    </dl>
+                </section>
             {/if}
-        </section>
-    </div>
-</aside>
+
+            {#if show_audio_metrics}
+                <section
+                    class="shrink-0 {show_session
+                        ? 'border-t border-border/70'
+                        : ''}"
+                >
+                    <header class="px-4 pb-2 pt-4">
+                        <h2
+                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                        >
+                            {msgs.home_rail_audio_metrics()}
+                        </h2>
+                    </header>
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
+                        {#each audio_stats as stat (stat.label)}
+                            <div class="min-w-0">
+                                <dt class="text-muted-foreground">{stat.label}</dt>
+                                <dd
+                                    class="truncate text-foreground {stat.mono
+                                        ? 'font-mono tabular-nums'
+                                        : ''}"
+                                >
+                                    {stat.value}
+                                </dd>
+                            </div>
+                        {/each}
+                    </dl>
+                    <dl class="grid grid-cols-4 gap-x-2 px-4 pb-4 text-[11px]">
+                        {#each inference_distribution_stats as stat (stat.label)}
+                            <div class="min-w-0">
+                                <dt class="truncate text-muted-foreground">
+                                    {stat.label}
+                                </dt>
+                                <dd
+                                    class="truncate text-foreground {stat.mono
+                                        ? 'font-mono tabular-nums'
+                                        : ''}"
+                                >
+                                    {stat.value}
+                                </dd>
+                            </div>
+                        {/each}
+                    </dl>
+                </section>
+            {/if}
+
+            {#if show_gate}
+                <section
+                    class="flex min-h-0 flex-1 flex-col overflow-hidden {show_session ||
+                    show_audio_metrics
+                        ? 'border-t border-border/70'
+                        : ''}"
+                >
+                    <header class="flex items-center justify-between px-4 pb-2 pt-4">
+                        <h2
+                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                        >
+                            {msgs.home_rail_gate()}
+                        </h2>
+                        <span
+                            class="font-mono text-[11px] tabular-nums text-muted-foreground"
+                        >
+                            {gate_telemetry.obj.entries.length}
+                        </span>
+                    </header>
+
+                    {#if gate_telemetry.obj.entries.length === 0}
+                        <p class="px-4 pb-4 text-[12px] text-muted-foreground">
+                            {msgs.home_rail_gate_empty()}
+                        </p>
+                    {:else}
+                        <div
+                            bind:this={gate_table_container}
+                            class="min-h-0 flex-1 overflow-hidden px-3 pb-4"
+                        >
+                            <table class="w-full table-fixed text-left text-[11px]">
+                                <thead class="text-[10px] text-muted-foreground">
+                                    <tr>
+                                        <th class="w-10 px-1 pb-2 font-medium">
+                                            {msgs.home_rail_gate_seq()}
+                                        </th>
+                                        <th class="px-1 pb-2 font-medium">
+                                            {msgs.home_rail_gate_decision()}
+                                        </th>
+                                        <th
+                                            class="w-12 px-1 pb-2 text-right font-medium"
+                                        >
+                                            {msgs.home_rail_gate_words()}
+                                        </th>
+                                        <th
+                                            class="w-12 px-1 pb-2 text-right font-medium"
+                                        >
+                                            {msgs.home_rail_gate_distance()}
+                                        </th>
+                                        <th
+                                            class="w-14 px-1 pb-2 text-right font-medium"
+                                        >
+                                            {msgs.home_rail_gate_time()}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="font-mono tabular-nums">
+                                    {#each latest_gate_entries as entry (entry.sequence)}
+                                        <tr class="border-t border-border/40">
+                                            <td
+                                                class="px-1 py-1.5 text-muted-foreground"
+                                            >
+                                                {entry.sequence}
+                                            </td>
+                                            <td class="px-1 py-1.5">
+                                                <span
+                                                    class="block truncate {entry.decision ===
+                                                    'Emit'
+                                                        ? 'text-status-live'
+                                                        : 'text-muted-foreground'}"
+                                                    title={entry.segment_id}
+                                                >
+                                                    {decision_label(entry)}
+                                                </span>
+                                            </td>
+                                            <td class="px-1 py-1.5 text-right">
+                                                {entry.candidate_words}
+                                            </td>
+                                            <td class="px-1 py-1.5 text-right">
+                                                {format_distance(entry)}
+                                            </td>
+                                            <td class="px-1 py-1.5 text-right">
+                                                {format_ms(entry.evaluate_ms)}
+                                            </td>
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                        </div>
+                    {/if}
+                </section>
+            {/if}
+        </div>
+    </aside>
+{/if}

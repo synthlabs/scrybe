@@ -29,3 +29,4 @@
 - [ ] the backend rust should properly track the session start time and duration
 - [ ] add good/warn/bad color schemes to the inference timing numbers
 - [ ] smoothly transition audio-waveform bars, either natively or with interpolation
+- [x] support settings for toggling the display of each section from the right side rail on the home page, defaulting to all of them off

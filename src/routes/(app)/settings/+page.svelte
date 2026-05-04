@@ -11,6 +11,7 @@
     import Mic from "@lucide/svelte/icons/mic";
     import Cpu from "@lucide/svelte/icons/cpu";
     import Sparkles from "@lucide/svelte/icons/sparkles";
+    import PanelRight from "@lucide/svelte/icons/panel-right";
     import Search from "@lucide/svelte/icons/search";
     import Folder from "@lucide/svelte/icons/folder";
     import ChevronDown from "@lucide/svelte/icons/chevron-down";
@@ -23,6 +24,7 @@
     import {
         commands,
         type AudioDevice,
+        type HomeRightRailSettings,
         type ModelPreset,
         type WhisperToggles,
     } from "$lib/bindings";
@@ -31,11 +33,17 @@
     import { app_state, internal_state } from "$lib/stores/state.svelte";
 
     type IndexedToggle = WhisperToggles & { [key: string]: boolean };
+    type IndexedHomeRightRailSettings = HomeRightRailSettings & {
+        [key: string]: boolean;
+    };
 
     let draft_toggles = $state<WhisperToggles>({
         ...app_state.obj.whisper_params.toggles,
     });
     let draft_language = $state<string>(app_state.obj.whisper_params.language);
+    let draft_home_right_rail = $state<HomeRightRailSettings>({
+        ...app_state.obj.home_right_rail,
+    });
     let draft_initialized = $state(false);
 
     $effect(() => {
@@ -43,6 +51,7 @@
         if (draft_initialized) return;
         draft_toggles = { ...app_state.obj.whisper_params.toggles };
         draft_language = app_state.obj.whisper_params.language;
+        draft_home_right_rail = { ...app_state.obj.home_right_rail };
         draft_initialized = true;
     });
 
@@ -124,6 +133,34 @@
             return acc;
         }, {} as IndexedToggle) as WhisperToggles;
 
+    interface HomeRailToggleMeta {
+        key: keyof HomeRightRailSettings;
+        label: () => string;
+        description: () => string;
+    }
+
+    const HOME_RAIL_TOGGLES: HomeRailToggleMeta[] = [
+        {
+            key: "session",
+            label: msgs.home_rail_session,
+            description: msgs.settings_home_rail_session_desc,
+        },
+        {
+            key: "audio_metrics",
+            label: msgs.home_rail_audio_metrics,
+            description: msgs.settings_home_rail_audio_desc,
+        },
+        {
+            key: "gate",
+            label: msgs.home_rail_gate,
+            description: msgs.settings_home_rail_gate_desc,
+        },
+    ];
+
+    const default_home_right_rail_state = (): HomeRightRailSettings => ({
+        ...DefaultAppState.home_right_rail,
+    });
+
     let search = $state("");
     let show_advanced = $state(false);
 
@@ -141,19 +178,34 @@
         if (draft_language !== app_state.obj.whisper_params.language)
             return true;
         const stored = app_state.obj.whisper_params.toggles as IndexedToggle;
-        return TOGGLES.some(
-            (t) => (draft_toggles as IndexedToggle)[t.key] !== stored[t.key],
+        if (
+            TOGGLES.some(
+                (t) =>
+                    (draft_toggles as IndexedToggle)[t.key] !== stored[t.key],
+            )
+        )
+            return true;
+        const stored_home_right_rail = app_state.obj
+            .home_right_rail as IndexedHomeRightRailSettings;
+        return HOME_RAIL_TOGGLES.some(
+            (t) =>
+                (draft_home_right_rail as IndexedHomeRightRailSettings)[
+                    t.key
+                ] !== stored_home_right_rail[t.key],
         );
     });
 
     const onResetDefaults = () => {
         const defaults = default_toggle_state();
+        const default_home_right_rail = default_home_right_rail_state();
         const default_language = DefaultAppState.whisper_params.language;
         app_state.obj.whisper_params.toggles = defaults;
         app_state.obj.whisper_params.language = default_language;
+        app_state.obj.home_right_rail = default_home_right_rail;
         app_state.sync();
         draft_toggles = { ...defaults };
         draft_language = default_language;
+        draft_home_right_rail = { ...default_home_right_rail };
         toast.success(msgs.settings_reset_msg());
     };
 
@@ -161,6 +213,7 @@
         if (!draft_initialized) return;
         app_state.obj.whisper_params.toggles = { ...draft_toggles };
         app_state.obj.whisper_params.language = draft_language;
+        app_state.obj.home_right_rail = { ...draft_home_right_rail };
         app_state.sync();
         toast.success(msgs.settings_save_msg());
     };
@@ -428,7 +481,7 @@
 
     <div
         class="bg-card grid overflow-hidden rounded-md border"
-        style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);"
+        style="grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);"
     >
         <ConsoleColumn icon={Mic} label={msgs.settings_audio_heading()}>
             <div class="flex flex-col gap-1.5">
@@ -639,6 +692,29 @@
                         />
                     {/each}
                 {/if}
+            </div>
+        </ConsoleColumn>
+
+        <ConsoleColumn
+            icon={PanelRight}
+            label={msgs.settings_home_rail_heading()}
+        >
+            <div class="flex flex-col gap-1">
+                {#each HOME_RAIL_TOGGLES as toggle (toggle.key)}
+                    {@const label = toggle.label()}
+                    {@const description = toggle.description()}
+                    <ToggleRow
+                        id={`home-rail-${toggle.key}`}
+                        {label}
+                        {description}
+                        bind:checked={
+                            (draft_home_right_rail as IndexedHomeRightRailSettings)[
+                                toggle.key
+                            ]
+                        }
+                        match={matchesSearch(label, description)}
+                    />
+                {/each}
             </div>
         </ConsoleColumn>
     </div>

@@ -92,6 +92,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<InternalState>()
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
+        .typ::<types::HomeRightRailSettings>()
         .typ::<types::OverlayConfig>()
         .typ::<types::WebsocketRequest>()
         .typ::<types::WebsocketResponse>()

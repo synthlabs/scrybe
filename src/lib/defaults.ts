@@ -34,6 +34,11 @@ export let DefaultAppState: AppState = {
         font_weight: 600,
         drop_shadow: true,
     },
+    home_right_rail: {
+        session: false,
+        audio_metrics: false,
+        gate: false,
+    },
     whisper_params: {
         toggles: {
             translate: false,

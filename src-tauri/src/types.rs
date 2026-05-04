@@ -6,6 +6,7 @@ pub struct AppState {
     pub model_path: String,
     pub audio_segment_size: u64,
     pub overlay_config: OverlayConfig,
+    pub home_right_rail: HomeRightRailSettings,
     pub whisper_params: scrybe_core::whisper::WhisperParams,
     pub advanced_settings: AdvancedSettings,
 }
@@ -18,6 +19,7 @@ impl Default for AppState {
             model_path: Default::default(),
             audio_segment_size: 15,
             overlay_config: OverlayConfig::default(),
+            home_right_rail: HomeRightRailSettings::default(),
             whisper_params: scrybe_core::whisper::WhisperParams::default(),
             advanced_settings: AdvancedSettings::default(),
         }
@@ -55,6 +57,24 @@ impl Default for OverlayConfig {
             padding_y: 6,
             font_weight: 600,
             drop_shadow: true,
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[serde(default)]
+pub struct HomeRightRailSettings {
+    pub session: bool,
+    pub audio_metrics: bool,
+    pub gate: bool,
+}
+
+impl Default for HomeRightRailSettings {
+    fn default() -> Self {
+        Self {
+            session: false,
+            audio_metrics: false,
+            gate: false,
         }
     }
 }
