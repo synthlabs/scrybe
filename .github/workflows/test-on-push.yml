@@ -85,9 +85,8 @@ jobs:
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@master
         id: cuda-toolkit
-        if: "!startsWith(matrix.platform, 'macos')"
+        if: startsWith(matrix.platform, 'windows')
         with:
-          linux-local-args: '["--toolkit"]'
           log-file-suffix: '${{matrix.os}}.txt'
 
       - name: Set short SHA

@@ -26,11 +26,4 @@ if [[ "$os" == "Linux" ]]; then
     info "scrybe Linux extras"
 
     check_apt "ALSA" "pkg-config --exists alsa" "librust-alsa-sys-dev"
-
-    if command -v nvcc >/dev/null 2>&1; then
-        ok "CUDA toolkit (nvcc)"
-    else
-        warn "CUDA toolkit (nvcc)" \
-            "scrybe_core sets features=[\"cuda\"] on non-macOS — install from https://developer.nvidia.com/cuda-downloads (CI uses Jimver/cuda-toolkit action)"
-    fi
 fi
