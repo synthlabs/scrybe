@@ -31,9 +31,13 @@ class Session {
         this.current_segment_id = seg.id;
     }
 
-    clear(): void {
+    clear_transcript(): void {
         this.segments_by_id.clear();
         this.current_segment_id = null;
+    }
+
+    clear(): void {
+        this.clear_transcript();
         this.started_at = null;
     }
 

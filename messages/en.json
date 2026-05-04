@@ -111,6 +111,7 @@
     "home_minute_label": "MINUTE {minute}",
     "home_toolbar_pause": "Stop",
     "home_toolbar_resume": "Start",
+    "home_toolbar_clear_transcript": "Clear transcript",
     "home_toolbar_new_session": "New session",
     "home_toolbar_copy": "Copy",
     "home_toolbar_copied": "Transcript copied",

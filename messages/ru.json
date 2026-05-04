@@ -111,6 +111,7 @@
 	"home_minute_label": "МИНУТА {minute}",
 	"home_toolbar_pause": "Стоп",
 	"home_toolbar_resume": "Старт",
+	"home_toolbar_clear_transcript": "Очистить транскрипт",
 	"home_toolbar_new_session": "Новая сессия",
 	"home_toolbar_copy": "Копировать",
 	"home_toolbar_copied": "Транскрипт скопирован",

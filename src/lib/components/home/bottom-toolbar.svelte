@@ -5,6 +5,7 @@
     import Play from "@lucide/svelte/icons/play";
     import Plus from "@lucide/svelte/icons/plus";
     import Copy from "@lucide/svelte/icons/copy";
+    import Eraser from "@lucide/svelte/icons/eraser";
     import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
     import Logger from "$utils/log";
@@ -58,7 +59,12 @@
         }
     };
 
-    let copy_disabled = $derived(session.segments.length === 0);
+    const clear_transcript = () => {
+        if (session.segments.length === 0) return;
+        session.clear_transcript();
+    };
+
+    let transcript_empty = $derived(session.segments.length === 0);
 </script>
 
 <div
@@ -88,6 +94,16 @@
     <Button
         variant="ghost"
         size="sm"
+        onclick={clear_transcript}
+        disabled={transcript_empty}
+        class="h-8 gap-1.5"
+    >
+        <Eraser class="size-3.5" />
+        {msgs.home_toolbar_clear_transcript()}
+    </Button>
+    <Button
+        variant="ghost"
+        size="sm"
         onclick={new_session}
         disabled={busy}
         class="h-8 gap-1.5"
@@ -99,7 +115,7 @@
         variant="ghost"
         size="sm"
         onclick={copy}
-        disabled={copy_disabled}
+        disabled={transcript_empty}
         class="h-8 gap-1.5"
     >
         <Copy class="size-3.5" />

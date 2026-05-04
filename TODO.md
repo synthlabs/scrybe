@@ -24,7 +24,7 @@
 - [x] the toast popup isn't scrybe themed so it stands out
 - [x] on startup the window appears in the default location with a white background before loading and then jumping to the saved positioning
 - [ ] on the overlay page, when you change the background color to one of the presents, we should save your custom color so you can switch back to it
-- [ ] add a small "clear transcript" button on the home page that simply clears the segments rendered but doesn't start a new session
+- [x] add a small "clear transcript" button on the home page to the left of the "new session" button that simply clears the segments rendered but doesn't start a new session
 - [ ] on the individual segment line on the home page, the small timestamp is always 00:00:0
 - [ ] the backend rust should properly track the session start time and duration
 - [ ] add good/warn/bad color schemes to the inference timing numbers
