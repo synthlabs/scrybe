@@ -13,6 +13,7 @@
 
     import StatusPill from "$lib/components/header/status-pill.svelte";
     import PlayPauseButton from "$lib/components/header/play-pause-button.svelte";
+    import RuntimeDependencyNotice from "$lib/components/runtime-dependency-notice.svelte";
     import { header } from "$lib/stores/header.svelte";
     import { session } from "$lib/stores/session.svelte";
     import { internal_state } from "$lib/stores/state.svelte";
@@ -65,6 +66,8 @@
         }
     });
 </script>
+
+<RuntimeDependencyNotice />
 
 <Sidebar.Provider style="--sidebar-width: 200px">
     <AppSidebar {navMain} />

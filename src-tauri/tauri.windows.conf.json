@@ -1,6 +1,16 @@
 {
     "identifier": "com.scrybe.live",
+    "build": {
+        "beforeBundleCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-windows-cuda-redist.ps1"
+    },
     "bundle": {
-        "resources": []
+        "resources": [
+            "../target/windows-cuda-redist/resources/cuda/*"
+        ],
+        "windows": {
+            "nsis": {
+                "installerHooks": "windows/hooks.nsh"
+            }
+        }
     }
 }

@@ -29,6 +29,7 @@
             }
         } catch (e) {
             Logger.error("toggle transcribe failed", e);
+            toast.error(msgs.runtime_start_failed({ error: String(e) }));
         } finally {
             setTimeout(() => (busy = false), 600);
         }
@@ -43,6 +44,7 @@
             await invoke("start_transcribe");
         } catch (e) {
             Logger.error("new session failed", e);
+            toast.error(msgs.runtime_start_failed({ error: String(e) }));
         } finally {
             setTimeout(() => (busy = false), 600);
         }

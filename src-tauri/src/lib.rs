@@ -32,7 +32,78 @@ mod types;
 mod ws;
 
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
-type SharedWhisperManager = Arc<Mutex<WhisperManager>>;
+type SharedWhisperManager = Arc<Mutex<Option<WhisperManager>>>;
+const NVIDIA_DRIVER_DOWNLOAD_URL: &str = "https://www.nvidia.com/Download/index.aspx";
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "snake_case")]
+enum RuntimeDependencyStatus {
+    Unknown,
+    ReadyGpu,
+    ReadyCpuFallback,
+    Unavailable,
+}
+
+impl Default for RuntimeDependencyStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
+struct RuntimeDependencyState {
+    status: RuntimeDependencyStatus,
+    has_nvidia_gpu: bool,
+    reason: String,
+    action_url: Option<String>,
+}
+
+impl Default for RuntimeDependencyState {
+    fn default() -> Self {
+        Self {
+            status: RuntimeDependencyStatus::Unknown,
+            has_nvidia_gpu: false,
+            reason: "".to_owned(),
+            action_url: None,
+        }
+    }
+}
+
+impl RuntimeDependencyState {
+    fn ready_gpu(has_nvidia_gpu: bool) -> Self {
+        Self {
+            status: RuntimeDependencyStatus::ReadyGpu,
+            has_nvidia_gpu,
+            reason: "".to_owned(),
+            action_url: None,
+        }
+    }
+
+    fn ready_cpu_fallback(has_nvidia_gpu: bool, reason: String) -> Self {
+        Self {
+            status: RuntimeDependencyStatus::ReadyCpuFallback,
+            has_nvidia_gpu,
+            reason,
+            action_url: has_nvidia_gpu.then(|| NVIDIA_DRIVER_DOWNLOAD_URL.to_owned()),
+        }
+    }
+
+    fn unavailable(has_nvidia_gpu: bool, reason: String) -> Self {
+        Self {
+            status: RuntimeDependencyStatus::Unavailable,
+            has_nvidia_gpu,
+            reason,
+            action_url: has_nvidia_gpu.then(|| NVIDIA_DRIVER_DOWNLOAD_URL.to_owned()),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct WhisperSetupResult {
+    model_path: String,
+    runtime_dependency: RuntimeDependencyState,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(default)]
@@ -42,6 +113,7 @@ struct InternalState {
     audio_step_size: u64,
     version: String,
     name: String,
+    runtime_dependency: RuntimeDependencyState,
 }
 
 impl Default for InternalState {
@@ -52,6 +124,7 @@ impl Default for InternalState {
             audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             version: "".to_owned(),
             name: "".to_owned(),
+            runtime_dependency: RuntimeDependencyState::default(),
         }
     }
 }
@@ -83,6 +156,43 @@ impl InternalState {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn has_nvidia_gpu() -> bool {
+    use windows::Win32::Graphics::Dxgi::{
+        CreateDXGIFactory1, IDXGIFactory1, DXGI_ADAPTER_FLAG_SOFTWARE,
+    };
+
+    let factory = match unsafe { CreateDXGIFactory1::<IDXGIFactory1>() } {
+        Ok(factory) => factory,
+        Err(err) => {
+            debug!("unable to enumerate DXGI adapters: {}", err);
+            return false;
+        }
+    };
+
+    let mut index = 0;
+    loop {
+        let adapter = match unsafe { factory.EnumAdapters1(index) } {
+            Ok(adapter) => adapter,
+            Err(_) => return false,
+        };
+
+        if let Ok(desc) = unsafe { adapter.GetDesc1() } {
+            let is_software = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32) != 0;
+            if !is_software && desc.VendorId == 0x10DE {
+                return true;
+            }
+        }
+
+        index += 1;
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn has_nvidia_gpu() -> bool {
+    false
+}
+
 #[derive(RustEmbed)]
 #[folder = "../build"]
 struct Static;
@@ -90,6 +200,8 @@ struct Static;
 pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .typ::<InternalState>()
+        .typ::<RuntimeDependencyState>()
+        .typ::<RuntimeDependencyStatus>()
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
         .typ::<types::HomeRightRailSettings>()
@@ -183,8 +295,22 @@ fn update_state(
             let app_state_snapshot = state_syncer.snapshot::<types::AppState>("app_state");
             if new_app_state.model_path != app_state_snapshot.model_path {
                 info!("Model path changed, re-setting up whisper manager");
-                let model_path = setup_whisper_manager(&app, new_app_state.model_path.clone());
-                new_app_state.model_path = model_path;
+                let setup_result = setup_whisper_manager(&app, new_app_state.model_path.clone());
+                new_app_state.model_path = setup_result.model_path;
+
+                let mut internal_state = state_syncer.snapshot::<InternalState>("internal_state");
+                internal_state.runtime_dependency = setup_result.runtime_dependency;
+                state_syncer.update("internal_state", internal_state.clone(), true);
+
+                let response = WebsocketManager::to_ws_response(
+                    "internal_state_update".to_owned(),
+                    internal_state.clone(),
+                );
+
+                match serde_json::to_string(&response) {
+                    Ok(msg) => <WebsocketManager as Clone>::clone(&ws_manager).broadcast(msg),
+                    Err(err) => error!("error creating websocket response: {}", err),
+                };
             }
             state_syncer.update("app_state", new_app_state.clone(), true);
 
@@ -287,7 +413,7 @@ fn clear_transcription_run_if_current(state_syncer: &StateSyncer, run_id: &str) 
 fn start_transcribe<'a>(
     app: AppHandle,
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
-) -> Result<(), ()> {
+) -> Result<(), String> {
     debug!(
         "{:?} start_transcribe",
         SystemTime::now()
@@ -296,13 +422,28 @@ fn start_transcribe<'a>(
             .as_millis()
     );
 
+    {
+        let wm_state_ref = app.state::<SharedWhisperManager>();
+        if wm_state_ref.lock().unwrap().is_none() {
+            let runtime_dependency = state_syncer
+                .snapshot::<InternalState>("internal_state")
+                .runtime_dependency;
+            let reason = if runtime_dependency.reason.is_empty() {
+                "Whisper is not available.".to_owned()
+            } else {
+                runtime_dependency.reason
+            };
+            return Err(reason);
+        }
+    }
+
     let run_id = Uuid::new_v4().to_string();
     {
         let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
         let mut state = internal_state_ref.lock().unwrap();
         if !state.claim_transcription_run(run_id.clone()) {
             info!("transcribe already running");
-            return Err(());
+            return Err("Transcription is already running.".to_owned());
         }
     }
     state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
@@ -402,7 +543,12 @@ fn start_transcribe<'a>(
             if samples.len() > 4000 {
                 debug!("got enough samples, getting whisper manager");
 
-                let mut whisper_manager = wm_state_ref.lock().unwrap();
+                let mut whisper_manager_ref = wm_state_ref.lock().unwrap();
+                let Some(whisper_manager) = whisper_manager_ref.as_mut() else {
+                    error!("whisper manager is unavailable");
+                    clear_transcription_run_if_current(&state_syncer_ref, &run_id);
+                    break;
+                };
 
                 let inference_started = Instant::now();
                 let segments =
@@ -507,26 +653,76 @@ fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::E
     Ok(filename.to_string_lossy().into_owned())
 }
 
-fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> String {
+fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetupResult {
+    let has_nvidia_gpu = has_nvidia_gpu();
+
     if model_path == "" {
         info!("empty model path, pulling default model");
         let default_preset = types::model_presets()
             .into_iter()
             .find(|p| p.id == types::DEFAULT_MODEL_PRESET_ID)
             .expect("default model preset missing from model_presets()");
-        model_path =
-            download_preset_file(&default_preset).expect("failed to download default model preset");
+        match download_preset_file(&default_preset) {
+            Ok(downloaded_model_path) => model_path = downloaded_model_path,
+            Err(err) => {
+                error!("failed to download default model preset: {}", err);
+                let manager_ref = app.state::<SharedWhisperManager>();
+                *manager_ref.lock().unwrap() = None;
+                return WhisperSetupResult {
+                    model_path,
+                    runtime_dependency: RuntimeDependencyState {
+                        status: RuntimeDependencyStatus::Unavailable,
+                        has_nvidia_gpu,
+                        reason: format!("Failed to download the default Whisper model: {err}"),
+                        action_url: None,
+                    },
+                };
+            }
+        }
     }
 
     info!("Model path {}", model_path);
 
     debug!("creating whisper context");
 
-    let whisper_manager = WhisperManager::new(model_path.clone().as_str(), true).unwrap();
-
-    app.manage(Arc::new(Mutex::new(whisper_manager)));
-
-    return model_path;
+    let manager_ref = app.state::<SharedWhisperManager>();
+    match WhisperManager::new(model_path.clone().as_str(), true) {
+        Ok(whisper_manager) => {
+            *manager_ref.lock().unwrap() = Some(whisper_manager);
+            WhisperSetupResult {
+                model_path,
+                runtime_dependency: RuntimeDependencyState::ready_gpu(has_nvidia_gpu),
+            }
+        }
+        Err(gpu_err) => {
+            error!("failed to initialize Whisper with GPU: {}", gpu_err);
+            match WhisperManager::new(model_path.clone().as_str(), false) {
+                Ok(whisper_manager) => {
+                    *manager_ref.lock().unwrap() = Some(whisper_manager);
+                    WhisperSetupResult {
+                        model_path,
+                        runtime_dependency: RuntimeDependencyState::ready_cpu_fallback(
+                            has_nvidia_gpu,
+                            format!("GPU initialization failed: {gpu_err}"),
+                        ),
+                    }
+                }
+                Err(cpu_err) => {
+                    error!("failed to initialize Whisper with CPU fallback: {}", cpu_err);
+                    *manager_ref.lock().unwrap() = None;
+                    WhisperSetupResult {
+                        model_path,
+                        runtime_dependency: RuntimeDependencyState::unavailable(
+                            has_nvidia_gpu,
+                            format!(
+                                "GPU initialization failed: {gpu_err}; CPU fallback failed: {cpu_err}"
+                            ),
+                        ),
+                    }
+                }
+            }
+        }
+    }
 }
 
 struct EmbedFile {
@@ -564,6 +760,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
+        .manage(Arc::new(Mutex::new(None::<WhisperManager>)))
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
             app.emit("single-instance", argv).unwrap();
@@ -619,16 +816,19 @@ pub fn run() {
             internal_state.version = app.package_info().version.to_string();
             internal_state.name = app.package_info().name.to_string();
             internal_state.stop_transcription();
-            state_syncer.update("internal_state", internal_state.clone(), true);
 
-            {
+            let setup_result = {
                 let app_state_ref = state_syncer.get::<types::AppState>("app_state");
-                let mut app_state = app_state_ref.lock().unwrap();
+                let model_path = app_state_ref.lock().unwrap().model_path.clone();
 
                 info!("setting up whisper manager");
-                let model_path = setup_whisper_manager(app.handle(), app_state.model_path.clone());
-                app_state.model_path = model_path;
-            }
+                let setup_result = setup_whisper_manager(app.handle(), model_path);
+                app_state_ref.lock().unwrap().model_path = setup_result.model_path.clone();
+                setup_result
+            };
+
+            internal_state.runtime_dependency = setup_result.runtime_dependency;
+            state_syncer.update("internal_state", internal_state.clone(), true);
 
             app.manage::<StateSyncer>(state_syncer.clone());
 

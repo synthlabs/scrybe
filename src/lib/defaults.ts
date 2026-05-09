@@ -61,6 +61,12 @@ export let DefaultInternalState: InternalState = {
     audio_step_size: 500,
     version: "",
     name: "",
+    runtime_dependency: {
+        status: "unknown",
+        has_nvidia_gpu: false,
+        reason: "",
+        action_url: null,
+    },
 };
 
 export let DefaultGateTelemetryState: GateTelemetryState = {

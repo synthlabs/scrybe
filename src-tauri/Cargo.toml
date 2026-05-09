@@ -92,5 +92,5 @@ path = "../rust/core"
 features = ["cuda"]
 path = "../rust/core"
 [target."cfg(target_os = \"windows\")".dependencies.windows]
-features = ["Win32_Graphics_Dwm", "Win32_Foundation"]
+features = ["Win32_Graphics_Dwm", "Win32_Graphics_Dxgi", "Win32_Foundation"]
 version = "0.61"
