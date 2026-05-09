@@ -32,8 +32,8 @@
     class={cn(
         "h-8 w-8 transition-colors",
         listening
-            ? "bg-scrybe text-primary-foreground hover:bg-scrybe-press"
-            : "text-scrybe hover:bg-scrybe-soft hover:text-scrybe",
+            ? "border border-scrybe/40 bg-background/35 text-scrybe-ring hover:bg-accent/35"
+            : "text-scrybe/90 hover:bg-accent/30 hover:text-scrybe",
     )}
     aria-label={listening ? "Pause" : "Play"}
 >

@@ -192,7 +192,7 @@
 
 {#if show_rail}
     <aside
-        class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border bg-card/40"
+        class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border/70 bg-background/25"
     >
         <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
             {#if show_session}
@@ -224,7 +224,7 @@
             {#if show_audio_metrics}
                 <section
                     class="shrink-0 {show_session
-                        ? 'border-t border-border/70'
+                        ? 'border-t border-border/50'
                         : ''}"
                 >
                     <header class="px-4 pb-2 pt-4">
@@ -271,7 +271,7 @@
                 <section
                     class="flex min-h-0 flex-1 flex-col overflow-hidden {show_session ||
                     show_audio_metrics
-                        ? 'border-t border-border/70'
+                        ? 'border-t border-border/50'
                         : ''}"
                 >
                     <header class="flex items-center justify-between px-4 pb-2 pt-4">
@@ -334,7 +334,7 @@
                                                 <span
                                                     class="block truncate {entry.decision ===
                                                     'Emit'
-                                                        ? 'text-status-live'
+                                                        ? 'text-status-live/80'
                                                         : 'text-muted-foreground'}"
                                                     title={entry.segment_id}
                                                 >

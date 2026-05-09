@@ -29,10 +29,10 @@
             aria-label={hex}
             onclick={() => onChange(hex)}
             class={cn(
-                "size-6 rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrybe-ring",
+                "size-6 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrybe-ring",
                 value?.toLowerCase() === hex.toLowerCase()
-                    ? "ring-2 ring-scrybe ring-offset-2 ring-offset-card border-transparent"
-                    : "border-border/60 hover:scale-110",
+                    ? "border-scrybe/70 ring-1 ring-scrybe/70 ring-offset-1 ring-offset-card"
+                    : "border-border/60 hover:border-scrybe/50",
             )}
             style="background-color: {hex};"
         ></button>
@@ -41,8 +41,8 @@
         class={cn(
             "relative inline-flex size-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-all",
             custom_active
-                ? "ring-2 ring-scrybe ring-offset-2 ring-offset-card border-transparent"
-                : "border-border/60 hover:scale-110",
+                ? "border-scrybe/70 ring-1 ring-scrybe/70 ring-offset-1 ring-offset-card"
+                : "border-border/60 hover:border-scrybe/50",
         )}
         style={custom_active
             ? `background-color: ${value};`

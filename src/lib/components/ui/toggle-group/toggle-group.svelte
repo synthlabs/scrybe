@@ -2,7 +2,7 @@
     import { type VariantProps, tv } from "tailwind-variants";
 
     export const toggleGroupVariants = tv({
-        base: "inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/40 p-0.5",
+        base: "inline-flex items-center gap-0.5 rounded-md border border-border/50 bg-background/20 p-0.5",
         variants: {
             size: {
                 default: "h-9",

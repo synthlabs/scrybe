@@ -439,7 +439,7 @@
         {#snippet pills()}
             {#if store_toggles.translate}
                 <span
-                    class="border-scrybe/30 bg-scrybe-soft text-scrybe-ring rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase"
+                    class="rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
                 >
                     → EN
                 </span>
@@ -460,15 +460,15 @@
             {/if}
         {/snippet}
         <div
-            class="border-scrybe/30 bg-scrybe-soft/40 rounded border px-3 py-2 text-[13px] leading-snug"
+            class="rounded border border-border/60 bg-background/30 px-3 py-2 text-[13px] leading-snug"
         >
             {#each preview_segments as seg, i (i + seg)}
                 <span
-                    class="animate-scrybe-cap-in inline-block pr-1 align-baseline"
+                    class="inline-block pr-1 align-baseline"
                 >
                     {#if store_toggles.token_timestamps}
                         <span
-                            class="bg-scrybe/20 text-scrybe-ring mr-1 rounded px-1 py-0.5 font-mono text-[10px]"
+                            class="mr-1 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] text-muted-foreground"
                         >
                             {fmtTimestamp(i)}
                         </span>
@@ -480,8 +480,8 @@
     </LivePreviewCard>
 
     <div
-        class="bg-card grid overflow-hidden rounded-md border"
-        style="grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);"
+        class="grid gap-3"
+        style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));"
     >
         <ConsoleColumn icon={Mic} label={msgs.settings_audio_heading()}>
             <div class="flex flex-col gap-1.5">

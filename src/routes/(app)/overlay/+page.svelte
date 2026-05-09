@@ -91,8 +91,8 @@
     <PreviewCanvas {config} />
 
     <div
-        class="grid overflow-hidden rounded-md border bg-card"
-        style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);"
+        class="grid gap-3"
+        style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));"
     >
         <ConsoleColumn icon={Sliders} label={msgs.overlay_column_layout()}>
             <div class="flex flex-col gap-1.5">
@@ -238,7 +238,7 @@
                 />
             </div>
 
-            <div class="flex items-center justify-between rounded-md border border-transparent px-3 py-2 hover:bg-accent/40 transition-colors">
+            <div class="flex items-center justify-between rounded-md border border-transparent px-3 py-2 transition-colors hover:bg-accent/25">
                 <Label
                     for="drop-shadow"
                     class="cursor-pointer text-xs font-medium"
@@ -301,7 +301,7 @@
             </div>
 
             <div
-                class="mt-auto flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground"
+                class="mt-auto flex items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground"
             >
                 <span class="size-1.5 rounded-full bg-status-live"></span>
                 <span>{msgs.overlay_server_running()}</span>

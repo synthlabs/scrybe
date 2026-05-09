@@ -11,7 +11,7 @@
 </script>
 
 <div
-    class="overflow-hidden rounded-md border border-border bg-checkered"
+    class="overflow-hidden rounded-md border border-border/60 bg-checkered"
     style="height: {height};"
 >
     <TextOverlay
@@ -30,12 +30,12 @@
 
 <style>
     .bg-checkered {
-        background-color: #2a2a2c;
+        background-color: #1b1d20;
         background-image:
-            linear-gradient(45deg, #1f1f21 25%, transparent 25%),
-            linear-gradient(-45deg, #1f1f21 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #1f1f21 75%),
-            linear-gradient(-45deg, transparent 75%, #1f1f21 75%);
+            linear-gradient(45deg, #17191c 25%, transparent 25%),
+            linear-gradient(-45deg, #17191c 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #17191c 75%),
+            linear-gradient(-45deg, transparent 75%, #17191c 75%);
         background-size: 16px 16px;
         background-position:
             0 0,

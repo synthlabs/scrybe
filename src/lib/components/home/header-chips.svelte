@@ -30,9 +30,9 @@
 </script>
 
 <div
-    class="border-scrybe/30 bg-scrybe-soft text-scrybe-ring flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]"
+    class="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/30 px-2 py-1 text-[11px] text-muted-foreground"
 >
-    <span class="bg-scrybe size-1.5 rounded-full"></span>
+    <span class="bg-scrybe/75 size-1.5 rounded-full"></span>
     <span class="max-w-35 truncate">{model_label}</span>
 </div>
 <div

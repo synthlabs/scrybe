@@ -26,17 +26,15 @@
 
 <div
     class={cn(
-        "flex items-center gap-3 rounded-md border border-transparent px-3 py-2 transition-all duration-150",
-        checked
-            ? "border-scrybe/30 bg-scrybe-soft/40"
-            : "hover:bg-accent/40",
+        "flex items-center gap-3 rounded-md border border-transparent px-2.5 py-2 transition-colors duration-150",
+        checked ? "bg-background/30" : "hover:bg-accent/25",
         !match && "pointer-events-none opacity-30",
     )}
 >
     <span
         class={cn(
             "size-1.5 shrink-0 rounded-full transition-colors",
-            checked ? "bg-scrybe" : "bg-status-idle",
+            checked ? "bg-scrybe/80" : "bg-muted-foreground/30",
         )}
         aria-hidden="true"
     ></span>

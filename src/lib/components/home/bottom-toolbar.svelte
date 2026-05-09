@@ -68,7 +68,7 @@
 </script>
 
 <div
-    class="border-border bg-card/40 flex h-12 shrink-0 items-center gap-1 border-t px-3"
+    class="border-border bg-background/35 flex h-12 shrink-0 items-center gap-1 border-t px-3"
 >
     <Button
         variant="ghost"
@@ -78,15 +78,15 @@
         class={cn(
             "h-8 cursor-pointer gap-1.5 transition-colors",
             listening
-                ? "bg-scrybe hover:bg-scrybe-press text-primary-foreground"
-                : "hover:bg-scrybe-soft hover:text-scrybe",
+                ? "border border-scrybe/40 bg-background/35 text-scrybe-ring hover:bg-accent/35"
+                : "hover:bg-accent/30 hover:text-scrybe",
         )}
     >
         {#if listening}
-            <Pause class="text-primary-foreground size-3.5 " />
+            <Pause class="size-3.5" />
             {msgs.home_toolbar_pause()}
         {:else}
-            <Play class="text-scrybe size-3.5" />
+            <Play class="text-scrybe/90 size-3.5" />
             {msgs.home_toolbar_resume()}
         {/if}
     </Button>
@@ -96,9 +96,9 @@
         size="sm"
         onclick={clear_transcript}
         disabled={transcript_empty}
-        class="h-8 gap-1.5"
+        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
     >
-        <Eraser class="size-3.5" />
+        <Eraser class="size-3.5 group-hover:text-scrybe/90" />
         {msgs.home_toolbar_clear_transcript()}
     </Button>
     <Button
@@ -106,9 +106,9 @@
         size="sm"
         onclick={new_session}
         disabled={busy}
-        class="h-8 gap-1.5"
+        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
     >
-        <Plus class="size-3.5" />
+        <Plus class="size-3.5 group-hover:text-scrybe/90" />
         {msgs.home_toolbar_new_session()}
     </Button>
     <Button
@@ -116,9 +116,9 @@
         size="sm"
         onclick={copy}
         disabled={transcript_empty}
-        class="h-8 gap-1.5"
+        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
     >
-        <Copy class="size-3.5" />
+        <Copy class="size-3.5 group-hover:text-scrybe/90" />
         {msgs.home_toolbar_copy()}
     </Button>
 </div>

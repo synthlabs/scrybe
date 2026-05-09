@@ -2,7 +2,7 @@
     import { onMount, onDestroy } from "svelte";
     import { audio_metrics, internal_state } from "$lib/stores/state.svelte";
 
-    const BAR_COUNT = 40;
+    const BAR_COUNT = 32;
 
     let listening = $derived(internal_state.obj.transcribe_running);
 
@@ -24,7 +24,7 @@
             } else if (heights.some((h) => h > 0.12)) {
                 heights = new Array(BAR_COUNT).fill(0.1);
             }
-        }, 600);
+        }, 800);
     });
     onDestroy(() => {
         if (interval) clearInterval(interval);
@@ -39,10 +39,10 @@
     {#each heights as h, i}
         {@const recent = i >= BAR_COUNT - 6}
         <div
-            class="w-[2px] rounded-sm bg-scrybe transition-[height,opacity] duration-300"
+            class="w-[2px] rounded-sm bg-scrybe/70 transition-[height,opacity] duration-500"
             style="height: {Math.max(2, Math.round(h * 18))}px; opacity: {recent
-                ? 1
-                : Math.max(0.25, h)};"
+                ? 0.78
+                : Math.max(0.16, h * 0.7)};"
         ></div>
     {/each}
 </div>

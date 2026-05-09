@@ -15,20 +15,16 @@
 
 <div
     class={cn(
-        "rounded-md border bg-scrybe-soft/30",
+        "bg-card/30 rounded-md border border-border/60",
         className,
     )}
-    style="border-color: hsl(17 75% 65% / 0.18);"
 >
     <header class="flex items-center gap-3 border-b border-border/50 px-4 py-2.5">
         <span class="relative flex h-2 w-2 items-center justify-center">
-            <span
-                class="absolute inline-flex h-2 w-2 rounded-full bg-scrybe opacity-80 animate-scrybe-pulse"
-            ></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-scrybe"></span>
+            <span class="bg-scrybe/80 relative inline-flex h-1.5 w-1.5 rounded-full"></span>
         </span>
         <span
-            class="text-[10px] font-bold uppercase tracking-[0.08em] text-scrybe-ring"
+            class="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.08em]"
         >
             {msgs.settings_live_preview_label()}
         </span>

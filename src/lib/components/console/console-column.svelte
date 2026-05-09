@@ -21,22 +21,20 @@
 
 <section
     class={cn(
-        "flex min-w-0 flex-col border-r border-border last:border-r-0",
+        "bg-card/30 flex min-w-0 flex-col overflow-hidden rounded-md border border-border/60",
         className,
     )}
 >
-    <header
-        class="flex items-center gap-2 border-b border-border px-4 py-3"
-    >
-        <Icon class="size-4 text-muted-foreground" />
+    <header class="flex items-center gap-2 border-b border-border/50 px-4 py-3">
+        <Icon class="text-scrybe/75 size-4" />
         <span
-            class="text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground"
+            class="text-muted-foreground text-xs font-semibold uppercase tracking-[0.05em]"
         >
             {label}
         </span>
         {#if count}
             <span
-                class="ml-auto text-[10px] font-medium text-muted-foreground/70"
+                class="text-muted-foreground/70 ml-auto text-[10px] font-medium"
             >
                 {count}
             </span>
