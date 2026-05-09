@@ -28,6 +28,7 @@ use uuid::Uuid;
 use warp::Filter;
 use ws::WebsocketManager;
 
+mod internal;
 mod types;
 mod ws;
 
@@ -196,6 +197,33 @@ fn has_nvidia_gpu() -> bool {
 #[derive(RustEmbed)]
 #[folder = "../build"]
 struct Static;
+
+#[cfg(debug_assertions)]
+fn repo_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("src-tauri has no parent directory")
+        .to_path_buf()
+}
+
+#[cfg(debug_assertions)]
+fn typescript_exporter() -> Typescript {
+    Typescript::default()
+        .formatter(specta_typescript::formatter::prettier)
+        .bigint(specta_typescript::BigIntExportBehavior::Number)
+        .header("/* eslint-disable */")
+}
+
+#[cfg(debug_assertions)]
+fn export_bindings(builder: &tauri_specta::Builder<tauri::Wry>, path: std::path::PathBuf) {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("Failed to create bindings output directory");
+    }
+
+    builder
+        .export(typescript_exporter(), path)
+        .expect("Failed to export typescript bindings");
+}
 
 pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
@@ -766,21 +794,18 @@ pub fn run() {
             app.emit("single-instance", argv).unwrap();
         }));
 
-    let handlers = specta_builder();
+    let public_handlers = specta_builder();
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
-    handlers
-        .export(
-            Typescript::default()
-                .formatter(specta_typescript::formatter::prettier)
-                .bigint(specta_typescript::BigIntExportBehavior::Number)
-                .header("/* eslint-disable */"),
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .expect("src-tauri has no parent directory")
-                .join("src/lib/bindings.ts"),
-        )
-        .expect("Failed to export typescript bindings");
+    export_bindings(&public_handlers, repo_root().join("src/lib/bindings.ts"));
+
+    let handlers = internal::extend_specta(public_handlers);
+
+    #[cfg(all(debug_assertions, internal_enabled))]
+    export_bindings(
+        &handlers,
+        repo_root().join("internal/frontend/bindings.ts"),
+    );
 
     let _builder = builder
         .invoke_handler(handlers.invoke_handler())
@@ -792,6 +817,7 @@ pub fn run() {
 
             // This is also required if you want to use events
             handlers.mount_events(app);
+            internal::setup(app)?;
 
             let working_dir = env::current_dir().expect("unable to get working dir");
             info!("Current working dir {}", working_dir.display());

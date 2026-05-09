@@ -17,6 +17,7 @@
     import { header } from "$lib/stores/header.svelte";
     import { session } from "$lib/stores/session.svelte";
     import { internal_state } from "$lib/stores/state.svelte";
+    import { InternalRoot, navItems as internalNavItems } from "$internal";
 
     let navMain = [
         {
@@ -34,6 +35,7 @@
             url: "/settings",
             icon: Settings2,
         },
+        ...internalNavItems,
     ];
 
     let { children } = $props();
@@ -96,4 +98,5 @@
             {@render children?.()}
         </div>
     </Sidebar.Inset>
+    <InternalRoot />
 </Sidebar.Provider>
