@@ -611,7 +611,7 @@
                         onclick={copy_cache_path}
                         disabled={!app_state.obj.model_path}
                         aria-label={msgs.settings_cache_copy_aria()}
-                        class="text-muted-foreground/70 hover:text-foreground focus-visible:text-foreground transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
+                        class="text-muted-foreground/70 hover:text-foreground focus-visible:text-foreground cursor-pointer transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
                     >
                         {#if cache_copied}
                             <Check class="text-status-live size-3.5" />
@@ -670,7 +670,7 @@
             <div class="flex flex-col gap-1">
                 <button
                     type="button"
-                    class="text-muted-foreground hover:text-foreground flex items-center gap-1 self-start text-[11px] font-medium transition-colors"
+                    class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 self-start text-[11px] font-medium transition-colors"
                     onclick={() => (show_advanced = !show_advanced)}
                 >
                     {#if show_advanced}

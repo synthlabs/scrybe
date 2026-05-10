@@ -29,7 +29,7 @@
             aria-label={hex}
             onclick={() => onChange(hex)}
             class={cn(
-                "size-6 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrybe-ring",
+                "size-6 cursor-pointer rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrybe-ring",
                 value?.toLowerCase() === hex.toLowerCase()
                     ? "border-scrybe/70 ring-1 ring-scrybe/70 ring-offset-1 ring-offset-card"
                     : "border-border/60 hover:border-scrybe/50",

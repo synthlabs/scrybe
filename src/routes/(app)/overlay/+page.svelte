@@ -274,7 +274,7 @@
                         type="button"
                         onclick={copy_url}
                         aria-label={msgs.overlay_url_copy_aria()}
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:bg-accent"
+                        class="absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:bg-accent"
                     >
                         {#if url_copied}
                             <Check class="size-3.5 text-status-live" />

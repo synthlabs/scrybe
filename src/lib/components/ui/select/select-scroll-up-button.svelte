@@ -16,7 +16,7 @@
 <SelectPrimitive.ScrollUpButton
     bind:ref
     class={cn(
-        "flex cursor-default items-center justify-center py-1",
+        "flex cursor-pointer items-center justify-center py-1",
         className,
     )}
     {...restProps}

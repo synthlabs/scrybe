@@ -17,7 +17,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 <SliderPrimitive.Root
 	bind:value={value as never}
 	bind:ref
-	class={cn("relative flex w-full touch-none select-none items-center", className)}
+		class={cn("relative flex w-full cursor-pointer touch-none select-none items-center", className)}
 	{...restProps}
 >
 	{#snippet children({ thumbs })}
@@ -27,7 +27,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 		{#each thumbs as thumb}
 			<SliderPrimitive.Thumb
 				index={thumb}
-				class="border-scrybe/80 bg-background ring-offset-background focus-visible:ring-ring block size-5 rounded-full border-2 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+					class="border-scrybe/80 bg-background ring-offset-background focus-visible:ring-ring block size-5 cursor-pointer rounded-full border-2 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 			/>
 		{/each}
 	{/snippet}
