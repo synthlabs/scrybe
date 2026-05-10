@@ -128,8 +128,7 @@ pub fn model_presets() -> Vec<ModelPreset> {
         ModelPreset {
             id: "large-v3-turbo-q5_0".to_string(),
             label: "Large v3 Turbo (Q5_0)".to_string(),
-            description: "Large-v3 quality, ~8× faster than non-turbo. ~574 MB."
-                .to_string(),
+            description: "Large-v3 quality, ~8× faster than non-turbo. ~574 MB.".to_string(),
             repo: repo.clone(),
             filename: "ggml-large-v3-turbo-q5_0.bin".to_string(),
         },

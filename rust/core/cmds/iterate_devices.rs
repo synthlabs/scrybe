@@ -9,8 +9,12 @@ fn main() {
         println!("{}", host_id.name());
         let host = cpal::host_from_id(host_id).expect("failed to get host from id");
 
-        let default_in = host.default_input_device().map(|e| e.name().unwrap());
-        let default_out = host.default_output_device().map(|e| e.name().unwrap());
+        let default_in = host
+            .default_input_device()
+            .map(|e| e.description().unwrap());
+        let default_out = host
+            .default_output_device()
+            .map(|e| e.description().unwrap());
         println!("  Default Input Device:\n    {:?}", default_in);
         println!("  Default Output Device:\n    {:?}", default_out);
 

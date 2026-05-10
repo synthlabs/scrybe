@@ -245,7 +245,6 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<scrybe_core::segments::GateEvaluationTelemetryEntry>()
         .typ::<scrybe_core::segments::SegmentEmissionDecisionKind>()
         .typ::<scrybe_core::segments::SegmentSuppressionReason>()
-        // Then register them (separated by a comma)
         .commands(collect_commands![
             start_transcribe,
             stop_transcribe,
@@ -736,7 +735,10 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                     }
                 }
                 Err(cpu_err) => {
-                    error!("failed to initialize Whisper with CPU fallback: {}", cpu_err);
+                    error!(
+                        "failed to initialize Whisper with CPU fallback: {}",
+                        cpu_err
+                    );
                     *manager_ref.lock().unwrap() = None;
                     WhisperSetupResult {
                         model_path,
@@ -763,6 +765,35 @@ impl warp::reply::Reply for EmbedFile {
     }
 }
 
+fn inbound_build_info() -> inbound::BuildInfo {
+    inbound::BuildInfo {
+        app_version: env!("CARGO_PKG_VERSION").to_owned(),
+        app_commit: option_env!("INBOUND_GIT_SHA")
+            .unwrap_or("unknown")
+            .to_owned(),
+        build_time: option_env!("INBOUND_BUILD_TIME")
+            .unwrap_or("unknown")
+            .to_owned(),
+    }
+}
+
+struct ScrybeScrubber;
+
+impl inbound::Scrubber<tauri::Wry> for ScrybeScrubber {
+    fn scrub(&self, app: &AppHandle) -> Result<Option<serde_json::Value>, String> {
+        let state_syncer = app.state::<StateSyncer>();
+        let snapshot = state_syncer.snapshot::<types::AppState>("app_state");
+        let mut value = serde_json::to_value(snapshot).map_err(|err| err.to_string())?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert(
+                "model_path".to_owned(),
+                serde_json::Value::String("[redacted]".to_owned()),
+            );
+        }
+        Ok(Some(value))
+    }
+}
+
 pub fn run() {
     color_eyre::install().expect("failed to install color_eyre");
 
@@ -777,6 +808,7 @@ pub fn run() {
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: None,
                     }),
+                    inbound::capture::log_target(),
                 ])
                 .build(),
         )
@@ -786,6 +818,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(inbound::init(inbound::Config {
+            app: inbound::AppId::Scrybe,
+            build: inbound_build_info(),
+            scrubber: Some(Arc::new(ScrybeScrubber)),
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(Arc::new(Mutex::new(None::<WhisperManager>)))
@@ -802,10 +839,7 @@ pub fn run() {
     let handlers = internal::extend_specta(public_handlers);
 
     #[cfg(all(debug_assertions, internal_enabled))]
-    export_bindings(
-        &handlers,
-        repo_root().join("internal/frontend/bindings.ts"),
-    );
+    export_bindings(&handlers, repo_root().join("internal/frontend/bindings.ts"));
 
     let _builder = builder
         .invoke_handler(handlers.invoke_handler())

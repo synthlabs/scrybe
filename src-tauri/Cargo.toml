@@ -3,6 +3,8 @@ name = "scrybe"
 path = "src/main.rs"
 
 [build-dependencies]
+[build-dependencies.inbound-build]
+path = "../utils/rust/inbound-build"
 [build-dependencies.tauri-build]
 features = []
 version = "2"
@@ -13,6 +15,7 @@ color-eyre = "0.6.3"
 eyre = "0.6.12"
 futures = "0.3.31"
 hf-hub = "0.4.2"
+inbound = { path = "../utils/rust/inbound" }
 log = "0.4"
 mime_guess = "2.0"
 rust-embed = "8.5.0"

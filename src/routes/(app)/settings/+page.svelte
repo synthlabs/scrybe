@@ -3,6 +3,7 @@
     import { Input } from "$lib/components/ui/input/index.ts";
     import { Button } from "$lib/components/ui/button/index.ts";
     import { Slider } from "$lib/components/ui/slider/index.ts";
+    import * as Sheet from "$lib/components/ui/sheet/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import ConsoleColumn from "$lib/components/console/console-column.svelte";
     import LivePreviewCard from "$lib/components/console/live-preview-card.svelte";
@@ -18,8 +19,10 @@
     import ChevronUp from "@lucide/svelte/icons/chevron-up";
     import Copy from "@lucide/svelte/icons/copy";
     import Check from "@lucide/svelte/icons/check";
+    import Bug from "@lucide/svelte/icons/bug";
     import { open } from "@tauri-apps/plugin-dialog";
     import { toast } from "svelte-sonner";
+    import { ReportWizard } from "$utils/inbound";
     import { DefaultAppState } from "$lib/defaults";
     import {
         commands,
@@ -163,6 +166,7 @@
 
     let search = $state("");
     let show_advanced = $state(false);
+    let report_open = $state(false);
 
     const matchesSearch = (label: string, description: string): boolean => {
         if (!search.trim()) return true;
@@ -718,4 +722,23 @@
             </div>
         </ConsoleColumn>
     </div>
+
+    <div class="border-border/60 bg-background/40 flex items-center justify-between gap-4 rounded border p-3">
+        <div class="flex min-w-0 items-center gap-3">
+            <Bug class="text-muted-foreground size-4 shrink-0" />
+            <div class="min-w-0">
+                <div class="text-sm font-medium">{msgs.settings_bug_report_label()}</div>
+                <div class="text-muted-foreground text-xs">{msgs.settings_bug_report_desc()}</div>
+            </div>
+        </div>
+        <Button variant="outline" size="sm" onclick={() => (report_open = true)}>
+            {msgs.settings_bug_report_button()}
+        </Button>
+    </div>
+
+    <Sheet.Root bind:open={report_open}>
+        <Sheet.Content class="w-full sm:max-w-xl">
+            <ReportWizard onclose={() => (report_open = false)} />
+        </Sheet.Content>
+    </Sheet.Root>
 </div>
