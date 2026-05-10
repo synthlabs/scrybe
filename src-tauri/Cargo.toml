@@ -15,7 +15,6 @@ color-eyre = "0.6.3"
 eyre = "0.6.12"
 futures = "0.3.31"
 hf-hub = "0.4.2"
-inbound = { path = "../utils/rust/inbound" }
 log = "0.4"
 mime_guess = "2.0"
 rust-embed = "8.5.0"
@@ -36,6 +35,8 @@ tauri-plugin-window-state = "2"
 tokio-stream = "0.1.17"
 warp = "0.3.7"
 warp-embed = "0.5.0"
+[dependencies.inbound]
+path = "../utils/rust/inbound"
 [dependencies.scrybe_core]
 features = ["whisper-runtime"]
 path = "../rust/core"
@@ -79,7 +80,7 @@ default-run = "scrybe"
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"
-version = "0.2.11"
+version = "0.2.12"
 
 [target]
 [target."cfg(target_os = \"macos\")"]
