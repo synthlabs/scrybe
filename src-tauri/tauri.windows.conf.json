@@ -1,12 +1,13 @@
 {
     "identifier": "com.scrybe.live",
     "build": {
+        "beforeBuildCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-tauri.ps1",
         "beforeBundleCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-windows-cuda-redist.ps1"
     },
     "bundle": {
-        "resources": [
-            "../target/windows-cuda-redist/resources/cuda/*"
-        ],
+        "resources": {
+            "../target/windows-cuda-redist/resources/cuda": "resources/cuda"
+        },
         "windows": {
             "nsis": {
                 "installerHooks": "windows/hooks.nsh"

@@ -29,6 +29,9 @@ $OutRoot = Join-Path $RepoRoot $OutDir
 $ResourceDir = Join-Path $OutRoot "resources/cuda"
 $HookPath = Join-Path $OutRoot "cuda-redist-hooks.nsh"
 
+if (Test-Path -LiteralPath $ResourceDir) {
+    Remove-Item -LiteralPath $ResourceDir -Recurse -Force
+}
 New-Item -ItemType Directory -Force -Path $ResourceDir | Out-Null
 
 function Get-ImportedDlls {
