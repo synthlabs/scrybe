@@ -28,7 +28,7 @@
                 const segment: WhisperSegment = JSON.parse(event.data);
                 current_segment = segment;
                 break;
-            case "appstate_update":
+            case "app_state_update":
                 const appstate: AppState = JSON.parse(event.data);
                 overlay_config = appstate.overlay_config;
                 break;

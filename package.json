@@ -10,6 +10,7 @@
         "preview": "vite preview",
         "tauri": "tauri",
         "test:i18n": "node --test scripts/i18n-detect.test.mjs",
+        "test:overlay-ws": "node --test scripts/overlay-ws-contract.test.mjs",
         "test:updater": "node scripts/updater-toast.test.mjs",
         "validate:transcription": "node scripts/validate-transcription.mjs"
     },
