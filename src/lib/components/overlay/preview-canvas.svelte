@@ -11,21 +11,10 @@
 </script>
 
 <div
-    class="overflow-hidden rounded-md border border-border/60 bg-checkered"
+    class="overflow-hidden rounded-md border border-border/60 bg-checkered p-2"
     style="height: {height};"
 >
-    <TextOverlay
-        test_mode={true}
-        justify={config.text_alignment}
-        background={config.background_color}
-        transparency={config.transparency}
-        font_size={config.font_size}
-        font_weight={config.font_weight}
-        corner_radius={config.corner_radius}
-        padding_x={config.padding_x}
-        padding_y={config.padding_y}
-        drop_shadow={config.drop_shadow}
-    />
+    <TextOverlay test_mode={true} style={config.style} scale={0.62} />
 </div>
 
 <style>

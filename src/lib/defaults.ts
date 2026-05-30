@@ -4,6 +4,7 @@ import type {
     GateTelemetryState,
     AudioMetricsState,
 } from "./bindings";
+import { DEFAULT_OVERLAY_CONFIG } from "./overlay/layout-math.js";
 
 // These mirror the Rust `Default` impls in src-tauri/src/types.rs and
 // rust/core/src/whisper.rs. They MUST stay in sync — if a sync() ever fires
@@ -22,17 +23,9 @@ export let DefaultAppState: AppState = {
     model_path: "",
     audio_segment_size: 15,
     overlay_config: {
-        name: "default",
-        id: "",
-        text_alignment: "center",
-        background_color: "#030712",
-        transparency: 75,
-        font_size: 28,
-        corner_radius: 4,
-        padding_x: 12,
-        padding_y: 6,
-        font_weight: 600,
-        drop_shadow: true,
+        canvas: { ...DEFAULT_OVERLAY_CONFIG.canvas },
+        box: { ...DEFAULT_OVERLAY_CONFIG.box },
+        style: { ...DEFAULT_OVERLAY_CONFIG.style },
     },
     home_right_rail: {
         session: false,
@@ -66,6 +59,11 @@ export let DefaultInternalState: InternalState = {
         has_nvidia_gpu: false,
         reason: "",
         action_url: null,
+    },
+    overlay_test: {
+        visible: false,
+        text: "",
+        expires_at_ms: null,
     },
 };
 

@@ -106,6 +106,22 @@ struct WhisperSetupResult {
     runtime_dependency: RuntimeDependencyState,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
+struct OverlayTestState {
+    visible: bool,
+    text: String,
+    expires_at_ms: Option<u64>,
+}
+
+impl OverlayTestState {
+    fn clear(&mut self) {
+        self.visible = false;
+        self.text.clear();
+        self.expires_at_ms = None;
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(default)]
 struct InternalState {
@@ -115,6 +131,7 @@ struct InternalState {
     version: String,
     name: String,
     runtime_dependency: RuntimeDependencyState,
+    overlay_test: OverlayTestState,
 }
 
 impl Default for InternalState {
@@ -126,6 +143,7 @@ impl Default for InternalState {
             version: "".to_owned(),
             name: "".to_owned(),
             runtime_dependency: RuntimeDependencyState::default(),
+            overlay_test: OverlayTestState::default(),
         }
     }
 }
@@ -144,6 +162,11 @@ impl InternalState {
     fn stop_transcription(&mut self) {
         self.transcribe_running = false;
         self.active_transcription_run_id = None;
+    }
+
+    fn reset_runtime_only_state(&mut self) {
+        self.stop_transcription();
+        self.overlay_test.clear();
     }
 
     fn is_transcription_run_active(&self, run_id: &str) -> bool {
@@ -228,12 +251,17 @@ fn export_bindings(builder: &tauri_specta::Builder<tauri::Wry>, path: std::path:
 pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::<tauri::Wry>::new()
         .typ::<InternalState>()
+        .typ::<OverlayTestState>()
         .typ::<RuntimeDependencyState>()
         .typ::<RuntimeDependencyStatus>()
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
         .typ::<types::HomeRightRailSettings>()
         .typ::<types::OverlayConfig>()
+        .typ::<types::OverlayCanvas>()
+        .typ::<types::OverlayBox>()
+        .typ::<types::OverlayStyle>()
+        .typ::<types::OverlayPadding>()
         .typ::<types::WebsocketRequest>()
         .typ::<types::WebsocketResponse>()
         .typ::<types::ModelPreset>()
@@ -875,7 +903,7 @@ pub fn run() {
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");
             internal_state.version = app.package_info().version.to_string();
             internal_state.name = app.package_info().name.to_string();
-            internal_state.stop_transcription();
+            internal_state.reset_runtime_only_state();
 
             let setup_result = {
                 let app_state_ref = state_syncer.get::<types::AppState>("app_state");
@@ -975,7 +1003,7 @@ pub fn run() {
                     internal_state.name.clone(),
                     internal_state.version.clone()
                 ))
-                .inner_size(1000.0, 640.0)
+                .inner_size(1300.0, 900.0)
                 .min_inner_size(880.0, 560.0)
                 .resizable(true)
                 .visible(false)
@@ -1076,5 +1104,24 @@ mod tests {
         state.clear_transcription_run_if_current("old");
 
         assert!(state.is_transcription_run_active("new"));
+    }
+
+    #[test]
+    fn reset_runtime_only_state_clears_overlay_test() {
+        let mut state = InternalState::default();
+        state.overlay_test = OverlayTestState {
+            visible: true,
+            text: "preview".to_owned(),
+            expires_at_ms: Some(123),
+        };
+        assert!(state.claim_transcription_run("run".to_owned()));
+
+        state.reset_runtime_only_state();
+
+        assert!(!state.transcribe_running);
+        assert_eq!(state.active_transcription_run_id, None);
+        assert!(!state.overlay_test.visible);
+        assert_eq!(state.overlay_test.text, "");
+        assert_eq!(state.overlay_test.expires_at_ms, None);
     }
 }

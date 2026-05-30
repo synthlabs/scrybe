@@ -14,6 +14,7 @@ const overlayFiles = [
     "src/routes/v1/overlay/+page.svelte",
     "src/lib/components/overlay/align-buttons.svelte",
     "src/lib/components/overlay/color-swatches.svelte",
+    "src/lib/components/overlay/overlay-canvas.svelte",
     "src/lib/components/overlay/preview-canvas.svelte",
     "src/lib/components/overlay/text-overlay.svelte",
 ];

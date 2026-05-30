@@ -8,7 +8,10 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 use warp::{filters::ws::WebSocket, reject::Rejection, ws::Message};
 
-use crate::types::{AppState, WebsocketRequest, WebsocketResponse};
+use crate::{
+    types::{AppState, WebsocketRequest, WebsocketResponse},
+    InternalState,
+};
 
 pub type _WSResult<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<Mutex<HashMap<String, Client>>>;
@@ -118,6 +121,32 @@ impl WebsocketManager {
 
                     let response =
                         Self::to_ws_response("app_state_update".to_owned(), app_state.clone());
+
+                    let response_str = match serde_json::to_string(&response) {
+                        Ok(data) => data,
+                        Err(err) => {
+                            error!("failed to serialize response: {}", err);
+                            return;
+                        }
+                    };
+
+                    match client.sender.send(Ok(Message::text(response_str.clone()))) {
+                        Ok(_) => {}
+                        Err(err) => error!("failed to send to client: {}", err),
+                    };
+                }
+            }
+            "get_internalstate" => {
+                debug!("get_internalstate from websocket");
+
+                {
+                    let internal_state_ref = self.store.get::<InternalState>("internal_state");
+                    let internal_state = internal_state_ref.lock().unwrap();
+
+                    let response = Self::to_ws_response(
+                        "internal_state_update".to_owned(),
+                        internal_state.clone(),
+                    );
 
                     let response_str = match serde_json::to_string(&response) {
                         Ok(data) => data,

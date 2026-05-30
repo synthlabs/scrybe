@@ -3,27 +3,24 @@
 
     interface Props {
         value: string;
+        presets: string[];
         onChange: (next: string) => void;
+        customLabel?: string;
     }
 
-    let { value, onChange }: Props = $props();
-
-    const PRESETS = [
-        "#ffffff",
-        "#f5d782",
-        "#f5a572",
-        "#a4d4ff",
-        "#ffb1c8",
-        "#c8c8cd",
-    ];
+    let { value, presets, onChange, customLabel = "Custom color" }: Props =
+        $props();
 
     const isPreset = (hex: string) =>
-        PRESETS.some((p) => p.toLowerCase() === hex.toLowerCase());
+        presets.some((p) => p.toLowerCase() === hex.toLowerCase());
     let custom_active = $derived(!!value && !isPreset(value));
+    let picker_value = $derived(
+        /^#[\da-f]{6}$/i.test(value) ? value : "#ffffff",
+    );
 </script>
 
 <div class="flex items-center gap-1.5">
-    {#each PRESETS as hex}
+    {#each presets as hex}
         <button
             type="button"
             aria-label={hex}
@@ -50,10 +47,10 @@
     >
         <input
             type="color"
-            value={value || "#ffffff"}
-            onchange={(e) => onChange((e.target as HTMLInputElement).value)}
+            value={picker_value}
+            oninput={(e) => onChange((e.target as HTMLInputElement).value)}
             class="absolute inset-0 size-full cursor-pointer opacity-0"
-            aria-label="Custom color"
+            aria-label={customLabel}
         />
     </label>
 </div>
