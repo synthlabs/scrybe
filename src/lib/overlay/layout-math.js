@@ -239,6 +239,11 @@ export function paddingPixels(padding) {
     return PADDING_PIXELS[normalizePadding(padding)];
 }
 
+/** @param {OverlayPadding | string | undefined} padding */
+export function captionAlignItems(padding) {
+    return normalizePadding(padding) === "none" ? "flex-start" : "center";
+}
+
 /** @param {OverlayCanvas} canvas */
 export function resolutionPresetId(canvas) {
     const preset = RESOLUTION_PRESETS.find(

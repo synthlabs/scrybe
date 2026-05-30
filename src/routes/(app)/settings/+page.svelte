@@ -721,19 +721,20 @@
                 {/each}
             </div>
         </ConsoleColumn>
-    </div>
 
-    <div class="border-border/60 bg-background/40 flex items-center justify-between gap-4 rounded border p-3">
-        <div class="flex min-w-0 items-center gap-3">
-            <Bug class="text-muted-foreground size-4 shrink-0" />
-            <div class="min-w-0">
-                <div class="text-sm font-medium">{msgs.settings_bug_report_label()}</div>
-                <div class="text-muted-foreground text-xs">{msgs.settings_bug_report_desc()}</div>
-            </div>
-        </div>
-        <Button variant="outline" size="sm" onclick={() => (report_open = true)}>
-            {msgs.settings_bug_report_button()}
-        </Button>
+        <ConsoleColumn icon={Bug} label={msgs.settings_bug_report_label()}>
+            <p class="text-muted-foreground text-sm">
+                {msgs.settings_bug_report_desc()}
+            </p>
+            <Button
+                variant="outline"
+                size="sm"
+                class="w-fit"
+                onclick={() => (report_open = true)}
+            >
+                {msgs.settings_bug_report_button()}
+            </Button>
+        </ConsoleColumn>
     </div>
 
     <Sheet.Root bind:open={report_open}>

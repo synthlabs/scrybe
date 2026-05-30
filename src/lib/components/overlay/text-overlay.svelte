@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { OverlayStyle, WhisperSegment } from "$lib/bindings";
     import {
+        captionAlignItems,
         hexToRgb,
         paddingPixels,
     } from "$lib/overlay/layout-math.js";
@@ -45,6 +46,7 @@
     let rgb = $derived(hexToRgb(style.background_color));
     let opacity = $derived(style.background_opacity / 100);
     let padding = $derived(paddingPixels(style.padding) * scale);
+    let align_items = $derived(captionAlignItems(style.padding));
     let has_segment = $derived(current_segment.items.length > 0);
     let caption_text = $derived(
         has_segment
@@ -56,7 +58,7 @@
             "width: 100%",
             "height: 100%",
             "display: flex",
-            "align-items: center",
+            `align-items: ${align_items}`,
             `justify-content: ${justify(style.align)}`,
             "box-sizing: border-box",
             `padding: ${padding}px`,
