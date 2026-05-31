@@ -855,6 +855,31 @@ impl inbound::Scrubber<tauri::Wry> for ScrybeScrubber {
     }
 }
 
+fn cleanup_before_exit(app: &AppHandle) {
+    if let Some(state_syncer) = app.try_state::<StateSyncer>() {
+        let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
+        match internal_state_ref.lock() {
+            Ok(mut internal_state) => internal_state.stop_transcription(),
+            Err(err) => error!("failed to lock internal state during shutdown: {}", err),
+        };
+    }
+
+    if let Some(manager_ref) = app.try_state::<SharedWhisperManager>() {
+        let whisper_manager = match manager_ref.lock() {
+            Ok(mut guard) => guard.take(),
+            Err(err) => {
+                error!("failed to lock whisper manager during shutdown: {}", err);
+                None
+            }
+        };
+
+        if whisper_manager.is_some() {
+            info!("dropping whisper manager before exit");
+        }
+        drop(whisper_manager);
+    }
+}
+
 pub fn run() {
     color_eyre::install().expect("failed to install color_eyre");
 
@@ -902,7 +927,7 @@ pub fn run() {
     #[cfg(all(debug_assertions, internal_enabled))]
     export_bindings(&handlers, repo_root().join("internal/frontend/bindings.ts"));
 
-    let _builder = builder
+    let app = builder
         .invoke_handler(handlers.invoke_handler())
         .setup(move |app| {
             #[cfg(desktop)]
@@ -1093,8 +1118,14 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app, event| {
+        if matches!(event, tauri::RunEvent::Exit) {
+            cleanup_before_exit(app);
+        }
+    });
 }
 
 #[cfg(test)]
