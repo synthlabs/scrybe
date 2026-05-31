@@ -127,6 +127,8 @@
     "overlay_howto_step3": "Субтитры появятся, когда Scrybe слушает.",
     "overlay_server_running": "Сервер слушает порт 3030",
     "about_intro": "Программа для генерации субтитров. Подходит для добавления субтитров к воспроизводимому аудио или интеграции с OBS для трансляций.",
+    "about_discord_intro": "Присоединяйтесь к серверу Scrybe в Discord для помощи, обновлений и обсуждений.",
+    "about_discord_link": "Discord",
     "header_status_listening": "Слушает",
     "header_status_idle": "Ожидает",
     "home_rail_session": "Сессия",

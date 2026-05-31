@@ -127,6 +127,8 @@
     "overlay_howto_step3": "Captions appear when Scrybe is listening.",
     "overlay_server_running": "Server running on port 3030",
     "about_intro": "A toy subtitle program useful for providing subtitles to currently playing audio, or for integrating with OBS to provide subtitles to your stream.",
+    "about_discord_intro": "Join the Scrybe Discord server for help, updates, and discussion.",
+    "about_discord_link": "Discord",
     "header_status_listening": "Listening",
     "header_status_idle": "Idle",
     "home_rail_session": "Session",

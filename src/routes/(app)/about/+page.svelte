@@ -1,13 +1,17 @@
 <script lang="ts">
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import { m as msgs } from "$lib/paraglide/messages";
+    import MessageCircle from "@lucide/svelte/icons/message-circle";
 </script>
 
 <div class="container space-y-4 p-4">
-    <div>
+    <div class="space-y-2">
         <h3 class="text-lg font-medium" id="whisper">Scrybe</h3>
         <p class="text-muted-foreground text-sm">
             {msgs.about_intro()}
+        </p>
+        <p class="text-muted-foreground text-sm">
+            {msgs.about_discord_intro()}
         </p>
     </div>
     <Separator />
@@ -16,6 +20,7 @@
             href="https://github.com/xjerod/scrybe"
             class="flex flex-row items-baseline gap-2"
             target="_blank"
+            rel="noopener noreferrer"
         >
             <svg
                 viewBox="0 0 24 24"
@@ -28,6 +33,15 @@
                 />
             </svg>
             Github
+        </a>
+        <a
+            href="https://discord.gg/J9HN8NQZTH"
+            class="flex flex-row items-baseline gap-2"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            <MessageCircle class="size-4" aria-hidden="true" />
+            {msgs.about_discord_link()}
         </a>
     </div>
 </div>
