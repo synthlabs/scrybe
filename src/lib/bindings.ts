@@ -124,6 +124,9 @@ export type ModelPreset = {
     description: string;
     repo: string;
     filename: string;
+    size_mb: number;
+    resource_rank: number;
+    auto_selectable: boolean;
 };
 export type OverlayBox = { x: number; y: number; w: number; h: number };
 export type OverlayCanvas = { width: number; height: number };

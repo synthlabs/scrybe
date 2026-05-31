@@ -3,10 +3,10 @@
     import { m as msgs } from "$lib/paraglide/messages";
 </script>
 
-<div class="container space-y-4 pb-4">
+<div class="container space-y-4 p-4">
     <div>
         <h3 class="text-lg font-medium" id="whisper">Scrybe</h3>
-        <p class="text-sm text-muted-foreground">
+        <p class="text-muted-foreground text-sm">
             {msgs.about_intro()}
         </p>
     </div>

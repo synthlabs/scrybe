@@ -29,6 +29,7 @@ use warp::Filter;
 use ws::WebsocketManager;
 
 mod internal;
+mod model_selection;
 mod types;
 mod ws;
 
@@ -215,6 +216,14 @@ fn has_nvidia_gpu() -> bool {
 #[cfg(not(target_os = "windows"))]
 fn has_nvidia_gpu() -> bool {
     false
+}
+
+fn accelerated_backend_available(has_nvidia_gpu: bool) -> bool {
+    if cfg!(target_os = "macos") {
+        true
+    } else {
+        has_nvidia_gpu
+    }
 }
 
 #[derive(RustEmbed)]
@@ -711,16 +720,37 @@ fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::E
 fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetupResult {
     let has_nvidia_gpu = has_nvidia_gpu();
 
-    if model_path == "" {
-        info!("empty model path, pulling default model");
-        let default_preset = types::model_presets()
-            .into_iter()
-            .find(|p| p.id == types::DEFAULT_MODEL_PRESET_ID)
-            .expect("default model preset missing from model_presets()");
-        match download_preset_file(&default_preset) {
+    if model_path.is_empty() {
+        let profile = model_selection::collect_hardware_profile(accelerated_backend_available(
+            has_nvidia_gpu,
+        ));
+        let selected_preset_id = model_selection::select_initial_model_preset_id(profile);
+        info!(
+            "empty model path, selecting initial model preset {} for hardware profile {:?}",
+            selected_preset_id, profile
+        );
+
+        let presets = types::model_presets();
+        let selected_preset = presets
+            .iter()
+            .find(|preset| preset.id == selected_preset_id)
+            .or_else(|| {
+                error!(
+                    "selected model preset {} missing from model_presets(), falling back to {}",
+                    selected_preset_id,
+                    types::DEFAULT_MODEL_PRESET_ID
+                );
+                presets
+                    .iter()
+                    .find(|preset| preset.id == types::DEFAULT_MODEL_PRESET_ID)
+            })
+            .expect("default model preset missing from model_presets()")
+            .clone();
+
+        match download_preset_file(&selected_preset) {
             Ok(downloaded_model_path) => model_path = downloaded_model_path,
             Err(err) => {
-                error!("failed to download default model preset: {}", err);
+                error!("failed to download initial model preset: {}", err);
                 let manager_ref = app.state::<SharedWhisperManager>();
                 *manager_ref.lock().unwrap() = None;
                 return WhisperSetupResult {
@@ -728,7 +758,10 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                     runtime_dependency: RuntimeDependencyState {
                         status: RuntimeDependencyStatus::Unavailable,
                         has_nvidia_gpu,
-                        reason: format!("Failed to download the default Whisper model: {err}"),
+                        reason: format!(
+                            "Failed to download the initial Whisper model ({}): {err}",
+                            selected_preset.id
+                        ),
                         action_url: None,
                     },
                 };
