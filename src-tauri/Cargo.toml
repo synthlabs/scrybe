@@ -80,7 +80,7 @@ default-run = "scrybe"
 description = "A Tauri App"
 edition = "2021"
 name = "scrybe"
-version = "0.2.12"
+version = "0.2.13"
 
 [target]
 [target."cfg(target_os = \"macos\")"]

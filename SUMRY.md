@@ -1,18 +1,17 @@
-[commit]: # '426bb4489d69a60756cb14b65a4b6f3db8b3b4bc'
+[commit]: # 'b7d737bc72d25b64596a1716798e25f1407fb83e'
 
 Features:
 
-- (inbound): support sending error reports
-- (internal): support internal testing packages
-- (install): windows install includes cuda dll&#39;s now
+- (updater): use in-app toast for update notification
 
 Fixes:
 
+- (internal): update github action to set bug report url
+- (overlay): properly render no padding mode
+- (overlay): properly sync state with backend
 - (windows): fix github build process
-- (build): don&#39;t depend on cuda in linux
 
 Misc:
 
-- fix: clickable buttons now properly show pointer cursor
-- (ui): scale back on the accents and make the ui more chill
-- (updater): version bump 0.2.11
+- (ui): redo overlay settings and configuration
+- Update README.md- Add files via upload- (updater): version bump 0.2.12

@@ -3,143 +3,259 @@
 
 /** user-defined commands **/
 
-
 export const commands = {
-async startTranscribe() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("start_transcribe") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async stopTranscribe() : Promise<void> {
-    await TAURI_INVOKE("stop_transcribe");
-},
-async getTranscribeRunning() : Promise<boolean> {
-    return await TAURI_INVOKE("get_transcribe_running");
-},
-async getAudioDevices() : Promise<Result<AudioDevice[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_audio_devices") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async listModelPresets() : Promise<ModelPreset[]> {
-    return await TAURI_INVOKE("list_model_presets");
-},
-async downloadModelPreset(presetId: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("download_model_preset", { presetId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async emitState(name: string) : Promise<boolean> {
-    return await TAURI_INVOKE("emit_state", { name });
-},
-async updateState(state: StateUpdate) : Promise<boolean> {
-    return await TAURI_INVOKE("update_state", { state });
-}
-}
+    async startTranscribe(): Promise<Result<null, string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("start_transcribe"),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
+    async stopTranscribe(): Promise<void> {
+        await TAURI_INVOKE("stop_transcribe");
+    },
+    async getTranscribeRunning(): Promise<boolean> {
+        return await TAURI_INVOKE("get_transcribe_running");
+    },
+    async getAudioDevices(): Promise<Result<AudioDevice[], string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("get_audio_devices"),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
+    async listModelPresets(): Promise<ModelPreset[]> {
+        return await TAURI_INVOKE("list_model_presets");
+    },
+    async downloadModelPreset(
+        presetId: string,
+    ): Promise<Result<string, string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("download_model_preset", { presetId }),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
+    async emitState(name: string): Promise<boolean> {
+        return await TAURI_INVOKE("emit_state", { name });
+    },
+    async updateState(state: StateUpdate): Promise<boolean> {
+        return await TAURI_INVOKE("update_state", { state });
+    },
+};
 
 /** user-defined events **/
 
-
-
 /** user-defined constants **/
-
-
 
 /** user-defined types **/
 
-export type AdvancedSettings = Record<string, never>
-export type AppState = { current_device: AudioDevice; audio_format: AudioFormat; model_path: string; audio_segment_size: number; overlay_config: OverlayConfig; home_right_rail: HomeRightRailSettings; whisper_params: WhisperParams; advanced_settings: AdvancedSettings }
-export type AudioDevice = { name: string; id: string }
-export type AudioFormat = { name: string; id: string }
-export type AudioMetricsState = { segment_sample_len: number; input_rms: number; last_inference_ms: number; inference_sample_count: number; inference_std_dev_ms: number; inference_p90_ms: number; inference_p95_ms: number; inference_p99_ms: number; gate_total_evaluations: number; gate_total_emits: number; gate_emit_rate: number }
-export type GateEvaluationTelemetryEntry = { sequence: number; segment_id: string; candidate_words: number; last_emitted_words: number; decision: SegmentEmissionDecisionKind; suppression_reason: SegmentSuppressionReason | null; is_drastic: boolean | null; distance: number | null; normalize_ms: number; validation_ms: number; drastic_check_ms: number; distance_ms: number; evaluate_ms: number }
-export type GateTelemetryState = { entries: GateEvaluationTelemetryEntry[] }
-export type HomeRightRailSettings = { session: boolean; audio_metrics: boolean; gate: boolean }
-export type InternalState = { transcribe_running: boolean; active_transcription_run_id: string | null; audio_step_size: number; version: string; name: string; runtime_dependency: RuntimeDependencyState; overlay_test: OverlayTestState }
-export type ModelPreset = { id: string; label: string; description: string; repo: string; filename: string }
-export type OverlayBox = { x: number; y: number; w: number; h: number }
-export type OverlayCanvas = { width: number; height: number }
-export type OverlayConfig = { canvas: OverlayCanvas; box: OverlayBox; style: OverlayStyle }
-export type OverlayPadding = "none" | "normal" | "large"
-export type OverlayStyle = { align: string; font_size: number; text_color: string; background_color: string; background_opacity: number; border_radius: number; padding: OverlayPadding }
-export type OverlayTestState = { visible: boolean; text: string; expires_at_ms: number | null }
-export type RuntimeDependencyState = { status: RuntimeDependencyStatus; has_nvidia_gpu: boolean; reason: string; action_url: string | null }
-export type RuntimeDependencyStatus = "unknown" | "ready_gpu" | "ready_cpu_fallback" | "unavailable"
-export type SegmentEmissionDecisionKind = "Emit" | "Suppress"
-export type SegmentSuppressionReason = "Empty" | "DuplicateNormalizedText" | "PendingDrasticChange"
-export type StateUpdate = { version: number | null; name: string; value: string }
-export type WebsocketRequest = { kind: string; data: string }
-export type WebsocketResponse = { kind: string; data: string; is_error: boolean }
-export type WhisperParams = { toggles: WhisperToggles; language: string }
-export type WhisperSegment = { id: string; index: number; items: WhisperText[] }
-export type WhisperText = { index: number; start_time: number; end_time: number; text: string }
-export type WhisperToggles = { translate: boolean; suppress_blanks: boolean; print_special: boolean; print_progress: boolean; token_timestamps: boolean; single_segment: boolean; split_on_word: boolean; tdrz_enable: boolean }
+export type AdvancedSettings = Record<string, never>;
+export type AppState = {
+    current_device: AudioDevice;
+    audio_format: AudioFormat;
+    model_path: string;
+    audio_segment_size: number;
+    overlay_config: OverlayConfig;
+    home_right_rail: HomeRightRailSettings;
+    whisper_params: WhisperParams;
+    advanced_settings: AdvancedSettings;
+};
+export type AudioDevice = { name: string; id: string };
+export type AudioFormat = { name: string; id: string };
+export type AudioMetricsState = {
+    segment_sample_len: number;
+    input_rms: number;
+    last_inference_ms: number;
+    inference_sample_count: number;
+    inference_std_dev_ms: number;
+    inference_p90_ms: number;
+    inference_p95_ms: number;
+    inference_p99_ms: number;
+    gate_total_evaluations: number;
+    gate_total_emits: number;
+    gate_emit_rate: number;
+};
+export type GateEvaluationTelemetryEntry = {
+    sequence: number;
+    segment_id: string;
+    candidate_words: number;
+    last_emitted_words: number;
+    decision: SegmentEmissionDecisionKind;
+    suppression_reason: SegmentSuppressionReason | null;
+    is_drastic: boolean | null;
+    distance: number | null;
+    normalize_ms: number;
+    validation_ms: number;
+    drastic_check_ms: number;
+    distance_ms: number;
+    evaluate_ms: number;
+};
+export type GateTelemetryState = { entries: GateEvaluationTelemetryEntry[] };
+export type HomeRightRailSettings = {
+    session: boolean;
+    audio_metrics: boolean;
+    gate: boolean;
+};
+export type InternalState = {
+    transcribe_running: boolean;
+    active_transcription_run_id: string | null;
+    audio_step_size: number;
+    version: string;
+    name: string;
+    runtime_dependency: RuntimeDependencyState;
+    overlay_test: OverlayTestState;
+};
+export type ModelPreset = {
+    id: string;
+    label: string;
+    description: string;
+    repo: string;
+    filename: string;
+};
+export type OverlayBox = { x: number; y: number; w: number; h: number };
+export type OverlayCanvas = { width: number; height: number };
+export type OverlayConfig = {
+    canvas: OverlayCanvas;
+    box: OverlayBox;
+    style: OverlayStyle;
+};
+export type OverlayPadding = "none" | "normal" | "large";
+export type OverlayStyle = {
+    align: string;
+    font_size: number;
+    text_color: string;
+    background_color: string;
+    background_opacity: number;
+    border_radius: number;
+    padding: OverlayPadding;
+};
+export type OverlayTestState = {
+    visible: boolean;
+    text: string;
+    expires_at_ms: number | null;
+};
+export type RuntimeDependencyState = {
+    status: RuntimeDependencyStatus;
+    has_nvidia_gpu: boolean;
+    reason: string;
+    action_url: string | null;
+};
+export type RuntimeDependencyStatus =
+    | "unknown"
+    | "ready_gpu"
+    | "ready_cpu_fallback"
+    | "unavailable";
+export type SegmentEmissionDecisionKind = "Emit" | "Suppress";
+export type SegmentSuppressionReason =
+    | "Empty"
+    | "DuplicateNormalizedText"
+    | "PendingDrasticChange";
+export type StateUpdate = {
+    version: number | null;
+    name: string;
+    value: string;
+};
+export type WebsocketRequest = { kind: string; data: string };
+export type WebsocketResponse = {
+    kind: string;
+    data: string;
+    is_error: boolean;
+};
+export type WhisperParams = { toggles: WhisperToggles; language: string };
+export type WhisperSegment = {
+    id: string;
+    index: number;
+    items: WhisperText[];
+};
+export type WhisperText = {
+    index: number;
+    start_time: number;
+    end_time: number;
+    text: string;
+};
+export type WhisperToggles = {
+    translate: boolean;
+    suppress_blanks: boolean;
+    print_special: boolean;
+    print_progress: boolean;
+    token_timestamps: boolean;
+    single_segment: boolean;
+    split_on_word: boolean;
+    tdrz_enable: boolean;
+};
 
 /** tauri-specta globals **/
 
 import {
-	invoke as TAURI_INVOKE,
-	Channel as TAURI_CHANNEL,
+    invoke as TAURI_INVOKE,
+    Channel as TAURI_CHANNEL,
 } from "@tauri-apps/api/core";
 import * as TAURI_API_EVENT from "@tauri-apps/api/event";
 import { type WebviewWindow as __WebviewWindow__ } from "@tauri-apps/api/webviewWindow";
 
 type __EventObj__<T> = {
-	listen: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
-	once: (
-		cb: TAURI_API_EVENT.EventCallback<T>,
-	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
-	emit: null extends T
-		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
-		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
+    listen: (
+        cb: TAURI_API_EVENT.EventCallback<T>,
+    ) => ReturnType<typeof TAURI_API_EVENT.listen<T>>;
+    once: (
+        cb: TAURI_API_EVENT.EventCallback<T>,
+    ) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
+    emit: null extends T
+        ? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
+        : (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };
 
 export type Result<T, E> =
-	| { status: "ok"; data: T }
-	| { status: "error"; error: E };
+    | { status: "ok"; data: T }
+    | { status: "error"; error: E };
 
 function __makeEvents__<T extends Record<string, any>>(
-	mappings: Record<keyof T, string>,
+    mappings: Record<keyof T, string>,
 ) {
-	return new Proxy(
-		{} as unknown as {
-			[K in keyof T]: __EventObj__<T[K]> & {
-				(handle: __WebviewWindow__): __EventObj__<T[K]>;
-			};
-		},
-		{
-			get: (_, event) => {
-				const name = mappings[event as keyof T];
+    return new Proxy(
+        {} as unknown as {
+            [K in keyof T]: __EventObj__<T[K]> & {
+                (handle: __WebviewWindow__): __EventObj__<T[K]>;
+            };
+        },
+        {
+            get: (_, event) => {
+                const name = mappings[event as keyof T];
 
-				return new Proxy((() => {}) as any, {
-					apply: (_, __, [window]: [__WebviewWindow__]) => ({
-						listen: (arg: any) => window.listen(name, arg),
-						once: (arg: any) => window.once(name, arg),
-						emit: (arg: any) => window.emit(name, arg),
-					}),
-					get: (_, command: keyof __EventObj__<any>) => {
-						switch (command) {
-							case "listen":
-								return (arg: any) => TAURI_API_EVENT.listen(name, arg);
-							case "once":
-								return (arg: any) => TAURI_API_EVENT.once(name, arg);
-							case "emit":
-								return (arg: any) => TAURI_API_EVENT.emit(name, arg);
-						}
-					},
-				});
-			},
-		},
-	);
+                return new Proxy((() => {}) as any, {
+                    apply: (_, __, [window]: [__WebviewWindow__]) => ({
+                        listen: (arg: any) => window.listen(name, arg),
+                        once: (arg: any) => window.once(name, arg),
+                        emit: (arg: any) => window.emit(name, arg),
+                    }),
+                    get: (_, command: keyof __EventObj__<any>) => {
+                        switch (command) {
+                            case "listen":
+                                return (arg: any) =>
+                                    TAURI_API_EVENT.listen(name, arg);
+                            case "once":
+                                return (arg: any) =>
+                                    TAURI_API_EVENT.once(name, arg);
+                            case "emit":
+                                return (arg: any) =>
+                                    TAURI_API_EVENT.emit(name, arg);
+                        }
+                    },
+                });
+            },
+        },
+    );
 }
