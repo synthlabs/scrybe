@@ -58,10 +58,7 @@
                         msgs.updater_update_available({ version }),
                     releaseNotes: msgs.updater_release_notes(),
                     dismiss: msgs.updater_dismiss(),
-                    installPrompt: (version) =>
-                        msgs.updater_install_prompt({ version }),
                     update: msgs.updater_update(),
-                    later: msgs.updater_later(),
                     downloading: msgs.updater_downloading(),
                     downloadingProgress: (percent) =>
                         msgs.updater_downloading_progress({ percent }),
