@@ -1,5 +1,5 @@
 use crate::types::{
-    BASE_MODEL_PRESET_ID, DEFAULT_MODEL_PRESET_ID, MEDIUM_MODEL_PRESET_ID, TINY_MODEL_PRESET_ID,
+    BASE_MODEL_PRESET_ID, LARGE_V3_TURBO_Q5_MODEL_PRESET_ID, TINY_MODEL_PRESET_ID,
 };
 use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 
@@ -39,17 +39,13 @@ pub(crate) fn select_initial_model_preset_id(profile: HardwareProfile) -> &'stat
         return TINY_MODEL_PRESET_ID;
     }
 
-    if total_memory_gib < 12 || logical_cpus <= 6 {
-        return BASE_MODEL_PRESET_ID;
-    }
-
     if (profile.accelerated_backend && total_memory_gib >= 24 && logical_cpus >= 8)
         || (total_memory_gib >= 32 && logical_cpus >= 12)
     {
-        return MEDIUM_MODEL_PRESET_ID;
+        return LARGE_V3_TURBO_Q5_MODEL_PRESET_ID;
     }
 
-    DEFAULT_MODEL_PRESET_ID
+    BASE_MODEL_PRESET_ID
 }
 
 fn bytes_to_gib(bytes: u64) -> Option<u64> {
@@ -61,7 +57,8 @@ fn bytes_to_gib(bytes: u64) -> Option<u64> {
 mod tests {
     use super::*;
     use crate::types::{
-        model_presets, LARGE_V3_TURBO_Q5_MODEL_PRESET_ID, LARGE_V3_TURBO_Q8_MODEL_PRESET_ID,
+        model_presets, LARGE_V3_TURBO_Q8_MODEL_PRESET_ID, MEDIUM_MODEL_PRESET_ID,
+        SMALL_MODEL_PRESET_ID,
     };
 
     fn profile(
@@ -121,50 +118,54 @@ mod tests {
     }
 
     #[test]
-    fn selects_small_for_standard_hardware() {
+    fn selects_base_for_standard_hardware() {
         assert_eq!(
             select_initial_model_preset_id(profile(Some(16), Some(8), true)),
-            DEFAULT_MODEL_PRESET_ID
+            BASE_MODEL_PRESET_ID
         );
         assert_eq!(
             select_initial_model_preset_id(profile(Some(24), Some(8), false)),
-            DEFAULT_MODEL_PRESET_ID
+            BASE_MODEL_PRESET_ID
         );
     }
 
     #[test]
-    fn selects_medium_for_high_resource_hardware() {
+    fn selects_large_v3_turbo_q5_for_high_resource_hardware() {
         assert_eq!(
             select_initial_model_preset_id(profile(Some(24), Some(8), true)),
-            MEDIUM_MODEL_PRESET_ID
+            LARGE_V3_TURBO_Q5_MODEL_PRESET_ID
         );
         assert_eq!(
             select_initial_model_preset_id(profile(Some(32), Some(12), false)),
-            MEDIUM_MODEL_PRESET_ID
+            LARGE_V3_TURBO_Q5_MODEL_PRESET_ID
         );
     }
 
     #[test]
-    fn selectable_ids_exist_and_large_presets_stay_manual() {
+    fn selectable_ids_exist_and_manual_presets_stay_manual() {
         let presets = model_presets();
 
         for id in [
             TINY_MODEL_PRESET_ID,
             BASE_MODEL_PRESET_ID,
-            DEFAULT_MODEL_PRESET_ID,
-            MEDIUM_MODEL_PRESET_ID,
+            LARGE_V3_TURBO_Q5_MODEL_PRESET_ID,
         ] {
-            assert!(presets.iter().any(|preset| preset.id.as_str() == id));
+            let preset = presets
+                .iter()
+                .find(|preset| preset.id.as_str() == id)
+                .expect("auto-selectable preset missing");
+            assert!(preset.auto_selectable);
         }
 
         for id in [
-            LARGE_V3_TURBO_Q5_MODEL_PRESET_ID,
+            SMALL_MODEL_PRESET_ID,
+            MEDIUM_MODEL_PRESET_ID,
             LARGE_V3_TURBO_Q8_MODEL_PRESET_ID,
         ] {
             let preset = presets
                 .iter()
                 .find(|preset| preset.id.as_str() == id)
-                .expect("large preset missing");
+                .expect("manual preset missing");
             assert!(!preset.auto_selectable);
         }
     }

@@ -443,7 +443,7 @@
         {#snippet pills()}
             {#if store_toggles.translate}
                 <span
-                    class="rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+                    class="border-border/60 bg-background/40 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase"
                 >
                     → EN
                 </span>
@@ -464,15 +464,13 @@
             {/if}
         {/snippet}
         <div
-            class="rounded border border-border/60 bg-background/30 px-3 py-2 text-[13px] leading-snug"
+            class="border-border/60 bg-background/30 rounded border px-3 py-2 text-[13px] leading-snug"
         >
             {#each preview_segments as seg, i (i + seg)}
-                <span
-                    class="inline-block pr-1 align-baseline"
-                >
+                <span class="inline-block pr-1 align-baseline">
                     {#if store_toggles.token_timestamps}
                         <span
-                            class="mr-1 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] text-muted-foreground"
+                            class="bg-background/60 text-muted-foreground mr-1 rounded px-1 py-0.5 font-mono text-[10px]"
                         >
                             {fmtTimestamp(i)}
                         </span>
@@ -505,7 +503,10 @@
                         {device_trigger}
                     </Select.Trigger>
                     <Select.Content>
-                        <Select.Item value="" label={msgs.audio_device_default()}>
+                        <Select.Item
+                            value=""
+                            label={msgs.audio_device_default()}
+                        >
                             {msgs.audio_device_default()}
                         </Select.Item>
                         {#each audio_devices as device (device.id)}
@@ -629,14 +630,7 @@
             </div>
         </ConsoleColumn>
 
-        <ConsoleColumn
-            icon={Sparkles}
-            label={msgs.settings_whisper_heading()}
-            count={msgs.settings_segment_count_summary({
-                essential: ESSENTIAL_TOGGLES.length,
-                advanced: ADVANCED_TOGGLES.length,
-            })}
-        >
+        <ConsoleColumn icon={Sparkles} label={msgs.settings_whisper_heading()}>
             <div class="flex flex-col gap-1.5">
                 <Label
                     class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase"
@@ -712,9 +706,9 @@
                         {label}
                         {description}
                         bind:checked={
-                            (draft_home_right_rail as IndexedHomeRightRailSettings)[
-                                toggle.key
-                            ]
+                            (
+                                draft_home_right_rail as IndexedHomeRightRailSettings
+                            )[toggle.key]
                         }
                         match={matchesSearch(label, description)}
                     />

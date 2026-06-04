@@ -459,7 +459,8 @@ pub struct ModelPreset {
 
 pub const TINY_MODEL_PRESET_ID: &str = "tiny-q8_0";
 pub const BASE_MODEL_PRESET_ID: &str = "base-q8_0";
-pub const DEFAULT_MODEL_PRESET_ID: &str = "small-q8_0";
+pub const SMALL_MODEL_PRESET_ID: &str = "small-q8_0";
+pub const DEFAULT_MODEL_PRESET_ID: &str = BASE_MODEL_PRESET_ID;
 pub const MEDIUM_MODEL_PRESET_ID: &str = "medium-q8_0";
 pub const LARGE_V3_TURBO_Q5_MODEL_PRESET_ID: &str = "large-v3-turbo-q5_0";
 pub const LARGE_V3_TURBO_Q8_MODEL_PRESET_ID: &str = "large-v3-turbo-q8_0";
@@ -488,14 +489,14 @@ pub fn model_presets() -> Vec<ModelPreset> {
             auto_selectable: true,
         },
         ModelPreset {
-            id: DEFAULT_MODEL_PRESET_ID.to_string(),
+            id: SMALL_MODEL_PRESET_ID.to_string(),
             label: "Small (Q8_0)".to_string(),
             description: "Balanced speed and quality. ~264 MB.".to_string(),
             repo: repo.clone(),
             filename: "ggml-small-q8_0.bin".to_string(),
             size_mb: 264,
             resource_rank: 3,
-            auto_selectable: true,
+            auto_selectable: false,
         },
         ModelPreset {
             id: MEDIUM_MODEL_PRESET_ID.to_string(),
@@ -505,7 +506,7 @@ pub fn model_presets() -> Vec<ModelPreset> {
             filename: "ggml-medium-q8_0.bin".to_string(),
             size_mb: 823,
             resource_rank: 4,
-            auto_selectable: true,
+            auto_selectable: false,
         },
         ModelPreset {
             id: LARGE_V3_TURBO_Q5_MODEL_PRESET_ID.to_string(),
@@ -515,7 +516,7 @@ pub fn model_presets() -> Vec<ModelPreset> {
             filename: "ggml-large-v3-turbo-q5_0.bin".to_string(),
             size_mb: 574,
             resource_rank: 5,
-            auto_selectable: false,
+            auto_selectable: true,
         },
         ModelPreset {
             id: LARGE_V3_TURBO_Q8_MODEL_PRESET_ID.to_string(),
