@@ -1,13 +1,14 @@
-[commit]: # 'b355b81200d3c4e275f961823bf096a943f9aec5'
+[commit]: # '6c64ca157f9377ffc3a4c5f43cbab94177454da0'
 
 Features:
 
+- (models): update the default selected models
 
 Fixes:
 
-- (mac): properly cleanup whisper manager on mac during exit
 
 Misc:
 
+- (deps): update deps
+- (updater): version bump 0.2.15
 - (internal): update utils
-- (updater): version bump 0.2.14
