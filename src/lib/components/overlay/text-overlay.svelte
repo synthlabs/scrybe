@@ -19,7 +19,7 @@
 
     const DEFAULT_STYLE: OverlayStyle = {
         align: "center",
-        font_size: 44,
+        font_size: 32,
         text_color: "#ffffff",
         stroke_color: "#000000",
         stroke_width: 0,

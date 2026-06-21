@@ -21,12 +21,12 @@ test("clampBox keeps the subtitle box inside the canvas", () => {
     );
 });
 
-test("defaultBox returns the lower-third centered box", () => {
+test("defaultBox returns the bottom-center snap box", () => {
     assert.deepEqual(defaultBox({ width: 1920, height: 1080 }), {
         x: 384,
-        y: 886,
+        y: 897,
         w: 1152,
-        h: 108,
+        h: 140,
     });
 });
 
@@ -99,6 +99,7 @@ test("caption vertical alignment only anchors top when padding is disabled", () 
 });
 
 test("default overlay style keeps text outline disabled", () => {
+    assert.equal(DEFAULT_OVERLAY_CONFIG.style.font_size, 32);
     assert.equal(DEFAULT_OVERLAY_CONFIG.style.stroke_width, 0);
     assert.equal(DEFAULT_OVERLAY_CONFIG.style.stroke_color, "#000000");
 });

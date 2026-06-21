@@ -370,7 +370,7 @@
             role="button"
             tabindex="0"
             class:selected
-            class="absolute z-20 cursor-grab touch-none overflow-visible outline outline-[1.5px] outline-scrybe/70 selected:outline-2 selected:outline-scrybe selected:shadow-[0_0_0_1px_rgba(0,0,0,0.6)] active:cursor-grabbing"
+            class="absolute z-20 cursor-grab touch-none overflow-visible selected:outline selected:outline-2 selected:outline-scrybe selected:shadow-[0_0_0_1px_rgba(0,0,0,0.6)] active:cursor-grabbing"
             style={box_style}
             onclick={(event) => event.stopPropagation()}
             onkeydown={(event) => {

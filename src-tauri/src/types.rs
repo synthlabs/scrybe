@@ -30,6 +30,7 @@ const OVERLAY_DEFAULT_CANVAS_WIDTH: i32 = 1920;
 const OVERLAY_DEFAULT_CANVAS_HEIGHT: i32 = 1080;
 const OVERLAY_MIN_BOX_WIDTH: i32 = 200;
 const OVERLAY_MIN_BOX_HEIGHT: i32 = 60;
+const OVERLAY_DEFAULT_BOX_HEIGHT: i32 = 140;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
 #[serde(default)]
@@ -67,22 +68,18 @@ pub struct OverlayBox {
 
 impl Default for OverlayBox {
     fn default() -> Self {
-        Self {
-            x: 384,
-            y: 880,
-            w: 1152,
-            h: 100,
-        }
+        Self::bottom_middle(&OverlayCanvas::default())
     }
 }
 
 impl OverlayBox {
-    fn lower_third(canvas: &OverlayCanvas) -> Self {
-        let w = (canvas.width * 60) / 100;
-        let h = (canvas.height * 10) / 100;
+    fn bottom_middle(canvas: &OverlayCanvas) -> Self {
+        let w = ((canvas.width as f64) * 0.6).round() as i32;
+        let h = OVERLAY_DEFAULT_BOX_HEIGHT;
+        let margin = (canvas.width.min(canvas.height) as f64) * 0.04;
         Self {
-            x: (canvas.width - w) / 2,
-            y: (canvas.height * 82) / 100,
+            x: ((canvas.width - w) as f64 / 2.0).round() as i32,
+            y: ((canvas.height - h) as f64 - margin).round() as i32,
             w,
             h,
         }
@@ -148,7 +145,7 @@ impl Default for OverlayStyle {
     fn default() -> Self {
         Self {
             align: "center".to_string(),
-            font_size: 44,
+            font_size: 32,
             text_color: "#ffffff".to_string(),
             stroke_color: "#000000".to_string(),
             stroke_width: 0,
@@ -228,7 +225,7 @@ impl OverlayConfig {
             .r#box
             .unwrap_or_else(|| {
                 if has_v2_canvas {
-                    OverlayBox::lower_third(&config.canvas)
+                    OverlayBox::bottom_middle(&config.canvas)
                 } else {
                     OverlayBox::default()
                 }
@@ -315,7 +312,7 @@ mod overlay_config_tests {
     use serde_json::json;
 
     #[test]
-    fn defaults_to_lower_third_full_canvas_overlay() {
+    fn defaults_to_bottom_middle_full_canvas_overlay() {
         let config = OverlayConfig::default();
 
         assert_eq!(
@@ -329,13 +326,13 @@ mod overlay_config_tests {
             config.r#box,
             OverlayBox {
                 x: 384,
-                y: 880,
+                y: 897,
                 w: 1152,
-                h: 100
+                h: 140
             }
         );
         assert_eq!(config.style.align, "center");
-        assert_eq!(config.style.font_size, 44);
+        assert_eq!(config.style.font_size, 32);
         assert_eq!(config.style.stroke_color, "#000000");
         assert_eq!(config.style.stroke_width, 0);
         assert_eq!(config.style.background_opacity, 55);

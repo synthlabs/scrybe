@@ -84,7 +84,7 @@ export function enclosedTransparentPixels(
  * @param {number} [scale]
  */
 export function captionFont(style, scale = 1) {
-    const size = Math.max(1, finiteNumber(style?.font_size ?? 44) * scale);
+    const size = Math.max(1, finiteNumber(style?.font_size ?? 32) * scale);
     return `${CAPTION_FONT_WEIGHT} ${size}px ${CAPTION_FONT_FAMILY}`;
 }
 
@@ -94,7 +94,7 @@ export function captionFont(style, scale = 1) {
  */
 export function captionLineHeight(style, scale = 1) {
     return (
-        Math.max(1, finiteNumber(style?.font_size ?? 44) * scale) *
+        Math.max(1, finiteNumber(style?.font_size ?? 32) * scale) *
         CAPTION_LINE_HEIGHT
     );
 }

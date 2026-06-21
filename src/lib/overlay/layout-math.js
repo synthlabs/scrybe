@@ -8,6 +8,7 @@
 
 export const MIN_BOX_WIDTH = 200;
 export const MIN_BOX_HEIGHT = 60;
+export const DEFAULT_BOX_HEIGHT = 140;
 
 export const PADDING_PIXELS = {
     none: 0,
@@ -32,10 +33,10 @@ export const RESOLUTION_PRESETS = [
 /** @type {OverlayConfig} */
 export const DEFAULT_OVERLAY_CONFIG = {
     canvas: { width: 1920, height: 1080 },
-    box: { x: 384, y: 880, w: 1152, h: 100 },
+    box: { x: 384, y: 897, w: 1152, h: 140 },
     style: {
         align: "center",
-        font_size: 44,
+        font_size: 32,
         text_color: "#ffffff",
         stroke_color: "#000000",
         stroke_width: 0,
@@ -112,16 +113,18 @@ export function clampBox(box, canvas) {
 export function defaultBox(canvas) {
     const safeCanvas = clampCanvas(canvas);
     const w = Math.round(safeCanvas.width * 0.6);
-    const h = Math.round(safeCanvas.height * 0.1);
+    const h = DEFAULT_BOX_HEIGHT;
 
-    return clampBox(
+    return snapBoxToZone(
+        safeCanvas,
         {
             x: Math.round((safeCanvas.width - w) / 2),
-            y: Math.round(safeCanvas.height * 0.82),
+            y: 0,
             w,
             h,
         },
-        safeCanvas,
+        1,
+        2,
     );
 }
 
