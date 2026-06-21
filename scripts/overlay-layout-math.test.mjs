@@ -4,6 +4,7 @@ import {
     captionAlignItems,
     canvasViewportTransform,
     clampBox,
+    DEFAULT_OVERLAY_CONFIG,
     defaultBox,
     paddingPixels,
     resizeBox,
@@ -72,13 +73,10 @@ test("canvasViewportTransform scales and centers a stream canvas in a smaller vi
 
 test("resizeBox pins the opposite edge at minimum size", () => {
     assert.deepEqual(
-        resizeBox(
-            { x: 300, y: 300, w: 260, h: 90 },
-            "nw",
-            120,
-            80,
-            { width: 1920, height: 1080 },
-        ),
+        resizeBox({ x: 300, y: 300, w: 260, h: 90 }, "nw", 120, 80, {
+            width: 1920,
+            height: 1080,
+        }),
         { x: 360, y: 330, w: 200, h: 60 },
     );
 });
@@ -98,4 +96,9 @@ test("caption vertical alignment only anchors top when padding is disabled", () 
     assert.equal(captionAlignItems("normal"), "center");
     assert.equal(captionAlignItems("large"), "center");
     assert.equal(captionAlignItems("unknown"), "center");
+});
+
+test("default overlay style keeps text outline disabled", () => {
+    assert.equal(DEFAULT_OVERLAY_CONFIG.style.stroke_width, 0);
+    assert.equal(DEFAULT_OVERLAY_CONFIG.style.stroke_color, "#000000");
 });

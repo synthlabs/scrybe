@@ -29,6 +29,7 @@
     const TEST_OVERLAY_TIMEOUT_MS = 60_000;
     const GRID = [0, 1, 2];
     const TEXT_COLORS = ["#ffffff", "#f8d97a", "#a7f3d0", "#fda4af"];
+    const STROKE_COLORS = ["#000000", "#ffffff", "#f8d97a", "#a7f3d0"];
     const BACKGROUND_COLORS = ["#000000", "#0c0d10", "#1f1f2e", "#3b2a1a"];
     const PADDING_OPTIONS: {
         value: OverlayConfig["style"]["padding"];
@@ -365,41 +366,82 @@
                     />
                 </div>
 
-                <div class="flex flex-col gap-1.5">
-                    <div class="flex items-baseline justify-between">
-                        <Label
-                            for="overlay-font-size"
-                            class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
-                        >
-                            {msgs.overlay_font_size_label()} · {config.style
-                                .font_size}px
-                        </Label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex min-w-0 flex-col gap-1.5">
+                        <div class="flex items-baseline justify-between">
+                            <Label
+                                for="overlay-font-size"
+                                class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
+                            >
+                                {msgs.overlay_font_size_label()} · {config.style
+                                    .font_size}px
+                            </Label>
+                        </div>
+                        <Slider
+                            id="overlay-font-size"
+                            type="single"
+                            value={config.style.font_size}
+                            min={16}
+                            max={96}
+                            step={1}
+                            onValueChange={(value) =>
+                                updateStyle("font_size", value)}
+                        />
                     </div>
-                    <Slider
-                        id="overlay-font-size"
-                        type="single"
-                        value={config.style.font_size}
-                        min={16}
-                        max={96}
-                        step={1}
-                        class="max-w-[220px]"
-                        onValueChange={(value) =>
-                            updateStyle("font_size", value)}
-                    />
+
+                    <div class="flex min-w-0 flex-col gap-1.5">
+                        <div class="flex items-baseline justify-between">
+                            <Label
+                                for="overlay-stroke-width"
+                                class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
+                            >
+                                {msgs.overlay_outline_width_label()} · {config
+                                    .style.stroke_width}px
+                            </Label>
+                        </div>
+                        <Slider
+                            id="overlay-stroke-width"
+                            type="single"
+                            value={config.style.stroke_width}
+                            min={0}
+                            max={12}
+                            step={1}
+                            onValueChange={(value) =>
+                                updateStyle("stroke_width", value)}
+                        />
+                    </div>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
-                    <Label
-                        class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
-                    >
-                        {msgs.overlay_text_color_label()}
-                    </Label>
-                    <ColorSwatches
-                        value={config.style.text_color}
-                        presets={TEXT_COLORS}
-                        customLabel={msgs.overlay_custom_color_label()}
-                        onChange={(value) => updateStyle("text_color", value)}
-                    />
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex min-w-0 flex-col gap-1.5">
+                        <Label
+                            class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
+                        >
+                            {msgs.overlay_text_color_label()}
+                        </Label>
+                        <ColorSwatches
+                            value={config.style.text_color}
+                            presets={TEXT_COLORS}
+                            customLabel={msgs.overlay_custom_color_label()}
+                            onChange={(value) =>
+                                updateStyle("text_color", value)}
+                        />
+                    </div>
+
+                    <div class="flex min-w-0 flex-col gap-1.5">
+                        <Label
+                            class="text-muted-foreground text-[11px] font-semibold tracking-[0.04em] uppercase"
+                        >
+                            {msgs.overlay_outline_color_label()}
+                        </Label>
+                        <ColorSwatches
+                            value={config.style.stroke_color}
+                            presets={STROKE_COLORS}
+                            customLabel={msgs.overlay_custom_color_label()}
+                            onChange={(value) =>
+                                updateStyle("stroke_color", value)}
+                        />
+                    </div>
                 </div>
             </section>
 

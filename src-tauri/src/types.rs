@@ -136,6 +136,8 @@ pub struct OverlayStyle {
     pub align: String,
     pub font_size: i32,
     pub text_color: String,
+    pub stroke_color: String,
+    pub stroke_width: i32,
     pub background_color: String,
     pub background_opacity: i32,
     pub border_radius: i32,
@@ -148,6 +150,8 @@ impl Default for OverlayStyle {
             align: "center".to_string(),
             font_size: 44,
             text_color: "#ffffff".to_string(),
+            stroke_color: "#000000".to_string(),
+            stroke_width: 0,
             background_color: "#000000".to_string(),
             background_opacity: 55,
             border_radius: 12,
@@ -165,6 +169,8 @@ impl OverlayStyle {
             },
             font_size: self.font_size.clamp(16, 96),
             text_color: normalize_hex_color(&self.text_color, "#ffffff"),
+            stroke_color: normalize_hex_color(&self.stroke_color, "#000000"),
+            stroke_width: self.stroke_width.clamp(0, 12),
             background_color: normalize_hex_color(&self.background_color, "#000000"),
             background_opacity: self.background_opacity.clamp(0, 100),
             border_radius: self.border_radius.clamp(0, 64),
@@ -330,6 +336,8 @@ mod overlay_config_tests {
         );
         assert_eq!(config.style.align, "center");
         assert_eq!(config.style.font_size, 44);
+        assert_eq!(config.style.stroke_color, "#000000");
+        assert_eq!(config.style.stroke_width, 0);
         assert_eq!(config.style.background_opacity, 55);
         assert_eq!(config.style.padding, OverlayPadding::Normal);
     }
@@ -369,6 +377,8 @@ mod overlay_config_tests {
                 "align": "diagonal",
                 "font_size": 500,
                 "text_color": "white",
+                "stroke_color": "transparent",
+                "stroke_width": 500,
                 "background_color": "black",
                 "background_opacity": -5,
                 "border_radius": 500,
@@ -391,10 +401,24 @@ mod overlay_config_tests {
         assert_eq!(config.style.align, "center");
         assert_eq!(config.style.font_size, 96);
         assert_eq!(config.style.text_color, "#ffffff");
+        assert_eq!(config.style.stroke_color, "#000000");
+        assert_eq!(config.style.stroke_width, 12);
         assert_eq!(config.style.background_color, "#000000");
         assert_eq!(config.style.background_opacity, 0);
         assert_eq!(config.style.border_radius, 64);
         assert_eq!(config.style.padding, OverlayPadding::Normal);
+    }
+
+    #[test]
+    fn clamps_negative_stroke_width_to_zero() {
+        let config: OverlayConfig = serde_json::from_value(json!({
+            "style": {
+                "stroke_width": -4
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(config.style.stroke_width, 0);
     }
 
     #[test]

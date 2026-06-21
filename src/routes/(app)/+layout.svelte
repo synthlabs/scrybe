@@ -5,8 +5,10 @@
     import AppSidebar from "$lib/components/app-sidebar.svelte";
     import { Separator } from "$lib/components/ui/separator/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
+    import { Toaster } from "$lib/components/ui/sonner/index.ts";
     import { onMount, onDestroy } from "svelte";
     import { checkForAppUpdates } from "$utils/updater";
+    import { ErrorToast } from "$utils/inbound";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import type { WhisperSegment } from "$lib/bindings";
@@ -85,6 +87,8 @@
     });
 </script>
 
+<Toaster />
+<ErrorToast />
 <RuntimeDependencyNotice />
 
 <Sidebar.Provider style="--sidebar-width: 200px">

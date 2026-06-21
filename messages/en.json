@@ -115,6 +115,8 @@
     "overlay_text_heading": "Text",
     "overlay_text_desc": "How captions sit inside the box.",
     "overlay_text_color_label": "Text color",
+    "overlay_outline_width_label": "Outline width",
+    "overlay_outline_color_label": "Outline color",
     "overlay_background_heading": "Background",
     "overlay_background_desc": "The pill behind the text. Drag the slider for transparency.",
     "overlay_background_color_label": "Color",

@@ -115,6 +115,8 @@
     "overlay_text_heading": "Текст",
     "overlay_text_desc": "Как субтитры располагаются внутри блока.",
     "overlay_text_color_label": "Цвет текста",
+    "overlay_outline_width_label": "Толщина обводки",
+    "overlay_outline_color_label": "Цвет обводки",
     "overlay_background_heading": "Фон",
     "overlay_background_desc": "Плашка позади текста. Прозрачность задаётся ползунком.",
     "overlay_background_color_label": "Цвет",

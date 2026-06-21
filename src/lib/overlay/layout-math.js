@@ -3,7 +3,7 @@
 /** @typedef {{ width: number, height: number }} OverlayCanvas */
 /** @typedef {{ width: number, height: number }} OverlayViewport */
 /** @typedef {{ x: number, y: number, w: number, h: number }} OverlayBox */
-/** @typedef {{ align: OverlayAlign, font_size: number, text_color: string, background_color: string, background_opacity: number, border_radius: number, padding: OverlayPadding }} OverlayStyle */
+/** @typedef {{ align: OverlayAlign, font_size: number, text_color: string, stroke_color: string, stroke_width: number, background_color: string, background_opacity: number, border_radius: number, padding: OverlayPadding }} OverlayStyle */
 /** @typedef {{ canvas: OverlayCanvas, box: OverlayBox, style: OverlayStyle }} OverlayConfig */
 
 export const MIN_BOX_WIDTH = 200;
@@ -37,6 +37,8 @@ export const DEFAULT_OVERLAY_CONFIG = {
         align: "center",
         font_size: 44,
         text_color: "#ffffff",
+        stroke_color: "#000000",
+        stroke_width: 0,
         background_color: "#000000",
         background_opacity: 55,
         border_radius: 12,
@@ -62,8 +64,14 @@ export function clampNumber(value, min, max) {
 /** @param {OverlayCanvas} canvas */
 export function clampCanvas(canvas) {
     return {
-        width: Math.max(MIN_BOX_WIDTH, Math.round(asFiniteNumber(canvas.width))),
-        height: Math.max(MIN_BOX_HEIGHT, Math.round(asFiniteNumber(canvas.height))),
+        width: Math.max(
+            MIN_BOX_WIDTH,
+            Math.round(asFiniteNumber(canvas.width)),
+        ),
+        height: Math.max(
+            MIN_BOX_HEIGHT,
+            Math.round(asFiniteNumber(canvas.height)),
+        ),
     };
 }
 
@@ -85,7 +93,11 @@ export function clampBox(box, canvas) {
     );
 
     return {
-        x: clampNumber(Math.round(asFiniteNumber(box.x)), 0, safeCanvas.width - w),
+        x: clampNumber(
+            Math.round(asFiniteNumber(box.x)),
+            0,
+            safeCanvas.width - w,
+        ),
         y: clampNumber(
             Math.round(asFiniteNumber(box.y)),
             0,
@@ -174,7 +186,8 @@ export function activeSnapZone(canvas, box) {
         for (let xi = 0; xi < 3; xi += 1) {
             const snapped = snapBoxToZone(safeCanvas, safeBox, xi, yi);
             const distance =
-                Math.abs(snapped.x - safeBox.x) + Math.abs(snapped.y - safeBox.y);
+                Math.abs(snapped.x - safeBox.x) +
+                Math.abs(snapped.y - safeBox.y);
             if (distance < best.distance) {
                 best = { xi, yi, distance };
             }
@@ -261,9 +274,7 @@ export function hexToRgb(hex) {
         /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
         (_match, r, g, b) => `${r}${r}${g}${g}${b}${b}`,
     );
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
-        normalized,
-    );
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(normalized);
 
     return result
         ? {
