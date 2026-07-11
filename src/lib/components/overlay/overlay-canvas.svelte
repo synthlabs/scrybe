@@ -209,8 +209,9 @@
                             oninput={(event: Event) =>
                                 updateCanvas(
                                     asFiniteNumber(
-                                        (event.currentTarget as HTMLInputElement)
-                                            .value,
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).value,
                                     ),
                                     config.canvas.height,
                                 )}
@@ -233,8 +234,9 @@
                                 updateCanvas(
                                     config.canvas.width,
                                     asFiniteNumber(
-                                        (event.currentTarget as HTMLInputElement)
-                                            .value,
+                                        (
+                                            event.currentTarget as HTMLInputElement
+                                        ).value,
                                     ),
                                 )}
                         />
@@ -258,7 +260,10 @@
                               : msgs.overlay_safe_zone_off()}
                     </Select.Trigger>
                     <Select.Content>
-                        <Select.Item value="off" label={msgs.overlay_safe_zone_off()}>
+                        <Select.Item
+                            value="off"
+                            label={msgs.overlay_safe_zone_off()}
+                        >
                             {msgs.overlay_safe_zone_off()}
                         </Select.Item>
                         <Select.Item
@@ -282,7 +287,7 @@
     <div
         role="button"
         tabindex="0"
-        class="relative w-full overflow-hidden rounded-md border border-border bg-overlay-checker text-left"
+        class="border-border relative w-full overflow-hidden rounded-md border bg-[#14161a]/55 [background-image:conic-gradient(from_45deg,#2a2e36_0_25%,#1a1d23_0_50%,#2a2e36_0_75%,#1a1d23_0)] [background-size:32px_32px] text-left"
         style={canvas_style}
         onclick={() => (selected = false)}
         onkeydown={(event) => {
@@ -292,7 +297,7 @@
         aria-label={msgs.overlay_canvas_label()}
     >
         <span
-            class="absolute left-3 top-3 z-10 rounded border border-white/10 bg-black/55 px-2 py-0.5 font-mono text-[11px] text-white/70"
+            class="absolute top-3 left-3 z-10 rounded border border-white/10 bg-black/55 px-2 py-0.5 font-mono text-[11px] text-white/70"
         >
             {config.canvas.width} × {config.canvas.height}
         </span>
@@ -370,7 +375,7 @@
             role="button"
             tabindex="0"
             class:selected
-            class="absolute z-20 cursor-grab touch-none overflow-visible selected:outline selected:outline-2 selected:outline-scrybe selected:shadow-[0_0_0_1px_rgba(0,0,0,0.6)] active:cursor-grabbing"
+            class="selected:outline selected:outline-2 selected:outline-scrybe selected:shadow-[0_0_0_1px_rgba(0,0,0,0.6)] absolute z-20 cursor-grab touch-none overflow-visible active:cursor-grabbing"
             style={box_style}
             onclick={(event) => event.stopPropagation()}
             onkeydown={(event) => {
@@ -393,7 +398,7 @@
                     <button
                         type="button"
                         aria-label="Resize {handle.label}"
-                        class="absolute z-30 rounded-[2px] border-[1.5px] border-[#0c0d10] bg-scrybe"
+                        class="bg-scrybe absolute z-30 rounded-[2px] border-[1.5px] border-[#0c0d10]"
                         style="left: {handle.x * 100}%; top: {handle.y *
                             100}%; width: {handle_size}px; height: {handle_size}px; cursor: {handle.cursor}; transform: translate(-50%, -50%);"
                         onpointerdown={(event) =>
@@ -418,17 +423,3 @@
         />
     </div>
 </div>
-
-<style>
-    .bg-overlay-checker {
-        background-color: rgba(20, 22, 26, 0.55);
-        background-image: conic-gradient(
-            from 45deg,
-            #2a2e36 0 25%,
-            #1a1d23 0 50%,
-            #2a2e36 0 75%,
-            #1a1d23 0
-        );
-        background-size: 32px 32px;
-    }
-</style>

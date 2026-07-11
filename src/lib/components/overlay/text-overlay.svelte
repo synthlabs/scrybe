@@ -55,19 +55,10 @@
     );
     let caption_style = $derived(
         [
-            "width: 100%",
-            "height: 100%",
-            "position: relative",
-            "box-sizing: border-box",
             `background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${opacity})`,
             `border-radius: ${style.border_radius * scale}px`,
-            "pointer-events: none",
-            "user-select: none",
-            "overflow: hidden",
         ].join("; "),
     );
-    let canvas_style =
-        "position: absolute; inset: 0; display: block; width: 100%; height: 100%";
     const counter_alpha_threshold = 8;
 
     const measureCaptionSize = () => {
@@ -234,8 +225,16 @@
 </script>
 
 {#if has_segment || test_mode}
-    <div style={caption_style} bind:this={wrapper_el}>
-        <canvas style={canvas_style} bind:this={canvas_el} aria-hidden="true">
+    <div
+        class="pointer-events-none relative box-border h-full w-full overflow-hidden select-none"
+        style={caption_style}
+        bind:this={wrapper_el}
+    >
+        <canvas
+            class="absolute inset-0 block h-full w-full"
+            bind:this={canvas_el}
+            aria-hidden="true"
+        >
         </canvas>
         <span class="sr-only">{caption_text}</span>
     </div>

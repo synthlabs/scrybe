@@ -60,8 +60,19 @@
     let rendered_segment = $derived(
         overlay_test_visible ? emptySegment() : current_segment,
     );
+    const overlay_body_classes = [
+        "m-0",
+        "h-full",
+        "w-full",
+        "overflow-hidden",
+        "!bg-transparent",
+    ];
+    const overlay_html_classes = ["!bg-transparent"];
 
     onMount(() => {
+        document.body.classList.add(...overlay_body_classes);
+        document.documentElement.classList.add(...overlay_html_classes);
+
         const measure = () => {
             viewport = {
                 width: window.innerWidth,
@@ -74,6 +85,8 @@
         const timer = setInterval(() => (now = Date.now()), 1000);
 
         return () => {
+            document.body.classList.remove(...overlay_body_classes);
+            document.documentElement.classList.remove(...overlay_html_classes);
             window.removeEventListener("resize", measure);
             clearInterval(timer);
         };
@@ -126,8 +139,11 @@
 </script>
 
 <div class="fixed inset-0 overflow-hidden bg-transparent">
-        <div class="absolute" style={canvas_style}>
-        <div class="overlay-box absolute" style={box_style}>
+    <div class="absolute" style={canvas_style}>
+        <div
+            class="absolute transition-[left,top,width,height] duration-100 ease-linear will-change-[left,top,width,height]"
+            style={box_style}
+        >
             <TextOverlay
                 style={overlay_config.style}
                 test_mode={overlay_test_visible}
@@ -137,25 +153,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    :global(html) {
-        background-color: transparent !important;
-    }
-    :global(body) {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        overflow: hidden;
-        background-color: transparent !important;
-    }
-
-    .overlay-box {
-        transition:
-            left 100ms linear,
-            top 100ms linear,
-            width 100ms linear,
-            height 100ms linear;
-        will-change: left, top, width, height;
-    }
-</style>

@@ -170,29 +170,35 @@
 {/snippet}
 
 <div class="product-scrybe flex w-full flex-col gap-6 p-7">
-    <div class="flex max-w-[980px] flex-col gap-3 md:flex-row md:items-start">
+    <div class="flex max-w-[980px] flex-col gap-3 lg:flex-row lg:items-start">
         <h1 class="text-[22px] leading-tight font-semibold">
             {msgs.overlay_heading()}
         </h1>
         <p
-            class="text-muted-foreground max-w-[720px] text-[13px] leading-5 md:pt-0.5"
+            class="text-muted-foreground max-w-[720px] text-[13px] leading-5 lg:pt-0.5"
         >
             {msgs.overlay_intro()}
         </p>
     </div>
 
     <div
-        class="border-border bg-secondary text-muted-foreground flex items-center gap-3 rounded-lg border px-3.5 py-2.5 text-[13px]"
+        class="border-border bg-secondary text-muted-foreground flex min-w-0 items-center gap-3 overflow-hidden rounded-lg border px-3.5 py-2.5 text-[13px]"
     >
-        <Info class="size-4 shrink-0" />
-        <button
-            type="button"
-            onclick={copyUrl}
-            class="border-border bg-background text-foreground hover:bg-accent min-w-0 rounded border px-2 py-1 font-mono text-xs transition-colors"
+        <div class="flex min-w-0 flex-[0_1_auto] items-center gap-3">
+            <Info class="size-4 shrink-0" />
+            <button
+                type="button"
+                onclick={copyUrl}
+                class="border-border bg-background text-foreground hover:bg-accent max-w-[min(52vw,320px)] min-w-0 overflow-hidden rounded border px-2 py-1 font-mono text-xs text-ellipsis whitespace-nowrap transition-colors"
+            >
+                {OVERLAY_URL}
+            </button>
+        </div>
+        <span
+            class="min-w-0 flex-[1_1_auto] overflow-hidden text-ellipsis whitespace-nowrap"
         >
-            {OVERLAY_URL}
-        </button>
-        <span class="min-w-0 flex-1">{msgs.overlay_browser_note()}</span>
+            {msgs.overlay_browser_note()}
+        </span>
         <Button
             type="button"
             variant="ghost"
@@ -212,7 +218,9 @@
 
     <div class="bg-border h-px"></div>
 
-    <div class="overlay-layout min-w-0 gap-7">
+    <div
+        class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-7 lg:grid-cols-[minmax(0,1fr)_360px]"
+    >
         <div class="flex min-w-0 flex-col gap-5">
             <OverlayCanvas
                 {config}
@@ -234,7 +242,9 @@
                         </div>
                     </div>
 
-                    <div class="position-layout min-w-0 gap-4">
+                    <div
+                        class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"
+                    >
                         <div
                             class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4"
                         >
@@ -541,26 +551,3 @@
         </aside>
     </div>
 </div>
-
-<style>
-    .overlay-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .position-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    @media (min-width: 1100px) {
-        .overlay-layout {
-            grid-template-columns: minmax(0, 1fr) 360px;
-        }
-
-        .position-layout {
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: end;
-        }
-    }
-</style>
