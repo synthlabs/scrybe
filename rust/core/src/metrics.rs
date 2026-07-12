@@ -12,6 +12,11 @@ pub struct AudioMetricsState {
     pub gate_total_evaluations: u64,
     pub gate_total_emits: u64,
     pub gate_emit_rate: f64,
+    pub last_vad_ms: f64,
+    pub vad_total_evaluations: u64,
+    pub vad_total_skips: u64,
+    pub vad_skip_rate: f64,
+    pub vad_speech_ratio: f64,
 }
 
 impl Default for AudioMetricsState {
@@ -28,6 +33,11 @@ impl Default for AudioMetricsState {
             gate_total_evaluations: 0,
             gate_total_emits: 0,
             gate_emit_rate: 0.0,
+            last_vad_ms: 0.0,
+            vad_total_evaluations: 0,
+            vad_total_skips: 0,
+            vad_skip_rate: 0.0,
+            vad_speech_ratio: 0.0,
         }
     }
 }

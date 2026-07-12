@@ -76,9 +76,8 @@
         },
     ]);
 
-    let has_inference = $derived(
-        audio_metrics.obj.inference_sample_count > 0,
-    );
+    let has_inference = $derived(audio_metrics.obj.inference_sample_count > 0);
+    let has_vad = $derived(audio_metrics.obj.vad_total_evaluations > 0);
 
     let audio_stats = $derived([
         {
@@ -92,6 +91,21 @@
         {
             label: msgs.home_rail_rms(),
             value: format_rms(audio_metrics.obj.input_rms),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_vad(),
+            value: format_metric_ms(audio_metrics.obj.last_vad_ms, !has_vad),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_vad_skip_rate(),
+            value: format_percent(audio_metrics.obj.vad_skip_rate, !has_vad),
+            mono: true,
+        },
+        {
+            label: msgs.home_rail_vad_speech_ratio(),
+            value: format_percent(audio_metrics.obj.vad_speech_ratio, !has_vad),
             mono: true,
         },
     ]);
@@ -151,6 +165,11 @@
         return value < 1 ? value.toFixed(3) : value.toFixed(2);
     }
 
+    function format_percent(value: number, empty = false) {
+        if (empty || !Number.isFinite(value)) return "-";
+        return `${Math.round(value * 100)}%`;
+    }
+
     function format_distance(entry: GateEvaluationTelemetryEntry) {
         if (entry.distance === null) return "-";
         return String(entry.distance);
@@ -169,6 +188,12 @@
                 return msgs.home_rail_gate_reason_duplicate();
             case "PendingDrasticChange":
                 return msgs.home_rail_gate_reason_drastic();
+            case "NoVoiceActivity":
+                return msgs.home_rail_gate_reason_no_voice();
+            case "KnownHallucination":
+                return msgs.home_rail_gate_reason_known_hallucination();
+            case "AmbiguousHallucination":
+                return msgs.home_rail_gate_reason_ambiguous_hallucination();
             default:
                 return msgs.home_rail_gate_suppress();
         }
@@ -192,24 +217,28 @@
 
 {#if show_rail}
     <aside
-        class="flex w-[360px] shrink-0 flex-col overflow-hidden border-l border-border/70 bg-background/25"
+        class="border-border/70 bg-background/25 flex w-[360px] shrink-0 flex-col overflow-hidden border-l"
     >
         <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
             {#if show_session}
                 <section class="shrink-0">
-                    <header class="px-4 pb-2 pt-4">
+                    <header class="px-4 pt-4 pb-2">
                         <h2
-                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
                         >
                             {msgs.home_rail_session()}
                         </h2>
                     </header>
-                    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
+                    <dl
+                        class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]"
+                    >
                         {#each stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt class="text-muted-foreground">{stat.label}</dt>
+                                <dt class="text-muted-foreground">
+                                    {stat.label}
+                                </dt>
                                 <dd
-                                    class="truncate text-foreground {stat.mono
+                                    class="text-foreground truncate {stat.mono
                                         ? 'font-mono tabular-nums'
                                         : ''}"
                                 >
@@ -224,22 +253,26 @@
             {#if show_audio_metrics}
                 <section
                     class="shrink-0 {show_session
-                        ? 'border-t border-border/50'
+                        ? 'border-border/50 border-t'
                         : ''}"
                 >
-                    <header class="px-4 pb-2 pt-4">
+                    <header class="px-4 pt-4 pb-2">
                         <h2
-                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
                         >
                             {msgs.home_rail_audio_metrics()}
                         </h2>
                     </header>
-                    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]">
+                    <dl
+                        class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]"
+                    >
                         {#each audio_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt class="text-muted-foreground">{stat.label}</dt>
+                                <dt class="text-muted-foreground">
+                                    {stat.label}
+                                </dt>
                                 <dd
-                                    class="truncate text-foreground {stat.mono
+                                    class="text-foreground truncate {stat.mono
                                         ? 'font-mono tabular-nums'
                                         : ''}"
                                 >
@@ -251,11 +284,11 @@
                     <dl class="grid grid-cols-4 gap-x-2 px-4 pb-4 text-[11px]">
                         {#each inference_distribution_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt class="truncate text-muted-foreground">
+                                <dt class="text-muted-foreground truncate">
                                     {stat.label}
                                 </dt>
                                 <dd
-                                    class="truncate text-foreground {stat.mono
+                                    class="text-foreground truncate {stat.mono
                                         ? 'font-mono tabular-nums'
                                         : ''}"
                                 >
@@ -271,24 +304,26 @@
                 <section
                     class="flex min-h-0 flex-1 flex-col overflow-hidden {show_session ||
                     show_audio_metrics
-                        ? 'border-t border-border/50'
+                        ? 'border-border/50 border-t'
                         : ''}"
                 >
-                    <header class="flex items-center justify-between px-4 pb-2 pt-4">
+                    <header
+                        class="flex items-center justify-between px-4 pt-4 pb-2"
+                    >
                         <h2
-                            class="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground"
+                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
                         >
                             {msgs.home_rail_gate()}
                         </h2>
                         <span
-                            class="font-mono text-[11px] tabular-nums text-muted-foreground"
+                            class="text-muted-foreground font-mono text-[11px] tabular-nums"
                         >
                             {gate_telemetry.obj.entries.length}
                         </span>
                     </header>
 
                     {#if gate_telemetry.obj.entries.length === 0}
-                        <p class="px-4 pb-4 text-[12px] text-muted-foreground">
+                        <p class="text-muted-foreground px-4 pb-4 text-[12px]">
                             {msgs.home_rail_gate_empty()}
                         </p>
                     {:else}
@@ -296,8 +331,12 @@
                             bind:this={gate_table_container}
                             class="min-h-0 flex-1 overflow-hidden px-3 pb-4"
                         >
-                            <table class="w-full table-fixed text-left text-[11px]">
-                                <thead class="text-[10px] text-muted-foreground">
+                            <table
+                                class="w-full table-fixed text-left text-[11px]"
+                            >
+                                <thead
+                                    class="text-muted-foreground text-[10px]"
+                                >
                                     <tr>
                                         <th class="w-10 px-1 pb-2 font-medium">
                                             {msgs.home_rail_gate_seq()}
@@ -324,9 +363,9 @@
                                 </thead>
                                 <tbody class="font-mono tabular-nums">
                                     {#each latest_gate_entries as entry (entry.sequence)}
-                                        <tr class="border-t border-border/40">
+                                        <tr class="border-border/40 border-t">
                                             <td
-                                                class="px-1 py-1.5 text-muted-foreground"
+                                                class="text-muted-foreground px-1 py-1.5"
                                             >
                                                 {entry.sequence}
                                             </td>

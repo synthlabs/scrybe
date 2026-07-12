@@ -6,6 +6,7 @@
     import { internal_state } from "$lib/stores/state.svelte";
 
     let last_notice_key = $state("");
+    let last_vad_notice_key = $state("");
 
     const open_action_url = async (url: string) => {
         try {
@@ -52,5 +53,21 @@
                 options,
             );
         }
+    });
+
+    $effect(() => {
+        const vad = internal_state.obj.vad_runtime;
+        const notice_key = `${vad.status}:${vad.reason}`;
+        if (notice_key === last_vad_notice_key || vad.status !== "degraded") {
+            return;
+        }
+
+        last_vad_notice_key = notice_key;
+        toast.warning(
+            msgs.runtime_vad_degraded({
+                reason: vad.reason || msgs.runtime_unavailable(),
+            }),
+            { duration: 8000 },
+        );
     });
 </script>

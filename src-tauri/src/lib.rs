@@ -7,7 +7,7 @@ use scrybe_core::{
     segments::{
         GateTelemetryState, SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate,
     },
-    whisper::WhisperManager,
+    whisper::{HallucinationProtectionConfig, WhisperManager},
 };
 use serde::{Deserialize, Serialize};
 #[cfg(debug_assertions)]
@@ -36,6 +36,8 @@ mod ws;
 const DEFAULT_AUDIO_STEP_SIZE: u64 = 500; //ms
 type SharedWhisperManager = Arc<Mutex<Option<WhisperManager>>>;
 const NVIDIA_DRIVER_DOWNLOAD_URL: &str = "https://www.nvidia.com/Download/index.aspx";
+const VAD_MODEL_REPO: &str = "ggml-org/whisper-vad";
+const VAD_MODEL_FILENAME: &str = "ggml-silero-v6.2.0.bin";
 
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "snake_case")]
@@ -101,10 +103,51 @@ impl RuntimeDependencyState {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "snake_case")]
+enum VadRuntimeStatus {
+    #[default]
+    Unknown,
+    Ready,
+    Degraded,
+    Disabled,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
+struct VadRuntimeState {
+    status: VadRuntimeStatus,
+    reason: String,
+}
+
+impl VadRuntimeState {
+    fn ready() -> Self {
+        Self {
+            status: VadRuntimeStatus::Ready,
+            reason: String::new(),
+        }
+    }
+
+    fn degraded(reason: impl Into<String>) -> Self {
+        Self {
+            status: VadRuntimeStatus::Degraded,
+            reason: reason.into(),
+        }
+    }
+
+    fn disabled() -> Self {
+        Self {
+            status: VadRuntimeStatus::Disabled,
+            reason: String::new(),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct WhisperSetupResult {
     model_path: String,
     runtime_dependency: RuntimeDependencyState,
+    vad_runtime: VadRuntimeState,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, specta::Type)]
@@ -132,6 +175,7 @@ struct InternalState {
     version: String,
     name: String,
     runtime_dependency: RuntimeDependencyState,
+    vad_runtime: VadRuntimeState,
     overlay_test: OverlayTestState,
 }
 
@@ -144,6 +188,7 @@ impl Default for InternalState {
             version: "".to_owned(),
             name: "".to_owned(),
             runtime_dependency: RuntimeDependencyState::default(),
+            vad_runtime: VadRuntimeState::default(),
             overlay_test: OverlayTestState::default(),
         }
     }
@@ -263,6 +308,8 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<OverlayTestState>()
         .typ::<RuntimeDependencyState>()
         .typ::<RuntimeDependencyStatus>()
+        .typ::<VadRuntimeState>()
+        .typ::<VadRuntimeStatus>()
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
         .typ::<types::HomeRightRailSettings>()
@@ -276,6 +323,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<types::ModelPreset>()
         .typ::<scrybe_core::whisper::WhisperParams>()
         .typ::<scrybe_core::whisper::WhisperToggles>()
+        .typ::<scrybe_core::whisper::VadSensitivity>()
         .typ::<scrybe_core::whisper::WhisperSegment>()
         .typ::<AudioMetricsState>()
         .typ::<scrybe_core::segments::GateTelemetryState>()
@@ -313,12 +361,28 @@ fn emit_state(
     return true;
 }
 
+fn broadcast_internal_state(
+    state_syncer: &StateSyncer,
+    ws_manager: &WebsocketManager,
+    internal_state: InternalState,
+) {
+    state_syncer.update("internal_state", internal_state.clone(), true);
+    let response =
+        WebsocketManager::to_ws_response("internal_state_update".to_owned(), internal_state);
+
+    match serde_json::to_string(&response) {
+        Ok(msg) => ws_manager.clone().broadcast(msg),
+        Err(err) => error!("error creating websocket response: {}", err),
+    }
+}
+
 // TODO: move this into a macro as well
 #[tauri::command]
 #[specta::specta]
 fn update_state(
     app: AppHandle,
     ws_manager: State<'_, WebsocketManager>,
+    whisper_manager: State<'_, SharedWhisperManager>,
     state: tauri_svelte_synced_store::StateUpdate,
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> bool {
@@ -357,24 +421,61 @@ fn update_state(
                 };
 
             let app_state_snapshot = state_syncer.snapshot::<types::AppState>("app_state");
+            let mut vad_runtime_update = None;
             if new_app_state.model_path != app_state_snapshot.model_path {
                 info!("Model path changed, re-setting up whisper manager");
                 let setup_result = setup_whisper_manager(&app, new_app_state.model_path.clone());
                 new_app_state.model_path = setup_result.model_path;
+                vad_runtime_update = Some(
+                    if new_app_state
+                        .advanced_settings
+                        .hallucination_protection_enabled
+                    {
+                        setup_result.vad_runtime
+                    } else {
+                        VadRuntimeState::disabled()
+                    },
+                );
 
                 let mut internal_state = state_syncer.snapshot::<InternalState>("internal_state");
                 internal_state.runtime_dependency = setup_result.runtime_dependency;
-                state_syncer.update("internal_state", internal_state.clone(), true);
-
-                let response = WebsocketManager::to_ws_response(
-                    "internal_state_update".to_owned(),
-                    internal_state.clone(),
+                internal_state.vad_runtime = vad_runtime_update.clone().unwrap();
+                broadcast_internal_state(&state_syncer, &ws_manager, internal_state);
+            } else if new_app_state
+                .advanced_settings
+                .hallucination_protection_enabled
+                != app_state_snapshot
+                    .advanced_settings
+                    .hallucination_protection_enabled
+            {
+                vad_runtime_update = Some(
+                    if !new_app_state
+                        .advanced_settings
+                        .hallucination_protection_enabled
+                    {
+                        VadRuntimeState::disabled()
+                    } else if whisper_manager
+                        .lock()
+                        .unwrap()
+                        .as_ref()
+                        .map(WhisperManager::vad_available)
+                        .unwrap_or(false)
+                    {
+                        VadRuntimeState::ready()
+                    } else {
+                        VadRuntimeState::degraded("Silero VAD is unavailable")
+                    },
                 );
+            }
 
-                match serde_json::to_string(&response) {
-                    Ok(msg) => <WebsocketManager as Clone>::clone(&ws_manager).broadcast(msg),
-                    Err(err) => error!("error creating websocket response: {}", err),
-                };
+            if let Some(vad_runtime) = vad_runtime_update {
+                let mut internal_state = state_syncer.snapshot::<InternalState>("internal_state");
+                if internal_state.vad_runtime.status != vad_runtime.status
+                    || internal_state.vad_runtime.reason != vad_runtime.reason
+                {
+                    internal_state.vad_runtime = vad_runtime;
+                    broadcast_internal_state(&state_syncer, &ws_manager, internal_state);
+                }
             }
             state_syncer.update("app_state", new_app_state.clone(), true);
 
@@ -560,6 +661,12 @@ fn start_transcribe<'a>(
             let app_state_ref = state_syncer_ref.snapshot::<types::AppState>("app_state");
 
             let whisper_params = app_state_ref.whisper_params.clone();
+            let protection = HallucinationProtectionConfig {
+                enabled: app_state_ref
+                    .advanced_settings
+                    .hallucination_protection_enabled,
+                sensitivity: app_state_ref.advanced_settings.vad_sensitivity,
+            };
             debug!(
                 "app state syncing: segment_size={}, whisper_params={:?}",
                 app_state_ref.audio_segment_size, whisper_params
@@ -593,8 +700,11 @@ fn start_transcribe<'a>(
                     audio::avg_threshold(&guard),
                     input_rms
                 );
-                // TODO: this should be a setting to adjust
-                audio::trim_silence(&mut guard, 0.01);
+                let vad_ready = protection.enabled
+                    && internal_state_ref.vad_runtime.status == VadRuntimeStatus::Ready;
+                if !vad_ready {
+                    audio::trim_silence(&mut guard, 0.01);
+                }
                 debug!("guard len post-trim {}", guard.len());
                 samples.append(&mut guard);
                 input_rms
@@ -615,32 +725,55 @@ fn start_transcribe<'a>(
                 };
 
                 let inference_started = Instant::now();
-                let segments =
-                    match whisper_manager.process_samples(samples.clone(), whisper_params) {
-                        Ok(segments) => segments,
-                        Err(err) => {
-                            inference_timing_stats.record(
-                                inference_started.elapsed().as_secs_f64() * 1000.0,
-                                &mut audio_metrics,
-                            );
-                            error!("ERROR {}", err);
-                            state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
-                            continue;
-                        }
-                    };
-                inference_timing_stats.record(
-                    inference_started.elapsed().as_secs_f64() * 1000.0,
-                    &mut audio_metrics,
-                );
+                let process_result = match whisper_manager.process_samples_with_protection(
+                    samples.clone(),
+                    whisper_params,
+                    protection,
+                ) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        inference_timing_stats.record(
+                            inference_started.elapsed().as_secs_f64() * 1000.0,
+                            &mut audio_metrics,
+                        );
+                        error!("ERROR {}", err);
+                        state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
+                        continue;
+                    }
+                };
+                if process_result.evidence.whisper_ran {
+                    inference_timing_stats
+                        .record(process_result.evidence.whisper_ms, &mut audio_metrics);
+                }
+                if process_result.evidence.protection_enabled
+                    && process_result.evidence.vad_available
+                {
+                    audio_metrics.last_vad_ms = process_result.evidence.vad_ms;
+                    audio_metrics.vad_total_evaluations += 1;
+                    if process_result.evidence.vad_speech_detected == Some(false) {
+                        audio_metrics.vad_total_skips += 1;
+                    }
+                    audio_metrics.vad_skip_rate = audio_metrics.vad_total_skips as f64
+                        / audio_metrics.vad_total_evaluations as f64;
+                    audio_metrics.vad_speech_ratio =
+                        process_result.evidence.vad_speech_ratio.unwrap_or(0.0) as f64;
+                }
+                if let Some(vad_error) = process_result.evidence.vad_error.as_ref() {
+                    let mut internal_state =
+                        state_syncer_ref.snapshot::<InternalState>("internal_state");
+                    internal_state.vad_runtime = VadRuntimeState::degraded(vad_error);
+                    state_syncer_ref.update("internal_state", internal_state, true);
+                }
 
-                let current_segment = segment_accumulator.replace_items(segments);
+                let current_segment = segment_accumulator.replace_items(process_result.items);
 
                 if !transcription_run_is_active(&state_syncer_ref, &run_id) {
                     info!("stopping transcription");
                     break;
                 }
 
-                let evaluation = segment_emission_gate.evaluate(current_segment);
+                let evaluation = segment_emission_gate
+                    .evaluate_with_evidence(current_segment, &process_result.evidence);
                 let gate_emitted = match &evaluation.decision {
                     SegmentEmissionDecision::Emit(_) => true,
                     SegmentEmissionDecision::Suppress(_) => false,
@@ -717,6 +850,45 @@ fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::E
     Ok(filename.to_string_lossy().into_owned())
 }
 
+fn download_vad_model() -> Result<String, anyhow::Error> {
+    info!(
+        "downloading VAD model {}/{}",
+        VAD_MODEL_REPO, VAD_MODEL_FILENAME
+    );
+    let api = Api::new()?;
+    let repo = api.model(VAD_MODEL_REPO.to_owned());
+    let filename = repo.get(VAD_MODEL_FILENAME)?;
+    debug!("downloaded VAD model to {:?}", filename);
+    Ok(filename.to_string_lossy().into_owned())
+}
+
+fn create_whisper_manager(
+    model_path: &str,
+    use_gpu: bool,
+    vad_model: &Result<String, String>,
+) -> Result<(WhisperManager, VadRuntimeState), anyhow::Error> {
+    match vad_model {
+        Ok(vad_model_path) => {
+            match WhisperManager::new_with_vad(model_path, use_gpu, Some(vad_model_path)) {
+                Ok(manager) => Ok((manager, VadRuntimeState::ready())),
+                Err(vad_err) => {
+                    let manager = WhisperManager::new(model_path, use_gpu)?;
+                    Ok((
+                        manager,
+                        VadRuntimeState::degraded(format!(
+                            "Silero VAD failed to initialize: {vad_err}"
+                        )),
+                    ))
+                }
+            }
+        }
+        Err(reason) => Ok((
+            WhisperManager::new(model_path, use_gpu)?,
+            VadRuntimeState::degraded(reason.clone()),
+        )),
+    }
+}
+
 fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetupResult {
     let has_nvidia_gpu = has_nvidia_gpu();
 
@@ -764,6 +936,9 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                         ),
                         action_url: None,
                     },
+                    vad_runtime: VadRuntimeState::degraded(
+                        "Silero VAD was not initialized because Whisper is unavailable",
+                    ),
                 };
             }
         }
@@ -772,20 +947,26 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
     info!("Model path {}", model_path);
 
     debug!("creating whisper context");
+    let vad_model = download_vad_model().map_err(|err| {
+        let reason = format!("Failed to download Silero VAD model: {err}");
+        error!("{}", reason);
+        reason
+    });
 
     let manager_ref = app.state::<SharedWhisperManager>();
-    match WhisperManager::new(model_path.clone().as_str(), true) {
-        Ok(whisper_manager) => {
+    match create_whisper_manager(model_path.as_str(), true, &vad_model) {
+        Ok((whisper_manager, vad_runtime)) => {
             *manager_ref.lock().unwrap() = Some(whisper_manager);
             WhisperSetupResult {
                 model_path,
                 runtime_dependency: RuntimeDependencyState::ready_gpu(has_nvidia_gpu),
+                vad_runtime,
             }
         }
         Err(gpu_err) => {
             error!("failed to initialize Whisper with GPU: {}", gpu_err);
-            match WhisperManager::new(model_path.clone().as_str(), false) {
-                Ok(whisper_manager) => {
+            match create_whisper_manager(model_path.as_str(), false, &vad_model) {
+                Ok((whisper_manager, vad_runtime)) => {
                     *manager_ref.lock().unwrap() = Some(whisper_manager);
                     WhisperSetupResult {
                         model_path,
@@ -793,6 +974,7 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                             has_nvidia_gpu,
                             format!("GPU initialization failed: {gpu_err}"),
                         ),
+                        vad_runtime,
                     }
                 }
                 Err(cpu_err) => {
@@ -808,6 +990,9 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                             format!(
                                 "GPU initialization failed: {gpu_err}; CPU fallback failed: {cpu_err}"
                             ),
+                        ),
+                        vad_runtime: VadRuntimeState::degraded(
+                            "Silero VAD is unavailable because Whisper failed to initialize",
                         ),
                     }
                 }
@@ -886,7 +1071,7 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
-                .max_file_size(1_000_000)
+                .max_file_size(9_000_000)
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                 .level(log::LevelFilter::Debug)
                 .targets([
@@ -963,17 +1148,28 @@ pub fn run() {
             internal_state.name = app.package_info().name.to_string();
             internal_state.reset_runtime_only_state();
 
-            let setup_result = {
+            let (setup_result, protection_enabled) = {
                 let app_state_ref = state_syncer.get::<types::AppState>("app_state");
-                let model_path = app_state_ref.lock().unwrap().model_path.clone();
+                let app_state_snapshot = app_state_ref.lock().unwrap().clone();
+                let model_path = app_state_snapshot.model_path;
 
                 info!("setting up whisper manager");
                 let setup_result = setup_whisper_manager(app.handle(), model_path);
                 app_state_ref.lock().unwrap().model_path = setup_result.model_path.clone();
-                setup_result
+                (
+                    setup_result,
+                    app_state_snapshot
+                        .advanced_settings
+                        .hallucination_protection_enabled,
+                )
             };
 
             internal_state.runtime_dependency = setup_result.runtime_dependency;
+            internal_state.vad_runtime = if protection_enabled {
+                setup_result.vad_runtime
+            } else {
+                VadRuntimeState::disabled()
+            };
             state_syncer.update("internal_state", internal_state.clone(), true);
 
             app.manage::<StateSyncer>(state_syncer.clone());

@@ -26,10 +26,12 @@
     import { DefaultAppState } from "$lib/defaults";
     import {
         commands,
+        type AdvancedSettings,
         type AudioDevice,
         type HomeRightRailSettings,
         type ModelPreset,
         type WhisperToggles,
+        type VadSensitivity,
     } from "$lib/bindings";
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
@@ -47,6 +49,9 @@
     let draft_home_right_rail = $state<HomeRightRailSettings>({
         ...app_state.obj.home_right_rail,
     });
+    let draft_advanced_settings = $state<AdvancedSettings>({
+        ...app_state.obj.advanced_settings,
+    });
     let draft_initialized = $state(false);
 
     $effect(() => {
@@ -55,6 +60,7 @@
         draft_toggles = { ...app_state.obj.whisper_params.toggles };
         draft_language = app_state.obj.whisper_params.language;
         draft_home_right_rail = { ...app_state.obj.home_right_rail };
+        draft_advanced_settings = { ...app_state.obj.advanced_settings };
         draft_initialized = true;
     });
 
@@ -164,6 +170,14 @@
         ...DefaultAppState.home_right_rail,
     });
 
+    let vad_sensitivity_options = $derived<
+        { value: VadSensitivity; label: string }[]
+    >([
+        { value: "sensitive", label: msgs.settings_vad_sensitive() },
+        { value: "balanced", label: msgs.settings_vad_balanced() },
+        { value: "strict", label: msgs.settings_vad_strict() },
+    ]);
+
     let search = $state("");
     let show_advanced = $state(false);
     let report_open = $state(false);
@@ -191,11 +205,21 @@
             return true;
         const stored_home_right_rail = app_state.obj
             .home_right_rail as IndexedHomeRightRailSettings;
-        return HOME_RAIL_TOGGLES.some(
-            (t) =>
-                (draft_home_right_rail as IndexedHomeRightRailSettings)[
-                    t.key
-                ] !== stored_home_right_rail[t.key],
+        if (
+            HOME_RAIL_TOGGLES.some(
+                (t) =>
+                    (draft_home_right_rail as IndexedHomeRightRailSettings)[
+                        t.key
+                    ] !== stored_home_right_rail[t.key],
+            )
+        )
+            return true;
+        return (
+            draft_advanced_settings.hallucination_protection_enabled !==
+                app_state.obj.advanced_settings
+                    .hallucination_protection_enabled ||
+            draft_advanced_settings.vad_sensitivity !==
+                app_state.obj.advanced_settings.vad_sensitivity
         );
     });
 
@@ -203,13 +227,18 @@
         const defaults = default_toggle_state();
         const default_home_right_rail = default_home_right_rail_state();
         const default_language = DefaultAppState.whisper_params.language;
+        const default_advanced_settings = {
+            ...DefaultAppState.advanced_settings,
+        };
         app_state.obj.whisper_params.toggles = defaults;
         app_state.obj.whisper_params.language = default_language;
         app_state.obj.home_right_rail = default_home_right_rail;
+        app_state.obj.advanced_settings = default_advanced_settings;
         app_state.sync();
         draft_toggles = { ...defaults };
         draft_language = default_language;
         draft_home_right_rail = { ...default_home_right_rail };
+        draft_advanced_settings = { ...default_advanced_settings };
         toast.success(msgs.settings_reset_msg());
     };
 
@@ -218,6 +247,7 @@
         app_state.obj.whisper_params.toggles = { ...draft_toggles };
         app_state.obj.whisper_params.language = draft_language;
         app_state.obj.home_right_rail = { ...draft_home_right_rail };
+        app_state.obj.advanced_settings = { ...draft_advanced_settings };
         app_state.sync();
         toast.success(msgs.settings_save_msg());
     };
@@ -689,6 +719,45 @@
                             match={matchesSearch(label, description)}
                         />
                     {/each}
+                    {@const protectionLabel =
+                        msgs.settings_hallucination_protection_label()}
+                    {@const protectionDescription =
+                        msgs.settings_hallucination_protection_desc()}
+                    <ToggleRow
+                        id="hallucination-protection"
+                        label={protectionLabel}
+                        description={protectionDescription}
+                        bind:checked={
+                            draft_advanced_settings.hallucination_protection_enabled
+                        }
+                        match={matchesSearch(
+                            protectionLabel,
+                            protectionDescription,
+                        )}
+                    />
+                    {#if draft_advanced_settings.hallucination_protection_enabled}
+                        <div class="flex flex-col gap-1.5 pt-1">
+                            <Label
+                                class="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase"
+                            >
+                                {msgs.settings_vad_sensitivity_label()}
+                            </Label>
+                            <SegmentedControl
+                                options={vad_sensitivity_options}
+                                value={draft_advanced_settings.vad_sensitivity}
+                                onChange={(value) => {
+                                    draft_advanced_settings.vad_sensitivity =
+                                        value as VadSensitivity;
+                                }}
+                                ariaLabel={msgs.settings_vad_sensitivity_label()}
+                            />
+                            <p
+                                class="text-muted-foreground text-[11px] leading-snug"
+                            >
+                                {msgs.settings_vad_sensitivity_desc()}
+                            </p>
+                        </div>
+                    {/if}
                 {/if}
             </div>
         </ConsoleColumn>

@@ -462,9 +462,21 @@ impl Default for HomeRightRailSettings {
     }
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
 #[serde(default)]
-pub struct AdvancedSettings {}
+pub struct AdvancedSettings {
+    pub hallucination_protection_enabled: bool,
+    pub vad_sensitivity: scrybe_core::whisper::VadSensitivity,
+}
+
+impl Default for AdvancedSettings {
+    fn default() -> Self {
+        Self {
+            hallucination_protection_enabled: true,
+            vad_sensitivity: scrybe_core::whisper::VadSensitivity::Balanced,
+        }
+    }
+}
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
 pub struct ModelPreset {

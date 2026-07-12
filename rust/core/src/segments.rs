@@ -4,7 +4,7 @@ use tracing::debug;
 
 use crate::{
     validation::normalize_transcript,
-    whisper::{WhisperSegment, WhisperText},
+    whisper::{WhisperProcessEvidence, WhisperSegment, WhisperText},
 };
 
 // TODO: Make segment emission gate thresholds configurable after tuning with real transcription sessions.
@@ -68,6 +68,7 @@ impl SegmentAccumulator {
 pub struct SegmentEmissionGate {
     last_emitted: Option<EmissionSnapshot>,
     pending: Option<PendingCandidate>,
+    last_ambiguous_phrase: Option<AmbiguousPhraseOccurrence>,
     next_sequence: u64,
 }
 
@@ -77,18 +78,12 @@ pub enum SegmentEmissionDecision {
     Suppress(SegmentSuppressionReason),
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    serde::Serialize,
-    serde::Deserialize,
-    specta::Type,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
 pub enum SegmentSuppressionReason {
     Empty,
+    NoVoiceActivity,
+    KnownHallucination,
+    AmbiguousHallucination,
     DuplicateNormalizedText,
     PendingDrasticChange,
 }
@@ -115,7 +110,10 @@ impl GateTelemetryState {
     pub fn push(&mut self, entry: GateEvaluationTelemetryEntry) {
         self.entries.push(entry);
 
-        let overflow = self.entries.len().saturating_sub(GATE_TELEMETRY_MAX_ENTRIES);
+        let overflow = self
+            .entries
+            .len()
+            .saturating_sub(GATE_TELEMETRY_MAX_ENTRIES);
         if overflow > 0 {
             self.entries.drain(0..overflow);
         }
@@ -132,6 +130,10 @@ pub struct GateEvaluationTelemetryEntry {
     pub suppression_reason: Option<SegmentSuppressionReason>,
     pub is_drastic: Option<bool>,
     pub distance: Option<u64>,
+    pub matched_phrase: Option<String>,
+    pub vad_speech_detected: Option<bool>,
+    pub vad_mean_probability: Option<f32>,
+    pub no_speech_probability: Option<f32>,
     pub normalize_ms: f64,
     pub validation_ms: f64,
     pub drastic_check_ms: f64,
@@ -150,6 +152,12 @@ struct PendingCandidate {
     normalized_text: String,
 }
 
+#[derive(Debug, Clone)]
+struct AmbiguousPhraseOccurrence {
+    segment_id: String,
+    phrase: String,
+}
+
 impl Default for SegmentEmissionGate {
     fn default() -> Self {
         Self::new()
@@ -161,11 +169,20 @@ impl SegmentEmissionGate {
         Self {
             last_emitted: None,
             pending: None,
+            last_ambiguous_phrase: None,
             next_sequence: 1,
         }
     }
 
     pub fn evaluate(&mut self, candidate: WhisperSegment) -> SegmentEmissionGateEvaluation {
+        self.evaluate_with_evidence(candidate, &WhisperProcessEvidence::default())
+    }
+
+    pub fn evaluate_with_evidence(
+        &mut self,
+        candidate: WhisperSegment,
+        evidence: &WhisperProcessEvidence,
+    ) -> SegmentEmissionGateEvaluation {
         let evaluate_started = Instant::now();
         let segment_id = candidate.id.clone();
         let sequence = self.next_sequence;
@@ -181,14 +198,63 @@ impl SegmentEmissionGate {
             normalize_duration,
             evaluate_started,
         );
+        telemetry.vad_speech_detected = evidence.vad_speech_detected;
+        telemetry.vad_mean_probability = evidence.vad_mean_probability;
+        telemetry.no_speech_probability = evidence.no_speech_probability;
         let validation_started = Instant::now();
         let candidate_words = words(&normalized_text);
         telemetry.candidate_words = candidate_words.len();
+
+        if evidence.vad_speech_detected == Some(false) {
+            telemetry.validation_duration += validation_started.elapsed();
+            self.pending = None;
+            return telemetry.suppress(SegmentSuppressionReason::NoVoiceActivity);
+        }
 
         if normalized_text.is_empty() {
             telemetry.validation_duration += validation_started.elapsed();
             self.pending = None;
             return telemetry.suppress(SegmentSuppressionReason::Empty);
+        }
+
+        if is_known_hallucination(&normalized_text) {
+            telemetry.matched_phrase = Some(normalized_text);
+            telemetry.validation_duration += validation_started.elapsed();
+            self.pending = None;
+            return telemetry.suppress(SegmentSuppressionReason::KnownHallucination);
+        }
+
+        let ambiguous_phrase = ambiguous_hallucination_phrase(&normalized_text);
+        if let Some(phrase) = ambiguous_phrase.as_deref() {
+            telemetry.matched_phrase = Some(phrase.to_owned());
+            let weak_vad = evidence
+                .vad_mean_probability
+                .zip(evidence.vad_threshold)
+                .map(|(probability, threshold)| probability < threshold + 0.10)
+                .unwrap_or(false);
+            let no_speech = evidence
+                .no_speech_probability
+                .map(|probability| probability >= 0.60)
+                .unwrap_or(false);
+            let repeated_segment = self
+                .last_ambiguous_phrase
+                .as_ref()
+                .map(|last| last.segment_id != candidate.id && last.phrase == phrase)
+                .unwrap_or(false);
+
+            if weak_vad
+                || no_speech
+                || repeated_segment
+                || is_repeated_ambiguous_phrase(&normalized_text)
+            {
+                self.last_ambiguous_phrase = Some(AmbiguousPhraseOccurrence {
+                    segment_id: candidate.id.clone(),
+                    phrase: phrase.to_owned(),
+                });
+                telemetry.validation_duration += validation_started.elapsed();
+                self.pending = None;
+                return telemetry.suppress(SegmentSuppressionReason::AmbiguousHallucination);
+            }
         }
 
         let Some(last_normalized_text) = self
@@ -197,7 +263,7 @@ impl SegmentEmissionGate {
             .map(|snapshot| snapshot.normalized_text.clone())
         else {
             telemetry.validation_duration += validation_started.elapsed();
-            return self.emit(candidate, normalized_text, telemetry);
+            return self.emit(candidate, normalized_text, ambiguous_phrase, telemetry);
         };
 
         let last_words = words(&last_normalized_text);
@@ -211,7 +277,7 @@ impl SegmentEmissionGate {
 
         if last_normalized_text.is_empty() || is_prefix_growth(&last_words, &candidate_words) {
             telemetry.validation_duration += validation_started.elapsed();
-            return self.emit(candidate, normalized_text, telemetry);
+            return self.emit(candidate, normalized_text, ambiguous_phrase, telemetry);
         }
         telemetry.validation_duration += validation_started.elapsed();
 
@@ -227,7 +293,7 @@ impl SegmentEmissionGate {
                 normalized_text.as_str(),
                 &candidate_words,
             ) {
-                return self.emit(candidate, normalized_text, telemetry);
+                return self.emit(candidate, normalized_text, ambiguous_phrase, telemetry);
             }
 
             self.pending = Some(PendingCandidate {
@@ -237,7 +303,7 @@ impl SegmentEmissionGate {
             return telemetry.suppress(SegmentSuppressionReason::PendingDrasticChange);
         }
 
-        self.emit(candidate, normalized_text, telemetry)
+        self.emit(candidate, normalized_text, ambiguous_phrase, telemetry)
     }
 
     pub fn reset_with_emitted(&mut self, segment: &WhisperSegment) {
@@ -251,8 +317,13 @@ impl SegmentEmissionGate {
         &mut self,
         candidate: WhisperSegment,
         normalized_text: String,
+        ambiguous_phrase: Option<String>,
         telemetry: GateEvaluationTelemetry,
     ) -> SegmentEmissionGateEvaluation {
+        self.last_ambiguous_phrase = ambiguous_phrase.map(|phrase| AmbiguousPhraseOccurrence {
+            segment_id: candidate.id.clone(),
+            phrase,
+        });
         self.last_emitted = Some(EmissionSnapshot { normalized_text });
         self.pending = None;
         telemetry.emit(candidate)
@@ -289,6 +360,10 @@ struct GateEvaluationTelemetry {
     last_emitted_words: usize,
     is_drastic: Option<bool>,
     distance: Option<usize>,
+    matched_phrase: Option<String>,
+    vad_speech_detected: Option<bool>,
+    vad_mean_probability: Option<f32>,
+    no_speech_probability: Option<f32>,
     normalize_duration: Duration,
     validation_duration: Duration,
     drastic_check_duration: Duration,
@@ -317,6 +392,10 @@ impl GateEvaluationTelemetry {
             last_emitted_words: 0,
             is_drastic: None,
             distance: None,
+            matched_phrase: None,
+            vad_speech_detected: None,
+            vad_mean_probability: None,
+            no_speech_probability: None,
             normalize_duration,
             validation_duration: Duration::ZERO,
             drastic_check_duration: Duration::ZERO,
@@ -336,8 +415,7 @@ impl GateEvaluationTelemetry {
     }
 
     fn suppress(self, reason: SegmentSuppressionReason) -> SegmentEmissionGateEvaluation {
-        let telemetry =
-            self.into_entry(SegmentEmissionDecisionKind::Suppress, Some(reason));
+        let telemetry = self.into_entry(SegmentEmissionDecisionKind::Suppress, Some(reason));
         log_gate_telemetry(&telemetry);
 
         SegmentEmissionGateEvaluation {
@@ -360,6 +438,10 @@ impl GateEvaluationTelemetry {
             suppression_reason,
             is_drastic: self.is_drastic,
             distance: self.distance.map(|distance| distance as u64),
+            matched_phrase: self.matched_phrase,
+            vad_speech_detected: self.vad_speech_detected,
+            vad_mean_probability: self.vad_mean_probability,
+            no_speech_probability: self.no_speech_probability,
             normalize_ms: elapsed_ms(self.normalize_duration),
             validation_ms: elapsed_ms(self.validation_duration),
             drastic_check_ms: elapsed_ms(self.drastic_check_duration),
@@ -378,6 +460,10 @@ fn log_gate_telemetry(entry: &GateEvaluationTelemetryEntry) {
         suppression_reason = ?entry.suppression_reason,
         is_drastic = ?entry.is_drastic,
         distance = ?entry.distance,
+        matched_phrase = ?entry.matched_phrase,
+        vad_speech_detected = ?entry.vad_speech_detected,
+        vad_mean_probability = ?entry.vad_mean_probability,
+        no_speech_probability = ?entry.no_speech_probability,
         normalize_ms = entry.normalize_ms,
         validation_ms = entry.validation_ms,
         drastic_check_ms = entry.drastic_check_ms,
@@ -396,6 +482,55 @@ fn normalized_segment_text(segment: &WhisperSegment) -> String {
         .join("");
 
     normalize_transcript(&text)
+}
+
+fn is_known_hallucination(normalized_text: &str) -> bool {
+    const PHRASES: &[&str] = &[
+        "subtitles by dima",
+        "subtitles by dimatorzok",
+        "субтитры сделал dimatorzok",
+        "субтитры создавал dimatorzok",
+        "продолжение следует",
+        "transcription by castingwords",
+        "subtitles by the amara org community",
+        "由 amara org 社群提供的字幕",
+    ];
+
+    PHRASES.contains(&normalized_text)
+}
+
+fn ambiguous_hallucination_phrase(normalized_text: &str) -> Option<String> {
+    const PHRASES: &[&str] = &[
+        "thank you for watching until the end",
+        "thank you for watching my video",
+        "thank you for watching",
+        "thanks for watching",
+        "thank you",
+        "thanks",
+    ];
+
+    PHRASES
+        .iter()
+        .find(|phrase| normalized_text == **phrase)
+        .map(|phrase| (*phrase).to_owned())
+        .or_else(|| {
+            PHRASES.iter().find_map(|phrase| {
+                let phrase_words = words(phrase);
+                let candidate_words = words(normalized_text);
+                (candidate_words.len() >= phrase_words.len() * 3
+                    && candidate_words.len() % phrase_words.len() == 0
+                    && candidate_words
+                        .chunks_exact(phrase_words.len())
+                        .all(|chunk| chunk == phrase_words))
+                .then(|| (*phrase).to_owned())
+            })
+        })
+}
+
+fn is_repeated_ambiguous_phrase(normalized_text: &str) -> bool {
+    ambiguous_hallucination_phrase(normalized_text)
+        .map(|phrase| words(normalized_text).len() >= words(&phrase).len() * 3)
+        .unwrap_or(false)
 }
 
 fn is_prefix_growth(previous_words: &[&str], candidate_words: &[&str]) -> bool {
@@ -487,7 +622,10 @@ mod tests {
     }
 
     fn assert_emits(evaluation: SegmentEmissionGateEvaluation, expected_text: &str) {
-        assert_eq!(evaluation.telemetry.decision, SegmentEmissionDecisionKind::Emit);
+        assert_eq!(
+            evaluation.telemetry.decision,
+            SegmentEmissionDecisionKind::Emit
+        );
         assert!(evaluation.telemetry.suppression_reason.is_none());
 
         match evaluation.decision {
@@ -508,7 +646,10 @@ mod tests {
             evaluation.telemetry.decision,
             SegmentEmissionDecisionKind::Suppress
         );
-        assert_eq!(evaluation.telemetry.suppression_reason, Some(expected_reason));
+        assert_eq!(
+            evaluation.telemetry.suppression_reason,
+            Some(expected_reason)
+        );
 
         match evaluation.decision {
             SegmentEmissionDecision::Emit(segment) => {
@@ -738,9 +879,114 @@ mod tests {
         assert_eq!(evaluation.telemetry.last_emitted_words, 4);
         assert_eq!(evaluation.telemetry.is_drastic, Some(true));
         assert_eq!(evaluation.telemetry.distance, Some(4));
+        assert_suppresses(evaluation, SegmentSuppressionReason::PendingDrasticChange);
+    }
+
+    #[test]
+    fn emission_gate_always_suppresses_exact_credit_hallucinations() {
+        let mut gate = SegmentEmissionGate::new();
+
         assert_suppresses(
-            evaluation,
-            SegmentSuppressionReason::PendingDrasticChange,
+            gate.evaluate(segment("segment-0", "Субтитры сделал DimaTorzok")),
+            SegmentSuppressionReason::KnownHallucination,
+        );
+    }
+
+    #[test]
+    fn emission_gate_keeps_ambiguous_phrase_with_strong_speech_evidence() {
+        let mut gate = SegmentEmissionGate::new();
+        let evidence = WhisperProcessEvidence {
+            vad_threshold: Some(0.5),
+            vad_mean_probability: Some(0.9),
+            no_speech_probability: Some(0.1),
+            ..WhisperProcessEvidence::default()
+        };
+
+        assert_emits(
+            gate.evaluate_with_evidence(segment("segment-0", "Thank you"), &evidence),
+            "Thank you",
+        );
+    }
+
+    #[test]
+    fn emission_gate_suppresses_ambiguous_phrase_with_weak_vad_evidence() {
+        let mut gate = SegmentEmissionGate::new();
+        let evidence = WhisperProcessEvidence {
+            vad_threshold: Some(0.5),
+            vad_mean_probability: Some(0.55),
+            ..WhisperProcessEvidence::default()
+        };
+
+        assert_suppresses(
+            gate.evaluate_with_evidence(segment("segment-0", "Thank you"), &evidence),
+            SegmentSuppressionReason::AmbiguousHallucination,
+        );
+    }
+
+    #[test]
+    fn emission_gate_suppresses_repeated_ambiguous_phrase_within_candidate() {
+        let mut gate = SegmentEmissionGate::new();
+
+        assert_suppresses(
+            gate.evaluate(segment("segment-0", "Thank you. Thank you. Thank you.")),
+            SegmentSuppressionReason::AmbiguousHallucination,
+        );
+    }
+
+    #[test]
+    fn emission_gate_does_not_treat_same_segment_revision_as_cross_segment_repetition() {
+        let mut gate = SegmentEmissionGate::new();
+        let evidence = WhisperProcessEvidence {
+            vad_threshold: Some(0.5),
+            vad_mean_probability: Some(0.9),
+            ..WhisperProcessEvidence::default()
+        };
+
+        assert_emits(
+            gate.evaluate_with_evidence(segment("segment-0", "Thank you"), &evidence),
+            "Thank you",
+        );
+        assert_suppresses(
+            gate.evaluate_with_evidence(segment("segment-0", "Thank you!"), &evidence),
+            SegmentSuppressionReason::DuplicateNormalizedText,
+        );
+    }
+
+    #[test]
+    fn emission_gate_suppresses_ambiguous_phrase_repeated_in_next_segment() {
+        let mut gate = SegmentEmissionGate::new();
+        let evidence = WhisperProcessEvidence {
+            vad_threshold: Some(0.5),
+            vad_mean_probability: Some(0.9),
+            ..WhisperProcessEvidence::default()
+        };
+
+        assert_emits(
+            gate.evaluate_with_evidence(segment("segment-0", "Thank you"), &evidence),
+            "Thank you",
+        );
+        gate.reset_with_emitted(&WhisperSegment {
+            id: "segment-1".to_owned(),
+            index: 1,
+            items: Vec::new(),
+        });
+        assert_suppresses(
+            gate.evaluate_with_evidence(segment("segment-1", "Thank you"), &evidence),
+            SegmentSuppressionReason::AmbiguousHallucination,
+        );
+    }
+
+    #[test]
+    fn emission_gate_reports_no_voice_activity_before_empty_text() {
+        let mut gate = SegmentEmissionGate::new();
+        let evidence = WhisperProcessEvidence {
+            vad_speech_detected: Some(false),
+            ..WhisperProcessEvidence::default()
+        };
+
+        assert_suppresses(
+            gate.evaluate_with_evidence(segment("segment-0", ""), &evidence),
+            SegmentSuppressionReason::NoVoiceActivity,
         );
     }
 
@@ -758,6 +1004,10 @@ mod tests {
                 suppression_reason: None,
                 is_drastic: None,
                 distance: None,
+                matched_phrase: None,
+                vad_speech_detected: None,
+                vad_mean_probability: None,
+                no_speech_probability: None,
                 normalize_ms: 0.0,
                 validation_ms: 0.0,
                 drastic_check_ms: 0.0,

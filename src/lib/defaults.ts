@@ -45,7 +45,10 @@ export let DefaultAppState: AppState = {
         },
         language: "auto",
     },
-    advanced_settings: {},
+    advanced_settings: {
+        hallucination_protection_enabled: true,
+        vad_sensitivity: "balanced",
+    },
 };
 
 export let DefaultInternalState: InternalState = {
@@ -59,6 +62,10 @@ export let DefaultInternalState: InternalState = {
         has_nvidia_gpu: false,
         reason: "",
         action_url: null,
+    },
+    vad_runtime: {
+        status: "unknown",
+        reason: "",
     },
     overlay_test: {
         visible: false,
@@ -83,4 +90,9 @@ export let DefaultAudioMetricsState: AudioMetricsState = {
     gate_total_evaluations: 0,
     gate_total_emits: 0,
     gate_emit_rate: 0,
+    last_vad_ms: 0,
+    vad_total_evaluations: 0,
+    vad_total_skips: 0,
+    vad_skip_rate: 0,
+    vad_speech_ratio: 0,
 };

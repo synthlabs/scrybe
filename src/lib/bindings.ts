@@ -56,15 +56,15 @@ async updateState(state: StateUpdate) : Promise<boolean> {
 
 /** user-defined types **/
 
-export type AdvancedSettings = Record<string, never>
+export type AdvancedSettings = { hallucination_protection_enabled: boolean; vad_sensitivity: VadSensitivity }
 export type AppState = { current_device: AudioDevice; audio_format: AudioFormat; model_path: string; audio_segment_size: number; overlay_config: OverlayConfig; home_right_rail: HomeRightRailSettings; whisper_params: WhisperParams; advanced_settings: AdvancedSettings }
 export type AudioDevice = { name: string; id: string }
 export type AudioFormat = { name: string; id: string }
-export type AudioMetricsState = { segment_sample_len: number; input_rms: number; last_inference_ms: number; inference_sample_count: number; inference_std_dev_ms: number; inference_p90_ms: number; inference_p95_ms: number; inference_p99_ms: number; gate_total_evaluations: number; gate_total_emits: number; gate_emit_rate: number }
-export type GateEvaluationTelemetryEntry = { sequence: number; segment_id: string; candidate_words: number; last_emitted_words: number; decision: SegmentEmissionDecisionKind; suppression_reason: SegmentSuppressionReason | null; is_drastic: boolean | null; distance: number | null; normalize_ms: number; validation_ms: number; drastic_check_ms: number; distance_ms: number; evaluate_ms: number }
+export type AudioMetricsState = { segment_sample_len: number; input_rms: number; last_inference_ms: number; inference_sample_count: number; inference_std_dev_ms: number; inference_p90_ms: number; inference_p95_ms: number; inference_p99_ms: number; gate_total_evaluations: number; gate_total_emits: number; gate_emit_rate: number; last_vad_ms: number; vad_total_evaluations: number; vad_total_skips: number; vad_skip_rate: number; vad_speech_ratio: number }
+export type GateEvaluationTelemetryEntry = { sequence: number; segment_id: string; candidate_words: number; last_emitted_words: number; decision: SegmentEmissionDecisionKind; suppression_reason: SegmentSuppressionReason | null; is_drastic: boolean | null; distance: number | null; matched_phrase: string | null; vad_speech_detected: boolean | null; vad_mean_probability: number | null; no_speech_probability: number | null; normalize_ms: number; validation_ms: number; drastic_check_ms: number; distance_ms: number; evaluate_ms: number }
 export type GateTelemetryState = { entries: GateEvaluationTelemetryEntry[] }
 export type HomeRightRailSettings = { session: boolean; audio_metrics: boolean; gate: boolean }
-export type InternalState = { transcribe_running: boolean; active_transcription_run_id: string | null; audio_step_size: number; version: string; name: string; runtime_dependency: RuntimeDependencyState; overlay_test: OverlayTestState }
+export type InternalState = { transcribe_running: boolean; active_transcription_run_id: string | null; audio_step_size: number; version: string; name: string; runtime_dependency: RuntimeDependencyState; vad_runtime: VadRuntimeState; overlay_test: OverlayTestState }
 export type ModelPreset = { id: string; label: string; description: string; repo: string; filename: string; size_mb: number; resource_rank: number; auto_selectable: boolean }
 export type OverlayBox = { x: number; y: number; w: number; h: number }
 export type OverlayCanvas = { width: number; height: number }
@@ -75,8 +75,11 @@ export type OverlayTestState = { visible: boolean; text: string; expires_at_ms: 
 export type RuntimeDependencyState = { status: RuntimeDependencyStatus; has_nvidia_gpu: boolean; reason: string; action_url: string | null }
 export type RuntimeDependencyStatus = "unknown" | "ready_gpu" | "ready_cpu_fallback" | "unavailable"
 export type SegmentEmissionDecisionKind = "Emit" | "Suppress"
-export type SegmentSuppressionReason = "Empty" | "DuplicateNormalizedText" | "PendingDrasticChange"
+export type SegmentSuppressionReason = "Empty" | "NoVoiceActivity" | "KnownHallucination" | "AmbiguousHallucination" | "DuplicateNormalizedText" | "PendingDrasticChange"
 export type StateUpdate = { version: number | null; name: string; value: string }
+export type VadRuntimeState = { status: VadRuntimeStatus; reason: string }
+export type VadRuntimeStatus = "unknown" | "ready" | "degraded" | "disabled"
+export type VadSensitivity = "sensitive" | "balanced" | "strict"
 export type WebsocketRequest = { kind: string; data: string }
 export type WebsocketResponse = { kind: string; data: string; is_error: boolean }
 export type WhisperParams = { toggles: WhisperToggles; language: string }

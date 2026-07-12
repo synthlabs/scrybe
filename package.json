@@ -12,7 +12,8 @@
         "test:i18n": "node --test scripts/i18n-detect.test.mjs",
         "test:overlay-ws": "node --test scripts/overlay-ws-contract.test.mjs",
         "test:updater": "node scripts/updater-toast.test.mjs",
-        "validate:transcription": "node scripts/validate-transcription.mjs"
+        "validate:transcription": "node scripts/validate-transcription.mjs",
+        "validate:hallucinations": "node scripts/validate-hallucinations.mjs"
     },
     "devDependencies": {
         "@inlang/paraglide-js": "^2.18.2",
