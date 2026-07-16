@@ -186,10 +186,11 @@
     >
         <div class="flex min-w-0 flex-[0_1_auto] items-center gap-3">
             <Info class="size-4 shrink-0" />
+            <span class="shrink-0">{msgs.overlay_browser_prefix()}</span>
             <button
                 type="button"
                 onclick={copyUrl}
-                class="border-border bg-background text-foreground hover:bg-accent max-w-[min(52vw,320px)] min-w-0 overflow-hidden rounded border px-2 py-1 font-mono text-xs text-ellipsis whitespace-nowrap transition-colors"
+                class="border-border bg-background text-foreground hover:bg-accent max-w-[min(52vw,320px)] min-w-0 cursor-pointer overflow-hidden rounded border px-2 py-1 font-mono text-xs text-ellipsis whitespace-nowrap transition-colors"
             >
                 {OVERLAY_URL}
             </button>
