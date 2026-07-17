@@ -6,7 +6,6 @@
     import * as Sheet from "$lib/components/ui/sheet/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import ConsoleColumn from "$lib/components/console/console-column.svelte";
-    import LivePreviewCard from "$lib/components/console/live-preview-card.svelte";
     import SegmentedControl from "$lib/components/console/segmented-control.svelte";
     import ToggleRow from "$lib/components/console/toggle-row.svelte";
     import Mic from "@lucide/svelte/icons/mic";
@@ -396,35 +395,6 @@
 
     let segment_size = $derived(app_state.obj.audio_segment_size || 15);
 
-    let preview_segments = $derived.by(() => {
-        const lang = app_state.obj.whisper_params.language;
-        const ru = lang === "ru";
-        const sourceLines = ru
-            ? [
-                  "Привет, добро пожаловать в стрим.",
-                  "Сегодня мы попробуем новую игру.",
-              ]
-            : [
-                  "Hey, welcome to the stream today,",
-                  "we are gonna try out this new game.",
-              ];
-        const translatedLines = [
-            "Hey, welcome to the stream today,",
-            "we are gonna try out this new game.",
-        ];
-        const lines = store_toggles.translate ? translatedLines : sourceLines;
-        if (store_toggles.single_segment) return [lines.join(" ")];
-        if (store_toggles.split_on_word) {
-            return lines.join(" ").split(/\s+/);
-        }
-        return lines;
-    });
-
-    const fmtTimestamp = (i: number) => {
-        const totalMs = i * 800;
-        const s = (totalMs / 1000).toFixed(1);
-        return `00:0${s}`;
-    };
 </script>
 
 <div class="product-scrybe flex flex-col gap-4 p-4">
@@ -468,48 +438,6 @@
             {/if}
         </div>
     </div>
-
-    <LivePreviewCard subtitle={msgs.settings_live_preview_subtitle()}>
-        {#snippet pills()}
-            {#if store_toggles.translate}
-                <span
-                    class="border-border/60 bg-background/40 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase"
-                >
-                    → EN
-                </span>
-            {/if}
-            {#if store_toggles.single_segment}
-                <span
-                    class="border-border/60 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                >
-                    1 segment
-                </span>
-            {/if}
-            {#if store_toggles.split_on_word}
-                <span
-                    class="border-border/60 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                >
-                    per-word
-                </span>
-            {/if}
-        {/snippet}
-        <div
-            class="border-border/60 bg-background/30 rounded border px-3 py-2 text-[13px] leading-snug"
-        >
-            {#each preview_segments as seg, i (i + seg)}
-                <span class="inline-block pr-1 align-baseline">
-                    {#if store_toggles.token_timestamps}
-                        <span
-                            class="bg-background/60 text-muted-foreground mr-1 rounded px-1 py-0.5 font-mono text-[10px]"
-                        >
-                            {fmtTimestamp(i)}
-                        </span>
-                    {/if}
-                    {seg}
-                </span>
-            {/each}
-        </div>
-    </LivePreviewCard>
 
     <div
         class="grid gap-3"

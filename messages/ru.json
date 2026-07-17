@@ -12,8 +12,6 @@
     "settings_save_msg": "Сохранено!",
     "settings_show_advanced": "Показать дополнительные",
     "settings_hide_advanced": "Скрыть дополнительные",
-    "settings_live_preview_label": "ПРЕДПРОСМОТР",
-    "settings_live_preview_subtitle": "Пример транскрипции отражает текущие настройки",
     "settings_audio_segment_responsive": "отзывчивее",
     "settings_audio_segment_accurate": "точнее",
     "settings_segment_count_summary": "{essential} + {advanced}",

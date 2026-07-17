@@ -12,8 +12,6 @@
     "settings_save_msg": "Saved!",
     "settings_show_advanced": "Show advanced",
     "settings_hide_advanced": "Hide advanced",
-    "settings_live_preview_label": "LIVE PREVIEW",
-    "settings_live_preview_subtitle": "Sample transcript reflects current settings",
     "settings_audio_segment_responsive": "responsive",
     "settings_audio_segment_accurate": "accurate",
     "settings_segment_count_summary": "{essential} + {advanced}",
