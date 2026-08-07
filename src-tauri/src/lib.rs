@@ -1023,6 +1023,14 @@ fn inbound_build_info() -> inbound::BuildInfo {
     }
 }
 
+fn internal_build_info(build_info: &inbound::BuildInfo) -> internal::InternalBuildInfo {
+    internal::InternalBuildInfo {
+        app_version: build_info.app_version.clone(),
+        app_commit: build_info.app_commit.clone(),
+        build_time: build_info.build_time.clone(),
+    }
+}
+
 struct ScrybeScrubber;
 
 impl inbound::Scrubber<tauri::Wry> for ScrybeScrubber {
@@ -1068,6 +1076,9 @@ fn cleanup_before_exit(app: &AppHandle) {
 pub fn run() {
     color_eyre::install().expect("failed to install color_eyre");
 
+    let inbound_build = inbound_build_info();
+    let internal_build = internal_build_info(&inbound_build);
+
     let builder = tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -1091,7 +1102,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(inbound::init(inbound::Config {
             app: inbound::AppId::Scrybe,
-            build: inbound_build_info(),
+            build: inbound_build,
             scrubber: Some(Arc::new(ScrybeScrubber)),
         }))
         .plugin(tauri_plugin_opener::init())
@@ -1102,15 +1113,18 @@ pub fn run() {
             app.emit("single-instance", argv).unwrap();
         }));
 
-    let public_handlers = specta_builder();
+    let builder = internal::apply_plugins(builder, internal_build);
+
+    let handlers = specta_builder();
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
-    export_bindings(&public_handlers, repo_root().join("src/lib/bindings.ts"));
-
-    let handlers = internal::extend_specta(public_handlers);
+    export_bindings(&handlers, repo_root().join("src/lib/bindings.ts"));
 
     #[cfg(all(debug_assertions, internal_enabled))]
-    export_bindings(&handlers, repo_root().join("internal/frontend/bindings.ts"));
+    export_bindings(
+        &internal::specta_builder(),
+        repo_root().join("internal/frontend/bindings.ts"),
+    );
 
     let app = builder
         .invoke_handler(handlers.invoke_handler())

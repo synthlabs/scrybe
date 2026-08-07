@@ -8,9 +8,17 @@ mod local {
 
 #[cfg(not(internal_enabled))]
 mod local {
-    pub fn extend_specta(
-        builder: tauri_specta::Builder<tauri::Wry>,
-    ) -> tauri_specta::Builder<tauri::Wry> {
+    #[allow(dead_code)]
+    pub struct InternalBuildInfo {
+        pub app_version: String,
+        pub app_commit: String,
+        pub build_time: String,
+    }
+
+    pub fn apply_plugins<R: tauri::Runtime>(
+        builder: tauri::Builder<R>,
+        _build_info: InternalBuildInfo,
+    ) -> tauri::Builder<R> {
         builder
     }
 
@@ -19,4 +27,7 @@ mod local {
     }
 }
 
-pub use local::{extend_specta, setup};
+pub use local::{apply_plugins, setup, InternalBuildInfo};
+
+#[cfg(all(debug_assertions, internal_enabled))]
+pub use local::specta_builder;

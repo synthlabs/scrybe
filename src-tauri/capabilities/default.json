@@ -12,6 +12,7 @@
         "store:default",
         "shell:default",
         "dialog:default",
-        "inbound:default"
+        "inbound:default",
+        "internal:default"
     ]
 }

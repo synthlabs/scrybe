@@ -5,7 +5,7 @@ PNPM ?= pnpm
 CARGO ?= cargo
 NODE ?= node
 
-INTERNAL_FILES := internal/frontend/index.ts internal/rust/mod.rs
+INTERNAL_FILES := internal/frontend/index.ts internal/rust/commands.rs internal/rust/mod.rs
 MISSING_INTERNAL_FILES = $(filter-out $(wildcard $(INTERNAL_FILES)),$(INTERNAL_FILES))
 
 NODE_TESTS := \

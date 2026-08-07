@@ -2,6 +2,13 @@ use std::process::Command;
 
 use tauri_build::{Attributes, DefaultPermissionRule, InlinedPlugin};
 
+mod internal_commands {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../internal/rust/commands.rs"
+    ));
+}
+
 fn main() {
     println!("cargo:rustc-check-cfg=cfg(internal_enabled)");
     println!("cargo:rerun-if-env-changed=ENABLE_INTERNAL");
@@ -24,13 +31,19 @@ fn main() {
     }
 
     inbound_build::stamp();
-    tauri_build::try_build(
-        Attributes::new().plugin(
+    let attrs = Attributes::new()
+        .plugin(
             "inbound",
             InlinedPlugin::new()
                 .commands(inbound_build::COMMANDS)
                 .default_permission(DefaultPermissionRule::AllowAllCommands),
-        ),
-    )
-    .expect("failed to run tauri build");
+        )
+        .plugin(
+            "internal",
+            InlinedPlugin::new()
+                .commands(internal_commands::COMMANDS)
+                .default_permission(DefaultPermissionRule::AllowAllCommands),
+        );
+
+    tauri_build::try_build(attrs).expect("failed to run tauri build");
 }
