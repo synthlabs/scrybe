@@ -1277,6 +1277,9 @@ pub fn run() {
                 .visible(false)
                 .background_color(tauri::webview::Color(26, 30, 35, 255));
 
+            #[cfg(target_os = "linux")]
+            let win_builder = win_builder.theme(Some(tauri::Theme::Dark));
+
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
 
