@@ -4580,6 +4580,7 @@ dependencies = [
  "serde_json",
  "specta",
  "specta-typescript",
+ "synth-tauri-runtime",
  "sysinfo",
  "tauri",
  "tauri-build",
@@ -5198,6 +5199,10 @@ dependencies = [
  "quote",
  "syn 2.0.117",
 ]
+
+[[package]]
+name = "synth-tauri-runtime"
+version = "0.1.0"
 
 [[package]]
 name = "sys-locale"

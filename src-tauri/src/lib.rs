@@ -1075,6 +1075,10 @@ fn cleanup_before_exit(app: &AppHandle) {
 }
 
 pub fn run() {
+    // SAFETY: main calls run before any other initialization or threads are started.
+    let nvidia_wayland_workaround_applied =
+        unsafe { synth_tauri_runtime::apply_nvidia_wayland_workaround() };
+
     color_eyre::install().expect("failed to install color_eyre");
 
     let inbound_build = inbound_build_info();
@@ -1130,6 +1134,10 @@ pub fn run() {
     let app = builder
         .invoke_handler(handlers.invoke_handler())
         .setup(move |app| {
+            if nvidia_wayland_workaround_applied {
+                info!("NVIDIA on Wayland detected; disabled EGL explicit sync");
+            }
+
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())

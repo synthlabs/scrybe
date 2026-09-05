@@ -47,6 +47,8 @@ version = "1"
 default-features = false
 features = ["system"]
 version = "0.37.2"
+[dependencies.synth-tauri-runtime]
+path = "../utils/rust/synth-tauri-runtime"
 [dependencies.tauri]
 features = []
 version = "2"

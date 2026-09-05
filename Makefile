@@ -52,6 +52,7 @@ check:
 
 .PHONY: test
 test: test-packaging
+	$(TOKE) -v $(CARGO) test -p synth-tauri-runtime
 	$(TOKE) -v $(NODE) --test $(NODE_TESTS)
 	$(TOKE) -v $(CARGO) test -p scrybe_core
 	$(TOKE) -v $(CARGO) test -p scrybe

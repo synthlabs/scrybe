@@ -59,6 +59,18 @@ bundles are under `target/release/bundle/`; Arch packages are under `package/`.
 
 ### Arch Linux and CachyOS
 
+Scrybe automatically applies its NVIDIA explicit-sync workaround on Linux Wayland
+at startup, including development and installed builds. No launch prefix is needed.
+Existing `__NV_DISABLE_EXPLICIT_SYNC` values are preserved; setting it to `0` opts
+out. The shared helper's detection and safety contract are documented in
+[`synth-tauri-runtime`](utils/rust/synth-tauri-runtime/README.md).
+
+Run `bash scripts/verify-linux-startup.sh` for automated checks. On an NVIDIA Wayland
+desktop, use `bash scripts/verify-linux-startup.sh --dev` or `--installed` to launch
+with the override unset, then confirm a responsive window and the workaround log.
+Use `--desktop` to launch the installed desktop entry with the override unset.
+Also verify a normal launch from the desktop menu after installing the new build.
+
 Local packaging requires an x86_64 host with GNU Make, Cargo, Node.js, Docker or
 Podman, and `sudo`/`pacman` for installation. Initialize the `utils` submodule first.
 Build dependencies and the pinned pnpm version are installed inside an Arch Linux
