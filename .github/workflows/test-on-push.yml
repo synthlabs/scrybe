@@ -35,6 +35,19 @@ jobs:
           version: 10.26.1
           run_install: true
 
+      - name: Packaging integration tests (Linux)
+        if: startsWith(matrix.platform, 'ubuntu')
+        shell: bash
+        run: make test-packaging
+
+      - name: Installer tests (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        run: ./utils/packaging/tauri/install.test.ps1
+
+      - name: Updater tests
+        run: node scripts/updater-toast.test.mjs
+
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 

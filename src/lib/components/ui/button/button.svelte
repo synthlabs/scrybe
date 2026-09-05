@@ -7,7 +7,7 @@
     import { type VariantProps, tv } from "tailwind-variants";
 
     export const buttonVariants = tv({
-        base: "ring-offset-background focus-visible:ring-ring inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        base: "ring-offset-background focus-visible:ring-ring aria-pressed:bg-scrybe-soft aria-pressed:text-foreground aria-pressed:hover:bg-scrybe-soft aria-pressed:[&_svg]:text-scrybe inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-pressed:border-transparent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         variants: {
             variant: {
                 default:
@@ -22,10 +22,10 @@
                 link: "text-primary underline-offset-4 hover:underline",
             },
             size: {
-                default: "h-10 px-4 py-2",
-                sm: "h-9 rounded-md px-3",
-                lg: "h-11 rounded-md px-8",
-                icon: "h-10 w-10",
+                default: "min-h-9 px-4 py-2",
+                sm: "min-h-8 px-3 py-1",
+                lg: "min-h-11 px-8 py-2",
+                icon: "size-9 shrink-0",
             },
         },
         defaultVariants: {

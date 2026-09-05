@@ -540,7 +540,7 @@
                                 class={cn(
                                     "text-muted-foreground hover:bg-accent/45 hover:text-foreground h-7 rounded px-3 text-xs font-medium transition-colors",
                                     config.style.padding === option.value &&
-                                        "bg-background text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]",
+                                        "bg-background text-foreground shadow-[inset_0_0_0_1px_var(--border)]",
                                 )}
                             >
                                 {option.label}

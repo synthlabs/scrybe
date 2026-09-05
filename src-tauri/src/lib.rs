@@ -313,6 +313,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
         .typ::<types::HomeRightRailSettings>()
+        .typ::<types::OverlayEditorSettings>()
         .typ::<types::OverlayConfig>()
         .typ::<types::OverlayCanvas>()
         .typ::<types::OverlayBox>()
@@ -1278,7 +1279,10 @@ pub fn run() {
                 .background_color(tauri::webview::Color(26, 30, 35, 255));
 
             #[cfg(target_os = "linux")]
-            let win_builder = win_builder.theme(Some(tauri::Theme::Dark));
+            let win_builder = win_builder
+                .theme(Some(tauri::Theme::Dark))
+                .icon(tauri::include_image!("./icons/32x32.png"))
+                .expect("failed to set Scrybe window icon");
 
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);

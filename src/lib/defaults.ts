@@ -22,13 +22,18 @@ export let DefaultAppState: AppState = {
     },
     model_path: "",
     audio_segment_size: 15,
+    sidebar_open: true,
     overlay_config: {
         canvas: { ...DEFAULT_OVERLAY_CONFIG.canvas },
         box: { ...DEFAULT_OVERLAY_CONFIG.box },
         style: { ...DEFAULT_OVERLAY_CONFIG.style },
     },
+    overlay_editor: {
+        advanced_open: false,
+    },
     home_right_rail: {
-        session: false,
+        open: false,
+        session: true,
         audio_metrics: false,
         gate: false,
     },

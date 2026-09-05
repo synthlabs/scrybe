@@ -5,7 +5,9 @@ pub struct AppState {
     pub audio_format: scrybe_core::devices::AudioFormat,
     pub model_path: String,
     pub audio_segment_size: u64,
+    pub sidebar_open: bool,
     pub overlay_config: OverlayConfig,
+    pub overlay_editor: OverlayEditorSettings,
     pub home_right_rail: HomeRightRailSettings,
     pub whisper_params: scrybe_core::whisper::WhisperParams,
     pub advanced_settings: AdvancedSettings,
@@ -18,7 +20,9 @@ impl Default for AppState {
             audio_format: scrybe_core::devices::AudioFormat::default(),
             model_path: Default::default(),
             audio_segment_size: 15,
+            sidebar_open: true,
             overlay_config: OverlayConfig::default(),
+            overlay_editor: OverlayEditorSettings::default(),
             home_right_rail: HomeRightRailSettings::default(),
             whisper_params: scrybe_core::whisper::WhisperParams::default(),
             advanced_settings: AdvancedSettings::default(),
@@ -447,6 +451,7 @@ mod overlay_config_tests {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
 #[serde(default)]
 pub struct HomeRightRailSettings {
+    pub open: bool,
     pub session: bool,
     pub audio_metrics: bool,
     pub gate: bool,
@@ -455,10 +460,64 @@ pub struct HomeRightRailSettings {
 impl Default for HomeRightRailSettings {
     fn default() -> Self {
         Self {
-            session: false,
+            open: false,
+            session: true,
             audio_metrics: false,
             gate: false,
         }
+    }
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
+#[serde(default)]
+pub struct OverlayEditorSettings {
+    pub advanced_open: bool,
+}
+
+#[cfg(test)]
+mod ui_settings_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn new_ui_settings_keep_advanced_details_out_of_the_default_view() {
+        let state = AppState::default();
+
+        assert!(!state.home_right_rail.open);
+        assert!(state.home_right_rail.session);
+        assert!(!state.home_right_rail.audio_metrics);
+        assert!(!state.home_right_rail.gate);
+        assert!(!state.overlay_editor.advanced_open);
+        assert!(state.sidebar_open);
+    }
+
+    #[test]
+    fn legacy_state_preserves_home_detail_sections_and_defaults_new_fields() {
+        let state: AppState = serde_json::from_value(json!({
+            "home_right_rail": {
+                "session": false,
+                "audio_metrics": true,
+                "gate": true
+            }
+        }))
+        .unwrap();
+
+        assert!(!state.home_right_rail.open);
+        assert!(!state.home_right_rail.session);
+        assert!(state.home_right_rail.audio_metrics);
+        assert!(state.home_right_rail.gate);
+        assert!(!state.overlay_editor.advanced_open);
+        assert!(state.sidebar_open);
+    }
+
+    #[test]
+    fn persisted_sidebar_state_preserves_a_collapsed_sidebar() {
+        let state: AppState = serde_json::from_value(json!({
+            "sidebar_open": false
+        }))
+        .unwrap();
+
+        assert!(!state.sidebar_open);
     }
 }
 

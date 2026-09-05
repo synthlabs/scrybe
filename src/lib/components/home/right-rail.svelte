@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onDestroy, onMount } from "svelte";
+    import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
+    import * as Sheet from "$lib/components/ui/sheet/index.ts";
+    import MetricHelp from "./metric-help.svelte";
+    import ChevronDown from "@lucide/svelte/icons/chevron-down";
     import {
         session,
         fmt_duration,
@@ -16,63 +20,57 @@
     } from "$lib/bindings";
     import { m as msgs } from "$lib/paraglide/messages";
 
+    type DetailSection = "audio_metrics" | "gate";
+
     let now = $state(Date.now());
     let interval: ReturnType<typeof setInterval> | null = null;
-    let gate_table_container: HTMLDivElement | null = $state(null);
-    let gate_visible_count = $state(10);
+    let wide_layout = $state(false);
+    let layout_query: MediaQueryList | null = null;
+
+    const sync_layout = () => {
+        wide_layout = layout_query?.matches ?? false;
+    };
 
     onMount(() => {
         interval = setInterval(() => {
             now = Date.now();
         }, 1000);
+
+        layout_query = window.matchMedia("(min-width: 1024px)");
+        sync_layout();
+        layout_query.addEventListener("change", sync_layout);
     });
+
     onDestroy(() => {
         if (interval) clearInterval(interval);
-    });
-
-    $effect(() => {
-        const container = gate_table_container;
-        if (!container) return;
-
-        sync_gate_visible_count();
-        const resize_observer = new ResizeObserver(sync_gate_visible_count);
-        resize_observer.observe(container);
-
-        return () => {
-            resize_observer.disconnect();
-        };
+        layout_query?.removeEventListener("change", sync_layout);
     });
 
     let elapsed = $derived(
         session.started_at !== null ? now - session.started_at : 0,
     );
-    let show_session = $derived(app_state.obj.home_right_rail.session);
+    let details_open = $derived(app_state.obj.home_right_rail.open);
     let show_audio_metrics = $derived(
         app_state.obj.home_right_rail.audio_metrics,
     );
     let show_gate = $derived(app_state.obj.home_right_rail.gate);
-    let show_rail = $derived(show_session || show_audio_metrics || show_gate);
 
     let stats = $derived([
         {
             label: msgs.home_rail_started(),
             value: fmt_started(session.started_at),
-            mono: true,
         },
         {
             label: msgs.home_rail_duration(),
             value: fmt_duration(elapsed),
-            mono: true,
         },
         {
             label: msgs.home_rail_segments(),
             value: String(session.segments.length),
-            mono: true,
         },
         {
             label: msgs.home_rail_words(),
             value: String(session.word_count),
-            mono: true,
         },
     ]);
 
@@ -82,74 +80,82 @@
     let audio_stats = $derived([
         {
             label: msgs.home_rail_inference(),
+            help: msgs.home_help_inference(),
             value: format_metric_ms(
                 audio_metrics.obj.last_inference_ms,
                 !has_inference,
             ),
-            mono: true,
         },
         {
             label: msgs.home_rail_rms(),
+            help: msgs.home_help_rms(),
             value: format_rms(audio_metrics.obj.input_rms),
-            mono: true,
         },
         {
             label: msgs.home_rail_vad(),
+            help: msgs.home_help_vad(),
             value: format_metric_ms(audio_metrics.obj.last_vad_ms, !has_vad),
-            mono: true,
         },
         {
             label: msgs.home_rail_vad_skip_rate(),
+            help: msgs.home_help_vad_skip_rate(),
             value: format_percent(audio_metrics.obj.vad_skip_rate, !has_vad),
-            mono: true,
         },
         {
             label: msgs.home_rail_vad_speech_ratio(),
+            help: msgs.home_help_vad_speech_ratio(),
             value: format_percent(audio_metrics.obj.vad_speech_ratio, !has_vad),
-            mono: true,
         },
     ]);
 
     let inference_distribution_stats = $derived([
         {
             label: msgs.home_rail_inference_deviation(),
+            help: msgs.home_help_inference_deviation(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_std_dev_ms,
                 !has_inference,
             ),
-            mono: true,
         },
         {
             label: msgs.home_rail_inference_p90(),
+            help: msgs.home_help_inference_p90(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p90_ms,
                 !has_inference,
             ),
-            mono: true,
         },
         {
             label: msgs.home_rail_inference_p95(),
+            help: msgs.home_help_inference_p95(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p95_ms,
                 !has_inference,
             ),
-            mono: true,
         },
         {
             label: msgs.home_rail_inference_p99(),
+            help: msgs.home_help_inference_p99(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p99_ms,
                 !has_inference,
             ),
-            mono: true,
         },
     ]);
 
-    let latest_gate_entries = $derived.by(() =>
-        gate_visible_count <= 0
-            ? []
-            : gate_telemetry.obj.entries.slice(-gate_visible_count).reverse(),
+    let latest_gate_entries = $derived(
+        gate_telemetry.obj.entries.slice(-12).reverse(),
     );
+
+    function set_details_open(open: boolean) {
+        app_state.obj.home_right_rail.open = open;
+        app_state.sync();
+    }
+
+    function set_section_open(section: DetailSection, open: boolean) {
+        app_state.obj.home_right_rail[section] = open;
+        app_state.sync();
+    }
 
     function format_ms(ms: number) {
         return ms < 10 ? ms.toFixed(1) : ms.toFixed(0);
@@ -198,195 +204,217 @@
                 return msgs.home_rail_gate_suppress();
         }
     }
-
-    function sync_gate_visible_count() {
-        if (!gate_table_container) return;
-
-        const header_height = 26;
-        const row_height = 29;
-        const available_rows_height = Math.max(
-            0,
-            gate_table_container.clientHeight - header_height,
-        );
-        gate_visible_count = Math.max(
-            0,
-            Math.floor(available_rows_height / row_height),
-        );
-    }
 </script>
 
-{#if show_rail}
-    <aside
-        class="border-border/70 bg-background/25 flex w-[360px] shrink-0 flex-col overflow-hidden border-l"
-    >
-        <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-            {#if show_session}
-                <section class="shrink-0">
-                    <header class="px-4 pt-4 pb-2">
-                        <h2
-                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
-                        >
-                            {msgs.home_rail_session()}
-                        </h2>
-                    </header>
-                    <dl
-                        class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]"
-                    >
-                        {#each stats as stat (stat.label)}
-                            <div class="min-w-0">
-                                <dt class="text-muted-foreground">
-                                    {stat.label}
-                                </dt>
-                                <dd
-                                    class="text-foreground truncate {stat.mono
-                                        ? 'font-mono tabular-nums'
-                                        : ''}"
-                                >
-                                    {stat.value}
-                                </dd>
-                            </div>
-                        {/each}
-                    </dl>
-                </section>
-            {/if}
+{#snippet sectionTrigger(label: string, open: boolean)}
+    <span class="text-foreground text-sm font-medium">{label}</span>
+    <ChevronDown
+        class="text-muted-foreground ml-auto size-4 transition-transform duration-200 {open
+            ? 'rotate-180'
+            : ''}"
+    />
+{/snippet}
 
-            {#if show_audio_metrics}
-                <section
-                    class="shrink-0 {show_session
-                        ? 'border-border/50 border-t'
-                        : ''}"
+{#snippet detailsContent()}
+    <div class="flex h-full min-h-0 flex-col">
+        <div class="min-h-0 flex-1 overflow-y-auto">
+            <section class="border-border border-b px-5 py-4 pr-16">
+                <h2 class="text-foreground text-sm font-medium">
+                    {msgs.home_rail_session()}
+                </h2>
+                <dl
+                    class="mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-x-4 gap-y-3 text-xs"
                 >
-                    <header class="px-4 pt-4 pb-2">
-                        <h2
-                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
-                        >
-                            {msgs.home_rail_audio_metrics()}
-                        </h2>
-                    </header>
+                    {#each stats as stat (stat.label)}
+                        <div class="min-w-0">
+                            <dt class="text-muted-foreground">
+                                {stat.label}
+                            </dt>
+                            <dd class="mt-1 font-mono tabular-nums">
+                                {stat.value}
+                            </dd>
+                        </div>
+                    {/each}
+                </dl>
+            </section>
+
+            <Collapsible.Root
+                open={show_audio_metrics}
+                onOpenChange={(open) => set_section_open("audio_metrics", open)}
+                class="border-border border-b"
+            >
+                <Collapsible.Trigger
+                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                    {@render sectionTrigger(
+                        msgs.home_rail_audio_metrics(),
+                        show_audio_metrics,
+                    )}
+                </Collapsible.Trigger>
+                <Collapsible.Content>
                     <dl
-                        class="grid grid-cols-2 gap-x-4 gap-y-2 px-4 pb-4 text-[12px]"
+                        class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-x-4 gap-y-3 px-5 pt-1 pb-4 text-xs"
                     >
                         {#each audio_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt class="text-muted-foreground">
-                                    {stat.label}
-                                </dt>
-                                <dd
-                                    class="text-foreground truncate {stat.mono
-                                        ? 'font-mono tabular-nums'
-                                        : ''}"
+                                <dt
+                                    class="text-muted-foreground flex min-h-8 items-center gap-1"
                                 >
+                                    <span class="min-w-0 break-words"
+                                        >{stat.label}</span
+                                    >
+                                    <MetricHelp
+                                        label={stat.label}
+                                        description={stat.help}
+                                    />
+                                </dt>
+                                <dd class="mt-1 font-mono tabular-nums">
                                     {stat.value}
                                 </dd>
                             </div>
                         {/each}
                     </dl>
-                    <dl class="grid grid-cols-4 gap-x-2 px-4 pb-4 text-[11px]">
+                    <dl
+                        class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3 px-5 pb-5 text-xs"
+                    >
                         {#each inference_distribution_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt class="text-muted-foreground truncate">
-                                    {stat.label}
-                                </dt>
-                                <dd
-                                    class="text-foreground truncate {stat.mono
-                                        ? 'font-mono tabular-nums'
-                                        : ''}"
+                                <dt
+                                    class="text-muted-foreground flex min-h-8 items-center gap-1"
                                 >
+                                    <span class="min-w-0 break-words"
+                                        >{stat.label}</span
+                                    >
+                                    <MetricHelp
+                                        label={stat.label}
+                                        description={stat.help}
+                                    />
+                                </dt>
+                                <dd class="mt-1 font-mono tabular-nums">
                                     {stat.value}
                                 </dd>
                             </div>
                         {/each}
                     </dl>
-                </section>
-            {/if}
+                </Collapsible.Content>
+            </Collapsible.Root>
 
-            {#if show_gate}
-                <section
-                    class="flex min-h-0 flex-1 flex-col overflow-hidden {show_session ||
-                    show_audio_metrics
-                        ? 'border-border/50 border-t'
-                        : ''}"
+            <Collapsible.Root
+                open={show_gate}
+                onOpenChange={(open) => set_section_open("gate", open)}
+            >
+                <Collapsible.Trigger
+                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
-                    <header
-                        class="flex items-center justify-between px-4 pt-4 pb-2"
-                    >
-                        <h2
-                            class="text-muted-foreground text-[10px] font-bold tracking-[0.08em] uppercase"
-                        >
-                            {msgs.home_rail_gate()}
-                        </h2>
-                        <span
-                            class="text-muted-foreground font-mono text-[11px] tabular-nums"
-                        >
-                            {gate_telemetry.obj.entries.length}
-                        </span>
-                    </header>
-
-                    {#if gate_telemetry.obj.entries.length === 0}
-                        <p class="text-muted-foreground px-4 pb-4 text-[12px]">
+                    {@render sectionTrigger(msgs.home_rail_gate(), show_gate)}
+                </Collapsible.Trigger>
+                <Collapsible.Content>
+                    {#if latest_gate_entries.length === 0}
+                        <p class="text-muted-foreground px-5 pt-1 pb-5 text-sm">
                             {msgs.home_rail_gate_empty()}
                         </p>
                     {:else}
-                        <div
-                            bind:this={gate_table_container}
-                            class="min-h-0 flex-1 overflow-hidden px-3 pb-4"
-                        >
+                        <div class="overflow-x-auto px-5 pt-1 pb-5">
                             <table
-                                class="w-full table-fixed text-left text-[11px]"
+                                class="w-full min-w-[26rem] table-fixed text-left text-xs"
                             >
-                                <thead
-                                    class="text-muted-foreground text-[10px]"
-                                >
+                                <thead class="text-muted-foreground">
                                     <tr>
-                                        <th class="w-10 px-1 pb-2 font-medium">
-                                            {msgs.home_rail_gate_seq()}
+                                        <th class="w-16 px-1 pb-2 font-medium">
+                                            <span
+                                                class="inline-flex items-center gap-1"
+                                            >
+                                                {msgs.home_rail_gate_seq()}
+                                                <MetricHelp
+                                                    label={msgs.home_rail_gate_seq()}
+                                                    description={msgs.home_help_gate_seq()}
+                                                />
+                                            </span>
                                         </th>
                                         <th class="px-1 pb-2 font-medium">
-                                            {msgs.home_rail_gate_decision()}
+                                            <span
+                                                class="inline-flex items-center gap-1"
+                                            >
+                                                {msgs.home_rail_gate_decision()}
+                                                <MetricHelp
+                                                    label={msgs.home_rail_gate_decision()}
+                                                    description={msgs.home_help_gate_decision()}
+                                                />
+                                            </span>
                                         </th>
                                         <th
-                                            class="w-12 px-1 pb-2 text-right font-medium"
+                                            class="w-20 px-1 pb-2 text-right font-medium"
                                         >
-                                            {msgs.home_rail_gate_words()}
+                                            <span
+                                                class="inline-flex items-center gap-1"
+                                            >
+                                                {msgs.home_rail_gate_words()}
+                                                <MetricHelp
+                                                    label={msgs.home_rail_gate_words()}
+                                                    description={msgs.home_help_gate_words()}
+                                                />
+                                            </span>
                                         </th>
                                         <th
-                                            class="w-12 px-1 pb-2 text-right font-medium"
+                                            class="w-20 px-1 pb-2 text-right font-medium"
                                         >
-                                            {msgs.home_rail_gate_distance()}
+                                            <span
+                                                class="inline-flex items-center gap-1"
+                                            >
+                                                {msgs.home_rail_gate_distance()}
+                                                <MetricHelp
+                                                    label={msgs.home_rail_gate_distance()}
+                                                    description={msgs.home_help_gate_distance()}
+                                                />
+                                            </span>
                                         </th>
                                         <th
-                                            class="w-14 px-1 pb-2 text-right font-medium"
+                                            class="w-16 px-1 pb-2 text-right font-medium"
                                         >
-                                            {msgs.home_rail_gate_time()}
+                                            <span
+                                                class="inline-flex items-center gap-1"
+                                            >
+                                                {msgs.home_rail_gate_time()}
+                                                <MetricHelp
+                                                    label={msgs.home_rail_gate_time()}
+                                                    description={msgs.home_help_gate_time()}
+                                                />
+                                            </span>
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody class="font-mono tabular-nums">
+                                <tbody>
                                     {#each latest_gate_entries as entry (entry.sequence)}
-                                        <tr class="border-border/40 border-t">
+                                        <tr class="border-border border-t">
                                             <td
-                                                class="text-muted-foreground px-1 py-1.5"
+                                                class="text-muted-foreground px-1 py-2 font-mono tabular-nums"
                                             >
                                                 {entry.sequence}
                                             </td>
-                                            <td class="px-1 py-1.5">
+                                            <td class="px-1 py-2">
                                                 <span
-                                                    class="block truncate {entry.decision ===
+                                                    class="block break-words {entry.decision ===
                                                     'Emit'
-                                                        ? 'text-status-live/80'
+                                                        ? 'text-status-live'
                                                         : 'text-muted-foreground'}"
                                                     title={entry.segment_id}
                                                 >
                                                     {decision_label(entry)}
                                                 </span>
                                             </td>
-                                            <td class="px-1 py-1.5 text-right">
+                                            <td
+                                                class="px-1 py-2 text-right font-mono tabular-nums"
+                                            >
                                                 {entry.candidate_words}
                                             </td>
-                                            <td class="px-1 py-1.5 text-right">
+                                            <td
+                                                class="px-1 py-2 text-right font-mono tabular-nums"
+                                            >
                                                 {format_distance(entry)}
                                             </td>
-                                            <td class="px-1 py-1.5 text-right">
+                                            <td
+                                                class="px-1 py-2 text-right font-mono tabular-nums"
+                                            >
                                                 {format_ms(entry.evaluate_ms)}
                                             </td>
                                         </tr>
@@ -395,8 +423,45 @@
                             </table>
                         </div>
                     {/if}
-                </section>
-            {/if}
+                </Collapsible.Content>
+            </Collapsible.Root>
+        </div>
+    </div>
+{/snippet}
+
+{#if wide_layout}
+    <aside
+        id="home-details"
+        class="bg-card flex shrink-0 justify-end overflow-hidden border-l transition-[width,border-color] duration-200 ease-linear {details_open
+            ? 'border-border w-[21.25rem]'
+            : 'w-0 border-transparent'}"
+        aria-label={msgs.home_details_title()}
+        aria-hidden={!details_open}
+        inert={!details_open}
+    >
+        <div class="h-full w-[21.25rem] shrink-0">
+            {@render detailsContent()}
         </div>
     </aside>
+{:else}
+    <Sheet.Root open={details_open} onOpenChange={set_details_open}>
+        <Sheet.Content
+            id="home-details"
+            closeLabel={msgs.home_details_close()}
+            class="w-[22.5rem] max-w-full p-0 sm:max-w-[22.5rem]"
+            onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                if (!details_open)
+                    document.getElementById("home-details-toggle")?.focus();
+            }}
+        >
+            <Sheet.Title class="sr-only">
+                {msgs.home_details_title()}
+            </Sheet.Title>
+            <Sheet.Description class="sr-only">
+                {msgs.home_toolbar_details()}
+            </Sheet.Description>
+            {@render detailsContent()}
+        </Sheet.Content>
+    </Sheet.Root>
 {/if}

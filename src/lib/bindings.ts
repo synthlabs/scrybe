@@ -71,7 +71,9 @@ export type AppState = {
     audio_format: AudioFormat;
     model_path: string;
     audio_segment_size: number;
+    sidebar_open: boolean;
     overlay_config: OverlayConfig;
+    overlay_editor: OverlayEditorSettings;
     home_right_rail: HomeRightRailSettings;
     whisper_params: WhisperParams;
     advanced_settings: AdvancedSettings;
@@ -117,6 +119,7 @@ export type GateEvaluationTelemetryEntry = {
 };
 export type GateTelemetryState = { entries: GateEvaluationTelemetryEntry[] };
 export type HomeRightRailSettings = {
+    open: boolean;
     session: boolean;
     audio_metrics: boolean;
     gate: boolean;
@@ -148,6 +151,7 @@ export type OverlayConfig = {
     box: OverlayBox;
     style: OverlayStyle;
 };
+export type OverlayEditorSettings = { advanced_open: boolean };
 export type OverlayPadding = "none" | "normal" | "large";
 export type OverlayStyle = {
     align: string;

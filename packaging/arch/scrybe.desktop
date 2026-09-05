@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Scrybe
+Comment=Local live captions for broadcasts.
+Exec=scrybe
+Icon=scrybe
+Terminal=false
+Categories=AudioVideo;Audio;

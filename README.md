@@ -30,10 +30,61 @@ With GNU Make and `toke` available on `PATH`, these optional shortcuts cover com
 | `make dev-internal`            | Run with the internal frontend and Rust checkout enabled.   |
 | `make build`                   | Build the production desktop application.                   |
 | `make build-internal`          | Build with the internal frontend and Rust checkout enabled. |
+| `make install`                 | Build and install the production desktop application.       |
+| `make install-internal`        | Build and install with the internal checkout enabled.       |
 | `make check`                   | Run frontend and Rust checks.                               |
-| `make test`                    | Run the Node and Rust test suites.                          |
+| `make test`                    | Run packaging, Node, and Rust test suites.                  |
+| `make test-packaging`          | Run packaging integration and installer tests.              |
 | `make validate-transcription`  | Validate transcription against the configured local model.  |
 | `make validate-hallucinations` | Validate hallucination filtering with configured models.    |
+
+Builds produce an NSIS installer on Windows, a DEB on Debian-family Linux, and an
+x86_64 pacman package on Arch-family Linux. Other platforms retain Tauri's normal
+bundle behavior. Install targets currently support Windows, Debian-family Linux,
+and x86_64 Arch-family Linux; macOS, RPM, and AppImage installation are not supported.
+
+Installation builds first and selects exactly one fresh artifact. Linux installation
+uses `sudo` with noninteractive apt-get or pacman; Windows displays the installer's
+normal UI and waits for it to finish. Standard and internal builds use the same
+application identity, installation, and settings; installing either replaces the other.
+
+To install an existing artifact without rebuilding or requiring an internal checkout:
+
+```bash
+make install-internal TAURI_PACKAGING_INSTALL_ARTIFACT=/path/to/scrybe-0.2.16-1-x86_64.pkg.tar.zst
+```
+
+Use a `.deb` artifact on Debian-family hosts or an NSIS `.exe` on Windows. Tauri
+bundles are under `target/release/bundle/`; Arch packages are under `package/`.
+
+### Arch Linux and CachyOS
+
+Local packaging requires an x86_64 host with GNU Make, Cargo, Node.js, Docker or
+Podman, and `sudo`/`pacman` for installation. Initialize the `utils` submodule first.
+Build dependencies and the pinned pnpm version are installed inside an Arch Linux
+container; the host dependency script's apt-based Linux installer is not needed for
+this workflow. Docker is selected when available, otherwise Podman. To select Podman
+explicitly:
+
+```bash
+make build TAURI_PACKAGING_CONTAINER_RUNTIME=podman
+make install-internal TAURI_PACKAGING_CONTAINER_RUNTIME=podman
+```
+
+Internal builds also require the internal frontend and Rust checkout. The build
+validates the package, installs it inside the container, and checks that it launches
+before host installation. These packages currently use CPU transcription; GPU
+packaging is a follow-up.
+
+To update, update your source checkout and submodules, then rerun `make install` or
+`make install-internal` with the same container-runtime override if needed. The Arch
+app's **Update via package manager** action opens these instructions. Other builds
+retain in-app updates. AUR publishing is planned separately.
+
+Run `bash scripts/verify-packaging.sh` for app and packaging checks, or
+`bash scripts/verify-packaging.sh --arch` to build and verify both package variants
+through Podman. The latter installs only inside the container and leaves the internal
+package in `package/`; both commands verify that dependency lockfiles stay unchanged.
 
 ## Plans
 

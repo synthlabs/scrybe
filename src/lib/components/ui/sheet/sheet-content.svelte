@@ -1,7 +1,7 @@
 <script lang="ts" module>
     import { tv, type VariantProps } from "tailwind-variants";
     export const sheetVariants = tv({
-        base: "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 gap-4 p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+        base: "bg-popover data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 gap-4 p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-200",
         variants: {
             side: {
                 top: "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 border-b",
@@ -27,17 +27,21 @@
     import type { Snippet } from "svelte";
     import SheetOverlay from "./sheet-overlay.svelte";
     import { cn } from "$lib/utils.ts";
+    import * as Tooltip from "$lib/components/ui/tooltip/index.ts";
+    import { m as msgs } from "$lib/paraglide/messages";
 
     let {
         ref = $bindable(null),
         class: className,
         side = "right",
+        closeLabel = msgs.common_close(),
         portalProps,
         children,
         ...restProps
     }: WithoutChildrenOrChild<SheetPrimitive.ContentProps> & {
         portalProps?: SheetPrimitive.PortalProps;
         side?: Side;
+        closeLabel?: string;
         children: Snippet;
     } = $props();
 </script>
@@ -50,11 +54,21 @@
         {...restProps}
     >
         {@render children?.()}
-        <SheetPrimitive.Close
-            class="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
-        >
-            <X class="size-4" />
-            <span class="sr-only">Close</span>
-        </SheetPrimitive.Close>
+        <Tooltip.Provider delayDuration={200}>
+            <Tooltip.Root>
+                <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                        <SheetPrimitive.Close
+                            {...props}
+                            class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-popover absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none"
+                            aria-label={closeLabel}
+                        >
+                            <X class="size-4" />
+                        </SheetPrimitive.Close>
+                    {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Content>{closeLabel}</Tooltip.Content>
+            </Tooltip.Root>
+        </Tooltip.Provider>
     </SheetPrimitive.Content>
 </SheetPrimitive.Portal>

@@ -1,31 +1,7 @@
 <script lang="ts">
-    import SegmentCard from "$lib/components/home/segment-card.svelte";
-    import type { WhisperSegment } from "$lib/bindings";
+    import TranscriptRow from "$lib/components/home/transcript-row.svelte";
     import { session } from "$lib/stores/session.svelte";
-    import { app_state } from "$lib/stores/state.svelte";
     import { m as msgs } from "$lib/paraglide/messages";
-
-    let segment_size = $derived(app_state.obj.audio_segment_size || 15);
-
-    const minute_of = (seg: WhisperSegment, size_s: number): number =>
-        Math.floor((seg.index * size_s) / 60);
-
-    const pad2 = (n: number) => n.toString().padStart(2, "0");
-
-    let groups = $derived.by(() => {
-        const segs = session.segments;
-        const acc: { minute: number; segments: WhisperSegment[] }[] = [];
-        for (const seg of segs) {
-            const m = minute_of(seg, segment_size);
-            const last = acc[acc.length - 1];
-            if (last && last.minute === m) {
-                last.segments.push(seg);
-            } else {
-                acc.push({ minute: m, segments: [seg] });
-            }
-        }
-        return acc;
-    });
 
     let partial_id = $derived(session.partial_id);
 
@@ -40,7 +16,10 @@
         if (container) {
             container.scrollTo({
                 top: container.scrollHeight,
-                behavior: "smooth",
+                behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                    .matches
+                    ? "instant"
+                    : "smooth",
             });
         }
     });
@@ -48,16 +27,37 @@
 
 <div
     bind:this={container}
-    class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-3"
+    class="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5"
 >
-    {#each groups as group (group.minute)}
-        <h3
-            class="text-muted-foreground/70 mt-2 text-[10px] font-bold tracking-[0.08em] uppercase first:mt-0"
+    {#if session.segments.length === 0}
+        <div
+            class="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col items-center justify-center-safe px-6 text-center"
         >
-            {msgs.home_minute_label({ minute: pad2(group.minute) })}
-        </h3>
-        {#each group.segments as seg (seg.id)}
-            <SegmentCard segment={seg} partial={seg.id === partial_id} />
-        {/each}
-    {/each}
+            <img
+                src="/scrybe-logo.png"
+                alt=""
+                class="scrybe-logo mb-5 size-12"
+            />
+            <h1
+                class="text-foreground text-xl font-semibold tracking-[-0.02em]"
+            >
+                {msgs.home_empty_title()}
+            </h1>
+            <p class="text-muted-foreground mt-2 text-sm leading-6">
+                {msgs.home_empty_body()}
+            </p>
+            <a
+                href="/settings"
+                class="text-scrybe focus-visible:ring-scrybe-ring focus-visible:ring-offset-background mt-4 inline-flex min-h-8 items-center rounded-md px-2 text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+                {msgs.home_empty_settings()}
+            </a>
+        </div>
+    {:else}
+        <div class="mx-auto w-full max-w-4xl pb-8">
+            {#each session.segments as segment (segment.id)}
+                <TranscriptRow {segment} partial={segment.id === partial_id} />
+            {/each}
+        </div>
+    {/if}
 </div>

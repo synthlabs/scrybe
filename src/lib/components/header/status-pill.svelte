@@ -6,16 +6,24 @@
 </script>
 
 <div
-    class="flex items-center gap-2 rounded-full border border-border/60 bg-background/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em]"
+    role="status"
+    class="text-muted-foreground flex items-center gap-2 text-sm font-medium"
 >
-    <span class="relative flex h-2 w-2 items-center justify-center">
+    <span class="relative flex size-2 items-center justify-center">
         {#if listening}
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-status-live/90"></span>
+            <span
+                class="bg-status-live/35 animate-scrybe-pulse absolute inline-flex size-2 rounded-full motion-reduce:animate-none"
+            ></span>
+            <span
+                class="bg-status-live relative inline-flex size-2 rounded-full"
+            ></span>
         {:else}
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-status-idle"></span>
+            <span
+                class="bg-status-idle relative inline-flex size-2 rounded-full"
+            ></span>
         {/if}
     </span>
-    <span class="text-muted-foreground">
+    <span>
         {listening ? msgs.header_status_listening() : msgs.header_status_idle()}
     </span>
 </div>

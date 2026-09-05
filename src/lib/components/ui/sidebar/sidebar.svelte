@@ -4,6 +4,7 @@
     import type { WithElementRef } from "bits-ui";
     import type { HTMLAttributes } from "svelte/elements";
     import { SIDEBAR_WIDTH_MOBILE } from "./constants.ts";
+    import { m as msgs } from "$lib/paraglide/messages";
     import { useSidebar } from "./context.svelte.ts";
 
     let {
@@ -12,12 +13,14 @@
         variant = "sidebar",
         collapsible = "offcanvas",
         class: className,
+        panelClass,
         children,
         ...restProps
     }: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
         side?: "left" | "right";
         variant?: "sidebar" | "floating" | "inset";
         collapsible?: "offcanvas" | "icon" | "none";
+        panelClass?: string;
     } = $props();
 
     const sidebar = useSidebar();
@@ -27,6 +30,7 @@
     <div
         class={cn(
             "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
+            panelClass,
             className,
         )}
         bind:this={ref}
@@ -43,10 +47,19 @@
         <Sheet.Content
             data-sidebar="sidebar"
             data-mobile="true"
-            class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+            class={cn(
+                "bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden",
+                panelClass,
+            )}
             style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
             {side}
         >
+            <Sheet.Title class="sr-only"
+                >{msgs.sidebar_navigation()}</Sheet.Title
+            >
+            <Sheet.Description class="sr-only"
+                >{msgs.sidebar_navigation_description()}</Sheet.Description
+            >
             <div class="flex h-full w-full flex-col">
                 {@render children?.()}
             </div>
@@ -88,7 +101,10 @@
         >
             <div
                 data-sidebar="sidebar"
-                class="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow"
+                class={cn(
+                    "bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow",
+                    panelClass,
+                )}
             >
                 {@render children?.()}
             </div>

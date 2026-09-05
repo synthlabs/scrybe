@@ -2,20 +2,44 @@
     import { Tooltip as TooltipPrimitive } from "bits-ui";
     import { cn } from "$lib/utils.ts";
 
+    const uid = $props.id();
     let {
+        id = uid,
         ref = $bindable(null),
         class: className,
         sideOffset = 4,
+        children,
+        child,
         ...restProps
     }: TooltipPrimitive.ContentProps = $props();
 </script>
 
-<TooltipPrimitive.Content
-    bind:ref
-    {sideOffset}
-    class={cn(
-        "bg-popover text-popover-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 overflow-hidden rounded-md border px-3 py-1.5 text-sm shadow-md",
-        className,
-    )}
-    {...restProps}
-/>
+<TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+        role="tooltip"
+        {id}
+        bind:ref
+        {sideOffset}
+        class={cn(
+            "bg-popover text-popover-foreground animate-in fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-[60] max-w-[min(20rem,calc(100vw-2rem))] rounded-lg border px-3 py-2 text-sm leading-5 break-words shadow-md duration-100",
+            className,
+        )}
+        {...restProps}
+    >
+        {#snippet child({ props, wrapperProps, open })}
+            {#if child}
+                {@render child({
+                    props: { ...props, id, role: "tooltip" },
+                    wrapperProps,
+                    open,
+                })}
+            {:else}
+                <div {...wrapperProps}>
+                    <div {...props} {id} role="tooltip">
+                        {@render children?.()}
+                    </div>
+                </div>
+            {/if}
+        {/snippet}
+    </TooltipPrimitive.Content>
+</TooltipPrimitive.Portal>

@@ -3,11 +3,11 @@
     import Settings2 from "@lucide/svelte/icons/settings-2";
     import Projector from "@lucide/svelte/icons/projector";
     import AppSidebar from "$lib/components/app-sidebar.svelte";
-    import { Separator } from "$lib/components/ui/separator/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
     import { Toaster } from "$lib/components/ui/sonner/index.ts";
     import { onMount, onDestroy } from "svelte";
     import { checkForAppUpdates } from "$utils/updater";
+    import { PUBLIC_UPDATE_INSTALL_MODE } from "$env/static/public";
     import { ErrorToast } from "$utils/inbound";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -16,12 +16,11 @@
     import StatusPill from "$lib/components/header/status-pill.svelte";
     import PlayPauseButton from "$lib/components/header/play-pause-button.svelte";
     import RuntimeDependencyNotice from "$lib/components/runtime-dependency-notice.svelte";
-    import { header } from "$lib/stores/header.svelte";
     import { session } from "$lib/stores/session.svelte";
-    import { internal_state } from "$lib/stores/state.svelte";
+    import { app_state, internal_state } from "$lib/stores/state.svelte";
     import { InternalRoot, navItems as internalNavItems } from "$internal";
 
-    let navMain = [
+    let navMain = $derived([
         {
             title: msgs.sidebar_home(),
             url: "/",
@@ -38,9 +37,15 @@
             icon: Settings2,
         },
         ...internalNavItems,
-    ];
+    ]);
 
     let { children } = $props();
+
+    function set_sidebar_open(open: boolean) {
+        if (!app_state.ready || app_state.obj.sidebar_open === open) return;
+        app_state.obj.sidebar_open = open;
+        app_state.sync();
+    }
 
     let unsub_segment: UnlistenFn | undefined;
 
@@ -55,6 +60,14 @@
         await checkForAppUpdates(
             "https://github.com/synthlabs/scrybe/releases/latest",
             {
+                updateAction:
+                    PUBLIC_UPDATE_INSTALL_MODE === "package-manager"
+                        ? {
+                              kind: "external",
+                              label: msgs.updater_package_manager(),
+                              url: "https://github.com/synthlabs/scrybe#arch-linux-and-cachyos",
+                          }
+                        : { kind: "install" },
                 copy: {
                     updateAvailable: (version) =>
                         msgs.updater_update_available({ version }),
@@ -91,26 +104,19 @@
 <ErrorToast />
 <RuntimeDependencyNotice />
 
-<Sidebar.Provider style="--sidebar-width: 200px">
-    <AppSidebar {navMain} />
+<Sidebar.Provider
+    open={app_state.obj.sidebar_open}
+    onOpenChange={set_sidebar_open}
+    controlledOpen
+    style="--sidebar-width: 11.25rem"
+>
+    <AppSidebar {navMain} collapsible="icon" />
     <Sidebar.Inset class="h-svh min-h-0 overflow-hidden">
         <header
-            class="bg-background sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b pr-3 pl-2"
+            class="bg-background sticky top-0 z-40 flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b px-3 py-2"
         >
-            <Sidebar.Trigger class="ml-1" />
-            {#if header.title}
-                <Separator orientation="vertical" class="mx-1 h-4" />
-                <span class="text-sm font-semibold">{header.title}</span>
-            {/if}
-            {#if header.extras}
-                <Separator orientation="vertical" class="mx-1 h-4" />
-                {@render header.extras()}
-            {/if}
+            <Sidebar.Trigger disabled={!app_state.ready} />
             <div class="flex grow"></div>
-            {#if header.extras_right}
-                {@render header.extras_right()}
-                <Separator orientation="vertical" class="mx-1 h-4" />
-            {/if}
             <StatusPill />
             <PlayPauseButton />
         </header>

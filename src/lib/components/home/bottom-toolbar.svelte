@@ -1,39 +1,22 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button/index.ts";
-    import { Separator } from "$lib/components/ui/separator/index.ts";
-    import Pause from "@lucide/svelte/icons/pause";
-    import Play from "@lucide/svelte/icons/play";
     import Plus from "@lucide/svelte/icons/plus";
     import Copy from "@lucide/svelte/icons/copy";
     import Eraser from "@lucide/svelte/icons/eraser";
+    import PanelRightClose from "@lucide/svelte/icons/panel-right-close";
+    import PanelRightOpen from "@lucide/svelte/icons/panel-right-open";
     import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
+    import { showHomeActionError } from "$lib/home-errors";
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
-    import { internal_state } from "$lib/stores/state.svelte";
-    import { cn } from "$utils/cn";
+    import { app_state, internal_state } from "$lib/stores/state.svelte";
 
     let listening = $derived(internal_state.obj.transcribe_running);
-
+    let transcript_empty = $derived(session.segments.length === 0);
+    let details_open = $derived(app_state.obj.home_right_rail.open);
     let busy = $state(false);
-
-    const toggle = async () => {
-        if (busy) return;
-        busy = true;
-        try {
-            if (listening) {
-                await invoke("stop_transcribe");
-            } else {
-                await invoke("start_transcribe");
-            }
-        } catch (e) {
-            Logger.error("toggle transcribe failed", e);
-            toast.error(msgs.runtime_start_failed({ error: String(e) }));
-        } finally {
-            setTimeout(() => (busy = false), 600);
-        }
-    };
 
     const new_session = async () => {
         if (busy) return;
@@ -44,7 +27,7 @@
             await invoke("start_transcribe");
         } catch (e) {
             Logger.error("new session failed", e);
-            toast.error(msgs.runtime_start_failed({ error: String(e) }));
+            showHomeActionError("new_session", e);
         } finally {
             setTimeout(() => (busy = false), 600);
         }
@@ -58,69 +41,72 @@
             toast.success(msgs.home_toolbar_copied());
         } catch (e) {
             Logger.error("clipboard write failed", e);
+            showHomeActionError("copy", e);
         }
     };
 
     const clear_transcript = () => {
-        if (session.segments.length === 0) return;
+        if (transcript_empty) return;
         session.clear_transcript();
     };
 
-    let transcript_empty = $derived(session.segments.length === 0);
+    const toggle_details = () => {
+        app_state.obj.home_right_rail.open = !details_open;
+        app_state.sync();
+    };
 </script>
 
 <div
-    class="border-border bg-background/35 flex h-12 shrink-0 items-center gap-1 border-t px-3"
+    class="border-border bg-background flex min-h-12 shrink-0 flex-wrap items-center gap-1 border-t px-3 py-2"
 >
     <Button
         variant="ghost"
         size="sm"
-        onclick={toggle}
-        disabled={busy}
-        class={cn(
-            "h-8 cursor-pointer gap-1.5 transition-colors",
-            listening
-                ? "border border-scrybe/40 bg-background/35 text-scrybe-ring hover:bg-accent/35"
-                : "hover:bg-accent/30 hover:text-scrybe",
-        )}
-    >
-        {#if listening}
-            <Pause class="size-3.5" />
-            {msgs.home_toolbar_pause()}
-        {:else}
-            <Play class="text-scrybe/90 size-3.5" />
-            {msgs.home_toolbar_resume()}
-        {/if}
-    </Button>
-    <Separator orientation="vertical" class="mx-1 h-4" />
-    <Button
-        variant="ghost"
-        size="sm"
-        onclick={clear_transcript}
+        onclick={copy}
         disabled={transcript_empty}
-        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
+        class="text-muted-foreground hover:text-foreground px-2"
     >
-        <Eraser class="size-3.5 group-hover:text-scrybe/90" />
-        {msgs.home_toolbar_clear_transcript()}
+        <Copy class="size-4" />
+        {msgs.home_toolbar_copy()}
     </Button>
     <Button
         variant="ghost"
         size="sm"
         onclick={new_session}
         disabled={busy}
-        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
+        aria-busy={busy}
+        class="text-muted-foreground hover:text-foreground px-2"
     >
-        <Plus class="size-3.5 group-hover:text-scrybe/90" />
+        <Plus class="size-4" />
         {msgs.home_toolbar_new_session()}
     </Button>
     <Button
         variant="ghost"
         size="sm"
-        onclick={copy}
+        onclick={clear_transcript}
         disabled={transcript_empty}
-        class="group text-muted-foreground h-8 gap-1.5 hover:bg-accent/30 hover:text-foreground"
+        class="text-muted-foreground hover:text-foreground px-2"
     >
-        <Copy class="size-3.5 group-hover:text-scrybe/90" />
-        {msgs.home_toolbar_copy()}
+        <Eraser class="size-4" />
+        {msgs.home_toolbar_clear_transcript()}
+    </Button>
+    <div class="flex-1"></div>
+    <Button
+        variant="ghost"
+        size="sm"
+        id="home-details-toggle"
+        onclick={toggle_details}
+        aria-pressed={details_open}
+        aria-expanded={details_open}
+        aria-controls={details_open ? "home-details" : undefined}
+        class="text-muted-foreground hover:text-foreground px-2"
+    >
+        {#if details_open}
+            <PanelRightClose class="size-4" />
+            {msgs.home_toolbar_close_details()}
+        {:else}
+            <PanelRightOpen class="size-4" />
+            {msgs.home_toolbar_details()}
+        {/if}
     </Button>
 </div>

@@ -4,6 +4,13 @@ TOKE ?= toke
 PNPM ?= pnpm
 CARGO ?= cargo
 NODE ?= node
+POWERSHELL ?= powershell
+
+TAURI_PACKAGING_PROJECT_ROOT := $(CURDIR)
+TAURI_PACKAGING_TOKE := $(TOKE)
+TAURI_PACKAGING_PNPM := $(PNPM)
+TAURI_PACKAGING_POWERSHELL := $(POWERSHELL)
+TAURI_PACKAGING_PASSTHROUGH_VARS := ENABLE_INTERNAL
 
 INTERNAL_FILES := internal/frontend/index.ts internal/rust/commands.rs internal/rust/mod.rs
 MISSING_INTERNAL_FILES = $(filter-out $(wildcard $(INTERNAL_FILES)),$(INTERNAL_FILES))
@@ -29,14 +36,13 @@ dev-internal: export ENABLE_INTERNAL := 1
 dev-internal: check-internal
 	$(TOKE) -v $(PNPM) tauri dev
 
-.PHONY: build
-build:
-	$(TOKE) -v $(PNPM) tauri build
-
-.PHONY: build-internal
 build-internal: export ENABLE_INTERNAL := 1
 build-internal: check-internal
-	$(TOKE) -v $(PNPM) tauri build
+
+include utils/packaging/tauri/tauri.mk
+
+# Keep checkout paths with spaces intact.
+TAURI_PACKAGING_SHARED_DIR := $(CURDIR)/utils/packaging/tauri
 
 .PHONY: check
 check:
@@ -45,10 +51,18 @@ check:
 	$(TOKE) -v $(CARGO) check -p scrybe
 
 .PHONY: test
-test:
+test: test-packaging
 	$(TOKE) -v $(NODE) --test $(NODE_TESTS)
 	$(TOKE) -v $(CARGO) test -p scrybe_core
 	$(TOKE) -v $(CARGO) test -p scrybe
+
+.PHONY: test-packaging
+test-packaging:
+ifeq ($(OS),Windows_NT)
+	$(POWERSHELL) -NoProfile -ExecutionPolicy Bypass -File utils/packaging/tauri/install.test.ps1
+else
+	bash scripts/packaging-integration.test.sh
+endif
 
 .PHONY: validate-transcription
 validate-transcription:

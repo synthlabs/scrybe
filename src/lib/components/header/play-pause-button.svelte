@@ -4,9 +4,8 @@
     import LoaderCircle from "@lucide/svelte/icons/loader-circle";
     import Pause from "@lucide/svelte/icons/pause";
     import { invoke } from "@tauri-apps/api/core";
-    import { toast } from "svelte-sonner";
+    import { showHomeActionError } from "$lib/home-errors";
     import Logger from "$utils/log";
-    import { cn } from "$lib/utils";
     import { m as msgs } from "$lib/paraglide/messages";
     import { internal_state } from "$lib/stores/state.svelte";
 
@@ -14,6 +13,8 @@
     let listening = $derived(internal_state.obj.transcribe_running);
 
     const toggle = async () => {
+        if (debounce) return;
+        const action = listening ? "stop" : "start";
         debounce = true;
         try {
             if (listening) {
@@ -25,7 +26,7 @@
             }
         } catch (e) {
             Logger.error("toggle transcribe failed", e);
-            toast.error(msgs.runtime_start_failed({ error: String(e) }));
+            showHomeActionError(action, e);
         } finally {
             setTimeout(() => (debounce = false), 1000);
         }
@@ -33,23 +34,25 @@
 </script>
 
 <Button
-    variant="ghost"
-    size="icon"
+    variant="outline"
+    size="sm"
     onclick={toggle}
     disabled={debounce}
-    class={cn(
-        "h-8 w-8 transition-colors",
-        listening
-            ? "border border-scrybe/40 bg-background/35 text-scrybe-ring hover:bg-accent/35"
-            : "text-scrybe/90 hover:bg-accent/30 hover:text-scrybe",
-    )}
-    aria-label={listening ? "Pause" : "Play"}
+    aria-pressed={listening}
+    aria-busy={debounce}
+    class="border-border text-muted-foreground hover:bg-accent hover:text-foreground min-w-29 bg-transparent shadow-none"
+    aria-label={listening
+        ? msgs.header_stop_captions()
+        : msgs.header_start_captions()}
 >
     {#if debounce}
-        <LoaderCircle class="animate-spin" />
+        <LoaderCircle class="size-4 animate-spin motion-reduce:animate-none" />
     {:else if listening}
-        <Pause />
+        <Pause class="size-4" />
     {:else}
-        <Play />
+        <Play class="size-4" />
     {/if}
+    <span>
+        {listening ? msgs.header_stop_captions() : msgs.header_start_captions()}
+    </span>
 </Button>

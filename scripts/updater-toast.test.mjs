@@ -121,19 +121,17 @@ async function testReleaseNotesAndInstallProgress() {
     assert.equal(available.type, "info");
     assert.equal(available.message, "Update 1.2.3 available");
 
-    const releaseEvent = createEvent();
-    await available.options.action.onClick(releaseEvent);
-    assert.equal(releaseEvent.defaultPrevented, true);
-    assert.deepEqual(openedUrls, ["https://example.test/releases"]);
-
-    const installPrompt = calls.at(-1);
-    assert.equal(installPrompt.type, "info");
-    assert.equal(installPrompt.message, "Ready to update to 1.2.3");
-
     const installEvent = createEvent();
-    await installPrompt.options.action.onClick(installEvent);
+    await available.options.action.onClick(installEvent);
     assert.equal(installEvent.defaultPrevented, true);
     assert.equal(relaunched, true);
+    assert.deepEqual(openedUrls, []);
+
+    const downloading = calls.find((call) => call.type === "loading");
+    const releaseEvent = createEvent();
+    await downloading.options.action.onClick(releaseEvent);
+    assert.equal(releaseEvent.defaultPrevented, true);
+    assert.deepEqual(openedUrls, ["https://example.test/releases"]);
     assert.deepEqual(
         calls
             .filter((call) => call.type === "loading")
@@ -164,7 +162,6 @@ async function testInstallFailureShowsErrorToast() {
 
     await checkForAppUpdates("https://example.test/releases");
     await calls.at(-1).options.action.onClick(createEvent());
-    await calls.at(-1).options.action.onClick(createEvent());
 
     const error = calls.at(-1);
     assert.equal(error.type, "error");
@@ -172,8 +169,41 @@ async function testInstallFailureShowsErrorToast() {
     assert.equal(error.options.duration, 6000);
 }
 
+async function testPackageManagerActionOpensInstructions() {
+    const { calls, toast } = createToastMock();
+    const openedUrls = [];
+    const { checkForAppUpdates } = loadUpdater({
+        check: async () => ({
+            version: "1.2.3",
+            downloadAndInstall() {
+                assert.fail("Package-manager updates must not install in-app");
+            },
+        }),
+        openUrl: async (url) => openedUrls.push(String(url)),
+        relaunch: async () => assert.fail("External updates must not restart"),
+        toast,
+    });
+    const url = "https://github.com/synthlabs/scrybe#arch-linux-and-cachyos";
+
+    await checkForAppUpdates("https://example.test/releases", {
+        updateAction: {
+            kind: "external",
+            label: "Update via package manager",
+            url,
+        },
+    });
+
+    assert.equal(calls[0].options.action.label, "Update via package manager");
+    const event = createEvent();
+    await calls[0].options.action.onClick(event);
+    assert.equal(event.defaultPrevented, true);
+    assert.deepEqual(openedUrls, [url]);
+    assert.equal(calls.length, 1);
+}
+
 await testNoUpdateShowsNoToast();
 await testReleaseNotesAndInstallProgress();
 await testInstallFailureShowsErrorToast();
+await testPackageManagerActionOpensInstructions();
 
 console.log("updater toast tests passed");
