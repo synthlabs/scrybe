@@ -209,7 +209,7 @@
 {#snippet sectionTrigger(label: string, open: boolean)}
     <span class="text-foreground text-sm font-medium">{label}</span>
     <ChevronDown
-        class="text-muted-foreground ml-auto size-4 transition-transform duration-200 {open
+        class="text-muted-foreground ml-auto size-4 transition-transform duration-(--scrybe-duration-standard) ease-out {open
             ? 'rotate-180'
             : ''}"
     />
@@ -244,14 +244,16 @@
                 class="border-border border-b"
             >
                 <Collapsible.Trigger
-                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                     {@render sectionTrigger(
                         msgs.home_rail_audio_metrics(),
                         show_audio_metrics,
                     )}
                 </Collapsible.Trigger>
-                <Collapsible.Content>
+                <Collapsible.Content
+                    class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden duration-(--scrybe-duration-standard) ease-out"
+                >
                     <dl
                         class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-x-4 gap-y-3 px-5 pt-1 pb-4 text-xs"
                     >
@@ -304,11 +306,13 @@
                 onOpenChange={(open) => set_section_open("gate", open)}
             >
                 <Collapsible.Trigger
-                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                     {@render sectionTrigger(msgs.home_rail_gate(), show_gate)}
                 </Collapsible.Trigger>
-                <Collapsible.Content>
+                <Collapsible.Content
+                    class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden duration-(--scrybe-duration-standard) ease-out"
+                >
                     {#if latest_gate_entries.length === 0}
                         <p class="text-muted-foreground px-5 pt-1 pb-5 text-sm">
                             {msgs.home_rail_gate_empty()}
@@ -432,7 +436,7 @@
 {#if wide_layout}
     <aside
         id="home-details"
-        class="bg-card flex shrink-0 justify-end overflow-hidden border-l transition-[width,border-color] duration-200 ease-linear {details_open
+        class="bg-card flex shrink-0 justify-end overflow-hidden border-l transition-[width,border-color] duration-(--scrybe-duration-standard) ease-linear {details_open
             ? 'border-border w-[21.25rem]'
             : 'w-0 border-transparent'}"
         aria-label={msgs.home_details_title()}

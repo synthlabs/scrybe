@@ -21,7 +21,7 @@
         bind:ref
         {sideOffset}
         class={cn(
-            "bg-popover text-popover-foreground animate-in fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-[60] max-w-[min(20rem,calc(100vw-2rem))] rounded-lg border px-3 py-2 text-sm leading-5 break-words shadow-md duration-100",
+            "bg-popover text-popover-foreground animate-in fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-[60] max-w-[min(20rem,calc(100vw-2rem))] rounded-lg border px-3 py-2 text-sm leading-5 break-words shadow-md duration-(--scrybe-duration-fast)",
             className,
         )}
         {...restProps}

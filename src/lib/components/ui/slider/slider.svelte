@@ -35,7 +35,7 @@ get along, so we shut typescript up by casting `value` to `never`.
         {#each thumbs as thumb}
             <SliderPrimitive.Thumb
                 index={thumb}
-                class="border-scrybe/80 bg-background ring-offset-background focus-visible:ring-ring block size-5 cursor-pointer rounded-full border-2 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                class="border-scrybe/80 bg-background ring-offset-background focus-visible:ring-ring block size-5 cursor-pointer rounded-full border-2 transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
             />
         {/each}
     {/snippet}

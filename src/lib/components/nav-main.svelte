@@ -2,9 +2,10 @@
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
     import { page } from "$app/state";
     import { tick } from "svelte";
+    import { isActiveNavPath } from "$lib/navigation";
 
     const isActivePath = (current: string): boolean => {
-        return current === page.url.pathname;
+        return isActiveNavPath(page.url.pathname, current);
     };
 
     let {
@@ -70,7 +71,7 @@
             <Sidebar.MenuItem data-active={active}>
                 <Sidebar.MenuButton
                     isActive={active}
-                    class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-offset-sidebar data-[active=true]:text-muted-foreground data-[active=true]:hover:bg-accent data-[active=true]:hover:text-foreground data-[active=true]:[&>svg]:text-scrybe h-auto min-h-8 min-w-8 overflow-hidden rounded-md px-2 py-1 text-sm font-normal transition-none group-data-[collapsible=icon]:!h-auto group-data-[collapsible=icon]:!w-full group-data-[collapsible=icon]:!py-1 focus-visible:ring-offset-2 data-[active=true]:bg-transparent data-[active=true]:font-normal data-[active=true]:shadow-none [&>svg]:size-4"
+                    class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-offset-sidebar data-[active=true]:text-muted-foreground data-[active=true]:hover:bg-accent data-[active=true]:hover:text-foreground data-[active=true]:[&>svg]:text-scrybe h-auto min-h-8 min-w-8 overflow-hidden rounded-md px-2 py-1 text-sm font-normal transition-none group-data-[collapsible=icon]:h-auto! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:py-1! focus-visible:ring-offset-2 data-[active=true]:bg-transparent data-[active=true]:font-normal data-[active=true]:shadow-none [&>svg]:size-4"
                 >
                     {#snippet tooltipContent()}
                         {item.title}
@@ -83,7 +84,7 @@
                         >
                             <item.icon />
                             <span
-                                class="nav-label block shrink-0 break-words whitespace-normal opacity-100 transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0"
+                                class="nav-label block shrink-0 wrap-break-word whitespace-normal opacity-100 transition-opacity duration-(--scrybe-duration-standard) ease-linear group-data-[collapsible=icon]:opacity-0"
                                 >{item.title}</span
                             >
                         </a>
@@ -111,9 +112,9 @@
         opacity: 0;
         transform: translateY(var(--active-top));
         transition:
-            transform 100ms linear,
-            height 100ms linear,
-            opacity 200ms linear;
+            transform var(--scrybe-duration-fast) linear,
+            height var(--scrybe-duration-fast) linear,
+            opacity var(--scrybe-duration-standard) linear;
     }
 
     .nav-active-indicator[data-visible="true"] {

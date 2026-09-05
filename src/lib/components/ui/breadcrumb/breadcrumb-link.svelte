@@ -16,7 +16,10 @@
     } = $props();
 
     const attrs = $derived({
-        class: cn("hover:text-foreground transition-colors", className),
+        class: cn(
+            "hover:text-foreground transition-colors duration-(--scrybe-duration-fast)",
+            className,
+        ),
         href,
         ...restProps,
     });

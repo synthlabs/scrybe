@@ -26,14 +26,14 @@
 
 <div
     class={cn(
-        "flex items-center gap-3 rounded-md border border-transparent px-2.5 py-2 transition-colors duration-150",
+        "flex items-center gap-3 rounded-md border border-transparent px-2.5 py-2 transition-colors duration-(--scrybe-duration-fast)",
         checked ? "bg-background/30" : "hover:bg-accent/25",
         !match && "pointer-events-none opacity-30",
     )}
 >
     <span
         class={cn(
-            "size-1.5 shrink-0 rounded-full transition-colors",
+            "size-1.5 shrink-0 rounded-full transition-colors duration-(--scrybe-duration-fast)",
             checked ? "bg-scrybe/80" : "bg-muted-foreground/30",
         )}
         aria-hidden="true"
@@ -48,7 +48,7 @@
     <Tooltip.Provider delayDuration={200}>
         <Tooltip.Root>
             <Tooltip.Trigger
-                class="text-muted-foreground/70 hover:text-muted-foreground focus-visible:outline-none focus-visible:text-foreground"
+                class="text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground focus-visible:outline-none"
                 aria-label="More info"
             >
                 <Info class="size-3.5" />

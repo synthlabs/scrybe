@@ -162,7 +162,7 @@
     <button
         type="button"
         onclick={copyUrl}
-        class="border-border/60 bg-background/40 hover:bg-accent/35 flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] transition-colors"
+        class="border-border/60 bg-background/40 hover:bg-accent/35 flex items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] transition-colors duration-(--scrybe-duration-fast)"
     >
         <span class="bg-status-live size-1.5 rounded-full"></span>
         <span class="text-muted-foreground">:3030/app/v1/overlay</span>
@@ -190,7 +190,7 @@
             <button
                 type="button"
                 onclick={copyUrl}
-                class="border-border bg-background text-foreground hover:bg-accent max-w-[min(52vw,320px)] min-w-0 cursor-pointer overflow-hidden rounded border px-2 py-1 font-mono text-xs text-ellipsis whitespace-nowrap transition-colors"
+                class="border-border bg-background text-foreground hover:bg-accent max-w-[min(52vw,320px)] min-w-0 cursor-pointer overflow-hidden rounded border px-2 py-1 font-mono text-xs text-ellipsis whitespace-nowrap transition-colors duration-(--scrybe-duration-fast)"
             >
                 {OVERLAY_URL}
             </button>
@@ -312,7 +312,7 @@
                                                 ),
                                             )}
                                         class={cn(
-                                            "h-4 rounded-sm transition-colors",
+                                            "h-4 rounded-sm transition-colors duration-(--scrybe-duration-fast)",
                                             active_zone?.xi === xi &&
                                                 active_zone?.yi === yi
                                                 ? "bg-scrybe"
@@ -538,7 +538,7 @@
                                 onclick={() =>
                                     updateStyle("padding", option.value)}
                                 class={cn(
-                                    "text-muted-foreground hover:bg-accent/45 hover:text-foreground h-7 rounded px-3 text-xs font-medium transition-colors",
+                                    "text-muted-foreground hover:bg-accent/45 hover:text-foreground h-7 rounded px-3 text-xs font-medium transition-colors duration-(--scrybe-duration-fast)",
                                     config.style.padding === option.value &&
                                         "bg-background text-foreground shadow-[inset_0_0_0_1px_var(--border)]",
                                 )}

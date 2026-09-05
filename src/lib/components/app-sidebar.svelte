@@ -55,7 +55,7 @@
                 class="scrybe-logo size-6 shrink-0"
             />
             <span
-                class="text-foreground block max-w-32 overflow-hidden text-[length:var(--scrybe-text-wordmark)] font-semibold tracking-[0.08em] whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0"
+                class="text-foreground block max-w-32 overflow-hidden text-(length:--scrybe-text-wordmark) font-semibold tracking-[0.08em] whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-(--scrybe-duration-standard) ease-linear group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0"
                 >SCRYBE</span
             >
         </a>
@@ -64,7 +64,7 @@
         <NavMain items={navMain} />
     </Sidebar.Content>
     <Sidebar.Footer
-        class="max-h-16 overflow-visible p-3 opacity-100 transition-[max-height,opacity,padding] duration-200 ease-linear group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:opacity-0"
+        class="max-h-16 overflow-visible p-3 opacity-100 transition-[max-height,opacity,padding] duration-(--scrybe-duration-standard) ease-linear group-data-[collapsible=icon]:max-h-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:opacity-0"
         aria-hidden={desktopCollapsed}
         inert={desktopCollapsed}
     >
@@ -85,7 +85,7 @@
                                 ? "page"
                                 : undefined}
                             data-active={page.url.pathname === "/about"}
-                            class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-sidebar-ring data-[active=true]:text-scrybe data-[active=true]:hover:text-scrybe focus-visible:ring-offset-sidebar inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                            class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-sidebar-ring data-[active=true]:text-scrybe data-[active=true]:hover:text-scrybe focus-visible:ring-offset-sidebar inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                         >
                             <LifeBuoy class="size-4" />
                         </a>

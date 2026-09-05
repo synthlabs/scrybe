@@ -8,8 +8,12 @@
         customLabel?: string;
     }
 
-    let { value, presets, onChange, customLabel = "Custom color" }: Props =
-        $props();
+    let {
+        value,
+        presets,
+        onChange,
+        customLabel = "Custom color",
+    }: Props = $props();
 
     const isPreset = (hex: string) =>
         presets.some((p) => p.toLowerCase() === hex.toLowerCase());
@@ -26,9 +30,9 @@
             aria-label={hex}
             onclick={() => onChange(hex)}
             class={cn(
-                "size-6 cursor-pointer rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-scrybe-ring",
+                "focus-visible:ring-scrybe-ring size-6 cursor-pointer rounded-full border transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:outline-none",
                 value?.toLowerCase() === hex.toLowerCase()
-                    ? "border-scrybe/70 ring-1 ring-scrybe/70 ring-offset-1 ring-offset-card"
+                    ? "border-scrybe/70 ring-scrybe/70 ring-offset-card ring-1 ring-offset-1"
                     : "border-border/60 hover:border-scrybe/50",
             )}
             style="background-color: {hex};"
@@ -36,9 +40,9 @@
     {/each}
     <label
         class={cn(
-            "relative inline-flex size-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-all",
+            "relative inline-flex size-6 cursor-pointer items-center justify-center overflow-hidden rounded-full border transition-all duration-(--scrybe-duration-fast)",
             custom_active
-                ? "border-scrybe/70 ring-1 ring-scrybe/70 ring-offset-1 ring-offset-card"
+                ? "border-scrybe/70 ring-scrybe/70 ring-offset-card ring-1 ring-offset-1"
                 : "border-border/60 hover:border-scrybe/50",
         )}
         style={custom_active

@@ -7,7 +7,7 @@
     import { type VariantProps, tv } from "tailwind-variants";
 
     export const buttonVariants = tv({
-        base: "ring-offset-background focus-visible:ring-ring aria-pressed:bg-scrybe-soft aria-pressed:text-foreground aria-pressed:hover:bg-scrybe-soft aria-pressed:[&_svg]:text-scrybe inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-pressed:border-transparent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        base: "ring-offset-background focus-visible:ring-ring aria-pressed:bg-scrybe-soft aria-pressed:text-foreground aria-pressed:hover:bg-scrybe-soft aria-pressed:[&_svg]:text-scrybe inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-pressed:border-transparent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         variants: {
             variant: {
                 default:
