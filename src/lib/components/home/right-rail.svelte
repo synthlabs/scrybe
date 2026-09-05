@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
+    import { MediaQuery } from "svelte/reactivity";
     import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import * as Sheet from "$lib/components/ui/sheet/index.ts";
     import MetricHelp from "./metric-help.svelte";
@@ -24,26 +25,16 @@
 
     let now = $state(Date.now());
     let interval: ReturnType<typeof setInterval> | null = null;
-    let wide_layout = $state(false);
-    let layout_query: MediaQueryList | null = null;
-
-    const sync_layout = () => {
-        wide_layout = layout_query?.matches ?? false;
-    };
+    const wide_layout = new MediaQuery("(min-width: 1024px)");
 
     onMount(() => {
         interval = setInterval(() => {
             now = Date.now();
         }, 1000);
-
-        layout_query = window.matchMedia("(min-width: 1024px)");
-        sync_layout();
-        layout_query.addEventListener("change", sync_layout);
     });
 
     onDestroy(() => {
         if (interval) clearInterval(interval);
-        layout_query?.removeEventListener("change", sync_layout);
     });
 
     let elapsed = $derived(
@@ -433,7 +424,7 @@
     </div>
 {/snippet}
 
-{#if wide_layout}
+{#if wide_layout.current}
     <aside
         id="home-details"
         class="bg-card flex shrink-0 justify-end overflow-hidden border-l transition-[width,border-color] duration-(--scrybe-duration-standard) ease-linear {details_open
