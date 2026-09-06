@@ -34,7 +34,7 @@
                     open,
                 })}
             {:else}
-                <div {...wrapperProps}>
+                <div {...wrapperProps} style:z-index={60}>
                     <div {...props} {id} role="tooltip">
                         {@render children?.()}
                     </div>

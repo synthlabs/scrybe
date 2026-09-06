@@ -1,9 +1,10 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
+    import type { Action } from "svelte/action";
     import { MediaQuery } from "svelte/reactivity";
     import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import * as Sheet from "$lib/components/ui/sheet/index.ts";
-    import MetricHelp from "./metric-help.svelte";
+    import SectionHelp from "./section-help.svelte";
     import ChevronDown from "@lucide/svelte/icons/chevron-down";
     import {
         session,
@@ -102,7 +103,6 @@
     let inference_distribution_stats = $derived([
         {
             label: msgs.home_rail_inference_deviation(),
-            help: msgs.home_help_inference_deviation(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_std_dev_ms,
                 !has_inference,
@@ -110,7 +110,6 @@
         },
         {
             label: msgs.home_rail_inference_p90(),
-            help: msgs.home_help_inference_p90(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p90_ms,
                 !has_inference,
@@ -118,7 +117,6 @@
         },
         {
             label: msgs.home_rail_inference_p95(),
-            help: msgs.home_help_inference_p95(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p95_ms,
                 !has_inference,
@@ -126,7 +124,6 @@
         },
         {
             label: msgs.home_rail_inference_p99(),
-            help: msgs.home_help_inference_p99(),
             value: format_metric_ms(
                 audio_metrics.obj.inference_p99_ms,
                 !has_inference,
@@ -137,6 +134,91 @@
     let latest_gate_entries = $derived(
         gate_telemetry.obj.entries.slice(-12).reverse(),
     );
+
+    const fit_gate_entries: Action<
+        HTMLOListElement,
+        GateEvaluationTelemetryEntry[]
+    > = (list) => {
+        const viewport = list.closest<HTMLElement>("[data-details-scroll]");
+        if (!viewport) return;
+        let frame = 0;
+
+        const fit = () => {
+            frame = 0;
+            if (!list.parentElement?.getClientRects().length) return;
+            list.hidden = false;
+            const rows = Array.from(list.children) as HTMLElement[];
+            for (const row of rows) row.hidden = false;
+
+            const bottom =
+                viewport.getBoundingClientRect().bottom -
+                viewport.scrollTop -
+                parseFloat(getComputedStyle(list).paddingBottom);
+            const first_overflow = rows.findIndex(
+                (row) => row.getBoundingClientRect().bottom > bottom,
+            );
+            const count = first_overflow === -1 ? rows.length : first_overflow;
+            rows.forEach((row, index) => {
+                row.hidden = index >= count;
+            });
+            list.hidden = count === 0;
+        };
+
+        function schedule_fit() {
+            if (!frame) frame = requestAnimationFrame(fit);
+        }
+
+        const observer = new ResizeObserver(schedule_fit);
+        observer.observe(viewport);
+        for (const section of viewport.children) observer.observe(section);
+        schedule_fit();
+
+        return {
+            update: schedule_fit,
+            destroy() {
+                observer.disconnect();
+                cancelAnimationFrame(frame);
+            },
+        };
+    };
+
+    let audio_help = $derived([
+        ...audio_stats.map((stat) => ({
+            label: stat.label,
+            description: stat.help,
+        })),
+        {
+            label: msgs.home_help_inference_deviation_label(),
+            description: msgs.home_help_inference_deviation(),
+        },
+        {
+            label: `${msgs.home_rail_inference_p90()} / ${msgs.home_rail_inference_p95()} / ${msgs.home_rail_inference_p99()}`,
+            description: msgs.home_help_inference_percentiles(),
+        },
+    ]);
+
+    let gate_help = $derived([
+        {
+            label: msgs.home_help_gate_seq_label(),
+            description: msgs.home_help_gate_seq(),
+        },
+        {
+            label: msgs.home_rail_gate_decision(),
+            description: msgs.home_help_gate_decision(),
+        },
+        {
+            label: msgs.home_rail_gate_words(),
+            description: msgs.home_help_gate_words(),
+        },
+        {
+            label: msgs.home_help_gate_distance_label(),
+            description: msgs.home_help_gate_distance(),
+        },
+        {
+            label: msgs.home_help_gate_time_label(),
+            description: msgs.home_help_gate_time(),
+        },
+    ]);
 
     function set_details_open(open: boolean) {
         app_state.obj.home_right_rail.open = open;
@@ -208,7 +290,7 @@
 
 {#snippet detailsContent()}
     <div class="flex h-full min-h-0 flex-col">
-        <div class="min-h-0 flex-1 overflow-y-auto">
+        <div data-details-scroll class="min-h-0 flex-1 overflow-y-auto">
             <section class="border-border border-b px-5 py-4 pr-16">
                 <h2 class="text-foreground text-sm font-medium">
                     {msgs.home_rail_session()}
@@ -234,14 +316,23 @@
                 onOpenChange={(open) => set_section_open("audio_metrics", open)}
                 class="border-border border-b"
             >
-                <Collapsible.Trigger
-                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                <div
+                    class="hover:bg-accent flex items-center gap-2 pl-3 transition-colors duration-(--scrybe-duration-fast)"
                 >
-                    {@render sectionTrigger(
-                        msgs.home_rail_audio_metrics(),
-                        show_audio_metrics,
-                    )}
-                </Collapsible.Trigger>
+                    <SectionHelp
+                        id="home-audio-help"
+                        label={msgs.home_rail_audio_metrics()}
+                        entries={audio_help}
+                    />
+                    <Collapsible.Trigger
+                        class="focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 min-w-0 flex-1 items-center gap-2 py-3 pr-5 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    >
+                        {@render sectionTrigger(
+                            msgs.home_rail_audio_metrics(),
+                            show_audio_metrics,
+                        )}
+                    </Collapsible.Trigger>
+                </div>
                 <Collapsible.Content
                     class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden duration-(--scrybe-duration-standard) ease-out"
                 >
@@ -250,16 +341,8 @@
                     >
                         {#each audio_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt
-                                    class="text-muted-foreground flex min-h-8 items-center gap-1"
-                                >
-                                    <span class="min-w-0 break-words"
-                                        >{stat.label}</span
-                                    >
-                                    <MetricHelp
-                                        label={stat.label}
-                                        description={stat.help}
-                                    />
+                                <dt class="text-muted-foreground break-words">
+                                    {stat.label}
                                 </dt>
                                 <dd class="mt-1 font-mono tabular-nums">
                                     {stat.value}
@@ -272,16 +355,8 @@
                     >
                         {#each inference_distribution_stats as stat (stat.label)}
                             <div class="min-w-0">
-                                <dt
-                                    class="text-muted-foreground flex min-h-8 items-center gap-1"
-                                >
-                                    <span class="min-w-0 break-words"
-                                        >{stat.label}</span
-                                    >
-                                    <MetricHelp
-                                        label={stat.label}
-                                        description={stat.help}
-                                    />
+                                <dt class="text-muted-foreground break-words">
+                                    {stat.label}
                                 </dt>
                                 <dd class="mt-1 font-mono tabular-nums">
                                     {stat.value}
@@ -296,11 +371,23 @@
                 open={show_gate}
                 onOpenChange={(open) => set_section_open("gate", open)}
             >
-                <Collapsible.Trigger
-                    class="hover:bg-accent focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 w-full items-center gap-2 px-5 py-3 text-left transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                <div
+                    class="hover:bg-accent flex items-center gap-2 pl-3 transition-colors duration-(--scrybe-duration-fast)"
                 >
-                    {@render sectionTrigger(msgs.home_rail_gate(), show_gate)}
-                </Collapsible.Trigger>
+                    <SectionHelp
+                        id="home-filtering-help"
+                        label={msgs.home_rail_gate()}
+                        entries={gate_help}
+                    />
+                    <Collapsible.Trigger
+                        class="focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 min-w-0 flex-1 items-center gap-2 py-3 pr-5 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    >
+                        {@render sectionTrigger(
+                            msgs.home_rail_gate(),
+                            show_gate,
+                        )}
+                    </Collapsible.Trigger>
+                </div>
                 <Collapsible.Content
                     class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden duration-(--scrybe-duration-standard) ease-out"
                 >
@@ -309,114 +396,54 @@
                             {msgs.home_rail_gate_empty()}
                         </p>
                     {:else}
-                        <div class="overflow-x-auto px-5 pt-1 pb-5">
-                            <table
-                                class="w-full min-w-[26rem] table-fixed text-left text-xs"
-                            >
-                                <thead class="text-muted-foreground">
-                                    <tr>
-                                        <th class="w-16 px-1 pb-2 font-medium">
-                                            <span
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                {msgs.home_rail_gate_seq()}
-                                                <MetricHelp
-                                                    label={msgs.home_rail_gate_seq()}
-                                                    description={msgs.home_help_gate_seq()}
-                                                />
-                                            </span>
-                                        </th>
-                                        <th class="px-1 pb-2 font-medium">
-                                            <span
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                {msgs.home_rail_gate_decision()}
-                                                <MetricHelp
-                                                    label={msgs.home_rail_gate_decision()}
-                                                    description={msgs.home_help_gate_decision()}
-                                                />
-                                            </span>
-                                        </th>
-                                        <th
-                                            class="w-20 px-1 pb-2 text-right font-medium"
+                        <ol
+                            data-caption-filtering
+                            use:fit_gate_entries={latest_gate_entries}
+                            role="list"
+                            aria-label={msgs.home_rail_gate()}
+                            class="divide-border min-w-0 divide-y px-5 pt-1 pb-5 text-xs"
+                        >
+                            {#each latest_gate_entries as entry (entry.sequence)}
+                                <li class="min-w-0 py-3">
+                                    <div
+                                        class="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+                                    >
+                                        <span
+                                            class="text-muted-foreground max-w-full font-mono wrap-anywhere tabular-nums"
                                         >
-                                            <span
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                {msgs.home_rail_gate_words()}
-                                                <MetricHelp
-                                                    label={msgs.home_rail_gate_words()}
-                                                    description={msgs.home_help_gate_words()}
-                                                />
-                                            </span>
-                                        </th>
-                                        <th
-                                            class="w-20 px-1 pb-2 text-right font-medium"
+                                            {msgs.home_rail_gate_seq()}{entry.sequence}
+                                        </span>
+                                        <span
+                                            class="min-w-0 flex-1 wrap-anywhere {entry.decision ===
+                                            'Emit'
+                                                ? 'text-status-live'
+                                                : 'text-muted-foreground'}"
+                                            title={entry.segment_id}
                                         >
-                                            <span
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                {msgs.home_rail_gate_distance()}
-                                                <MetricHelp
-                                                    label={msgs.home_rail_gate_distance()}
-                                                    description={msgs.home_help_gate_distance()}
-                                                />
-                                            </span>
-                                        </th>
-                                        <th
-                                            class="w-16 px-1 pb-2 text-right font-medium"
-                                        >
-                                            <span
-                                                class="inline-flex items-center gap-1"
-                                            >
-                                                {msgs.home_rail_gate_time()}
-                                                <MetricHelp
-                                                    label={msgs.home_rail_gate_time()}
-                                                    description={msgs.home_help_gate_time()}
-                                                />
-                                            </span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {#each latest_gate_entries as entry (entry.sequence)}
-                                        <tr class="border-border border-t">
-                                            <td
-                                                class="text-muted-foreground px-1 py-2 font-mono tabular-nums"
-                                            >
-                                                {entry.sequence}
-                                            </td>
-                                            <td class="px-1 py-2">
-                                                <span
-                                                    class="block break-words {entry.decision ===
-                                                    'Emit'
-                                                        ? 'text-status-live'
-                                                        : 'text-muted-foreground'}"
-                                                    title={entry.segment_id}
+                                            {decision_label(entry)}
+                                        </span>
+                                    </div>
+                                    <dl
+                                        class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,4.5rem),1fr))] gap-x-3 gap-y-2"
+                                    >
+                                        {#each [{ label: msgs.home_rail_gate_words(), value: String(entry.candidate_words) }, { label: msgs.home_rail_gate_distance(), value: format_distance(entry) }, { label: msgs.home_rail_gate_time(), value: format_ms(entry.evaluate_ms) }] as metric (metric.label)}
+                                            <div class="min-w-0 wrap-anywhere">
+                                                <dt
+                                                    class="text-muted-foreground"
                                                 >
-                                                    {decision_label(entry)}
-                                                </span>
-                                            </td>
-                                            <td
-                                                class="px-1 py-2 text-right font-mono tabular-nums"
-                                            >
-                                                {entry.candidate_words}
-                                            </td>
-                                            <td
-                                                class="px-1 py-2 text-right font-mono tabular-nums"
-                                            >
-                                                {format_distance(entry)}
-                                            </td>
-                                            <td
-                                                class="px-1 py-2 text-right font-mono tabular-nums"
-                                            >
-                                                {format_ms(entry.evaluate_ms)}
-                                            </td>
-                                        </tr>
-                                    {/each}
-                                </tbody>
-                            </table>
-                        </div>
+                                                    {metric.label}
+                                                </dt>
+                                                <dd
+                                                    class="mt-1 font-mono tabular-nums"
+                                                >
+                                                    {metric.value}
+                                                </dd>
+                                            </div>
+                                        {/each}
+                                    </dl>
+                                </li>
+                            {/each}
+                        </ol>
                     {/if}
                 </Collapsible.Content>
             </Collapsible.Root>
