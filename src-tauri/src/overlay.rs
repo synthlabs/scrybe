@@ -23,6 +23,17 @@ fn now_ms() -> u64 {
 }
 
 impl OverlayTestState {
+    fn clear(&mut self, id: &str) -> bool {
+        if self.id != id || self.config.is_none() {
+            return false;
+        }
+        self.config = None;
+        self.text.clear();
+        self.expires_at_ms = 0;
+        self.revision += 1;
+        true
+    }
+
     fn update(
         &mut self,
         id: &str,
@@ -61,13 +72,9 @@ fn clear(store: &StateSyncer, ws: &WebsocketManager, id: &str) -> bool {
     let Ok(mut guard) = state.lock() else {
         return false;
     };
-    if guard.id != id {
+    if !guard.clear(id) {
         return false;
     }
-    guard.config = None;
-    guard.text.clear();
-    guard.expires_at_ms = 0;
-    guard.revision += 1;
     drop(guard);
     broadcast(store, ws);
     true
@@ -142,6 +149,56 @@ pub fn stop_overlay_test(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn active_test(id: &str) -> OverlayTestState {
+        OverlayTestState {
+            id: id.into(),
+            config: Some(OverlayConfig::default()),
+            text: "sample captions".into(),
+            started_at_ms: 100,
+            expires_at_ms: 60_100,
+            revision: 3,
+        }
+    }
+
+    #[test]
+    fn expiry_clears_an_active_test() {
+        let mut state = active_test("test");
+        assert!(!state.update(
+            "test",
+            4,
+            OverlayConfig::default(),
+            "late".into(),
+            state.expires_at_ms,
+        ));
+        assert!(state.clear("test"));
+        assert!(state.config.is_none());
+        assert!(state.text.is_empty());
+        assert_eq!(state.expires_at_ms, 0);
+        assert_eq!(state.revision, 4);
+        assert_eq!(state.id, "test");
+        assert_eq!(state.started_at_ms, 100);
+    }
+
+    #[test]
+    fn expiry_after_stop_does_not_clear_or_increment_revision_again() {
+        let mut state = active_test("test");
+        assert!(state.clear("test"));
+        let stopped = serde_json::to_value(&state).unwrap();
+        assert!(!state.clear("test"));
+        assert_eq!(serde_json::to_value(&state).unwrap(), stopped);
+    }
+
+    #[test]
+    fn old_expiry_cannot_clear_a_newer_test() {
+        let mut state = active_test("old");
+        assert!(state.clear("old"));
+        state = active_test("new");
+        let newer = serde_json::to_value(&state).unwrap();
+        assert!(!state.clear("old"));
+        assert_eq!(serde_json::to_value(&state).unwrap(), newer);
+        assert!(state.clear("new"));
+    }
 
     #[test]
     fn updates_cannot_revive_expired_tests_or_overwrite_newer_edits() {
