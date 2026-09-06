@@ -9,6 +9,7 @@ use uuid::Uuid;
 use warp::{filters::ws::WebSocket, reject::Rejection, ws::Message};
 
 use crate::{
+    overlay::OverlayTestState,
     types::{AppState, WebsocketRequest, WebsocketResponse},
     InternalState,
 };
@@ -160,6 +161,13 @@ impl WebsocketManager {
                         Ok(_) => {}
                         Err(err) => error!("failed to send to client: {}", err),
                     };
+                }
+            }
+            "get_overlay_test" => {
+                let state = self.store.snapshot::<OverlayTestState>("overlay_test");
+                let response = Self::to_ws_response("overlay_test_update".to_owned(), state);
+                if let Ok(data) = serde_json::to_string(&response) {
+                    let _ = client.sender.send(Ok(Message::text(data)));
                 }
             }
             "" => warn!("missing kind"),

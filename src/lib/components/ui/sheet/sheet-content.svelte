@@ -24,6 +24,7 @@
         type WithoutChildrenOrChild,
     } from "bits-ui";
     import X from "@lucide/svelte/icons/x";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import type { Snippet } from "svelte";
     import SheetOverlay from "./sheet-overlay.svelte";
     import { cn } from "$lib/utils.ts";
@@ -63,7 +64,15 @@
                             class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-popover absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-md transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none"
                             aria-label={closeLabel}
                         >
-                            <X class="size-4" />
+                            {#snippet child({ props: closeProps })}
+                                <Button
+                                    {...closeProps}
+                                    variant="ghost"
+                                    size="icon"
+                                >
+                                    <X class="size-4" />
+                                </Button>
+                            {/snippet}
                         </SheetPrimitive.Close>
                     {/snippet}
                 </Tooltip.Trigger>

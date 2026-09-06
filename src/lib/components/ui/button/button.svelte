@@ -46,6 +46,7 @@
 
 <script lang="ts">
     import { cn } from "$lib/utils.ts";
+    import { resizeButton } from "./resize";
 
     let {
         class: className,
@@ -61,8 +62,13 @@
 
 {#if href}
     <a
+        use:resizeButton
         bind:this={ref}
-        class={cn(buttonVariants({ variant, size }), className)}
+        class={cn(
+            "scrybe-button",
+            buttonVariants({ variant, size }),
+            className,
+        )}
         {href}
         {...restProps}
     >
@@ -70,11 +76,50 @@
     </a>
 {:else}
     <button
+        use:resizeButton
         bind:this={ref}
-        class={cn(buttonVariants({ variant, size }), className)}
+        class={cn(
+            "scrybe-button",
+            buttonVariants({ variant, size }),
+            className,
+        )}
         {type}
         {...restProps}
     >
         {@render children?.()}
     </button>
 {/if}
+
+<style>
+    .scrybe-button[data-button-resizing] {
+        box-sizing: border-box;
+        width: var(--button-width);
+        min-width: var(--button-width);
+        max-width: var(--button-width);
+        height: var(--button-height);
+        min-height: var(--button-height);
+        max-height: var(--button-height);
+        flex-basis: auto;
+        overflow: clip;
+    }
+
+    .scrybe-button[data-button-resizing][data-button-single-line] {
+        text-wrap: nowrap;
+    }
+
+    .scrybe-button[data-button-resizing="active"] {
+        transition-property:
+            color, background-color, border-color, outline-color,
+            text-decoration-color, fill, stroke, width, min-width, max-width,
+            height, min-height, max-height;
+        transition-duration:
+            var(--scrybe-duration-fast), var(--scrybe-duration-fast),
+            var(--scrybe-duration-fast), var(--scrybe-duration-fast),
+            var(--scrybe-duration-fast), var(--scrybe-duration-fast),
+            var(--scrybe-duration-fast), var(--scrybe-duration-standard),
+            var(--scrybe-duration-standard), var(--scrybe-duration-standard),
+            var(--scrybe-duration-standard), var(--scrybe-duration-standard),
+            var(--scrybe-duration-standard);
+        transition-timing-function: ease-out;
+    }
+</style>

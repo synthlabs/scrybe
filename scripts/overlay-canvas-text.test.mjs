@@ -44,7 +44,7 @@ test("wrapCanvasText breaks overlong words only when unavoidable", () => {
     ]);
 });
 
-test("captionTextLayout computes horizontal alignment positions", () => {
+test("captionTextLayout aligns inside the fitted background", () => {
     const base = {
         text: "caption",
         style: {
@@ -54,11 +54,10 @@ test("captionTextLayout computes horizontal alignment positions", () => {
             stroke_width: 0,
         },
         width: 200,
-        height: 100,
         measureText: monospaceMeasure,
     };
 
-    assert.equal(captionTextLayout(base).lines[0].x, 100);
+    assert.equal(captionTextLayout(base).lines[0].x, 35);
     assert.equal(
         captionTextLayout({ ...base, style: { ...base.style, align: "left" } })
             .lines[0].x,
@@ -67,11 +66,11 @@ test("captionTextLayout computes horizontal alignment positions", () => {
     assert.equal(
         captionTextLayout({ ...base, style: { ...base.style, align: "right" } })
             .lines[0].x,
-        200,
+        70,
     );
 });
 
-test("captionTextLayout anchors top only when padding is disabled", () => {
+test("captionTextLayout includes vertical padding and outline in its natural height", () => {
     const base = {
         text: "caption",
         style: {
@@ -81,7 +80,6 @@ test("captionTextLayout anchors top only when padding is disabled", () => {
             stroke_width: 4,
         },
         width: 200,
-        height: 100,
         measureText: monospaceMeasure,
     };
 
@@ -91,7 +89,7 @@ test("captionTextLayout anchors top only when padding is disabled", () => {
             ...base,
             style: { ...base.style, padding: "normal" },
         }).lines[0].y,
-        38.5,
+        12,
     );
 });
 

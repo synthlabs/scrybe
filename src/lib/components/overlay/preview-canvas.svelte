@@ -1,18 +1,52 @@
 <script lang="ts">
-    import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
+    import { onMount } from "svelte";
     import type { OverlayConfig } from "$lib/bindings";
-
-    interface Props {
-        config: OverlayConfig;
-        height?: string;
-    }
-
-    let { config, height = "140px" }: Props = $props();
+    import CaptionSample from "./caption-sample.svelte";
+    import { anchorFactors } from "$lib/overlay/placement.js";
+    import { m as msgs } from "$lib/paraglide/messages";
+    let { config, text }: { config: OverlayConfig; text: string } = $props();
+    let element: HTMLDivElement;
+    let width = $state(640);
+    const factors = $derived(anchorFactors(config.layout.anchor));
+    const justify = $derived(
+        ["flex-start", "center", "flex-end"][factors.x * 2],
+    );
+    const align = $derived(["flex-start", "center", "flex-end"][factors.y * 2]);
+    onMount(() => {
+        const measure = () => {
+            const style = getComputedStyle(element);
+            width =
+                element.clientWidth -
+                parseFloat(style.paddingLeft) -
+                parseFloat(style.paddingRight);
+        };
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        measure();
+        return () => observer.disconnect();
+    });
 </script>
 
 <div
-    class="border-border/60 overflow-hidden rounded-md border bg-[#1b1d20] [background-image:linear-gradient(45deg,#17191c_25%,transparent_25%),linear-gradient(-45deg,#17191c_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#17191c_75%),linear-gradient(-45deg,transparent_75%,#17191c_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0] p-2"
-    style="height: {height};"
+    class="sample-stage"
+    bind:this={element}
+    style:justify-content={justify}
+    style:align-items={align}
+    aria-label={msgs.overlay_style_preview()}
 >
-    <TextOverlay test_mode={true} style={config.style} scale={0.62} />
+    <CaptionSample
+        {text}
+        style={config.style}
+        max_width={Math.max(1, Math.min(config.layout.max_width, width))}
+    />
 </div>
+
+<style>
+    .sample-stage {
+        display: flex;
+        min-height: 15rem;
+        padding: 1rem;
+        overflow: hidden;
+        border: 1px solid transparent;
+    }
+</style>

@@ -15,6 +15,7 @@
 
     import StatusPill from "$lib/components/header/status-pill.svelte";
     import PlayPauseButton from "$lib/components/header/play-pause-button.svelte";
+    import OverlayTestNotice from "$lib/components/overlay/test-notice.svelte";
     import RuntimeDependencyNotice from "$lib/components/runtime-dependency-notice.svelte";
     import { session } from "$lib/stores/session.svelte";
     import { app_state, internal_state } from "$lib/stores/state.svelte";
@@ -115,11 +116,15 @@
         <header
             class="bg-background sticky top-0 z-40 flex min-h-12 shrink-0 flex-wrap items-center gap-3 border-b px-3 py-2"
         >
-            <Sidebar.Trigger disabled={!app_state.ready} />
+            <Sidebar.Trigger
+                class="text-muted-foreground"
+                disabled={!app_state.ready}
+            />
             <div class="flex grow"></div>
             <StatusPill />
             <PlayPauseButton />
         </header>
+        <OverlayTestNotice />
         <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
             {@render children?.()}
         </div>

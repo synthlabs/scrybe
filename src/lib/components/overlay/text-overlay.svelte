@@ -6,120 +6,77 @@
         captionTextLayout,
         enclosedTransparentPixels,
     } from "$lib/overlay/canvas-text.js";
-    import { hexToRgb } from "$lib/overlay/layout-math.js";
+    import {
+        DEFAULT_OVERLAY_CONFIG,
+        hexToRgb,
+    } from "$lib/overlay/layout-math.js";
     import { m as msgs } from "$lib/paraglide/messages";
 
-    interface Props {
+    let {
+        style = DEFAULT_OVERLAY_CONFIG.style,
+        scale = 1,
+        max_width = 1152,
+        test_mode = false,
+        test_text = msgs.overlay_test_text(),
+        current_segment,
+    }: {
         style?: OverlayStyle;
         scale?: number;
+        max_width?: number;
         test_mode?: boolean;
         test_text?: string;
         current_segment?: WhisperSegment;
-    }
+    } = $props();
 
-    const DEFAULT_STYLE: OverlayStyle = {
-        align: "center",
-        font_size: 32,
-        text_color: "#ffffff",
-        stroke_color: "#000000",
-        stroke_width: 0,
-        background_color: "#000000",
-        background_opacity: 55,
-        border_radius: 12,
-        padding: "normal",
-    };
-
-    let {
-        style = DEFAULT_STYLE,
-        scale = 1,
-        test_mode = false,
-        test_text = msgs.overlay_test_text(),
-        current_segment = {
-            id: "",
-            index: 0,
-            items: [],
-        },
-    }: Props = $props();
-
-    let wrapper_el: HTMLDivElement | undefined = $state();
     let canvas_el: HTMLCanvasElement | undefined = $state();
+    let dimensions = $state({ width: 0, height: 0 });
+    let font_revision = $state(0);
     let draw_token = 0;
-
-    let rgb = $derived(hexToRgb(style.background_color));
-    let opacity = $derived(style.background_opacity / 100);
-    let has_segment = $derived(current_segment.items.length > 0);
-    let caption_text = $derived(
-        has_segment
-            ? current_segment.items.map((item) => item.text).join("")
-            : test_text,
-    );
-    let caption_style = $derived(
-        [
-            `background-color: rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${opacity})`,
-            `border-radius: ${style.border_radius * scale}px`,
-        ].join("; "),
-    );
     const counter_alpha_threshold = 8;
+    const caption_text = $derived(
+        current_segment?.items.length
+            ? current_segment.items.map((item) => item.text).join("")
+            : test_mode
+              ? test_text
+              : "",
+    );
+    const rgb = $derived(hexToRgb(style.background_color));
 
-    const measureCaptionSize = () => {
-        return {
-            width: Math.max(0, wrapper_el?.clientWidth ?? 0),
-            height: Math.max(0, wrapper_el?.clientHeight ?? 0),
-        };
-    };
-
-    const drawCaption = (width: number, height: number) => {
-        if (!canvas_el || width <= 0 || height <= 0) return;
-
+    const drawCaption = () => {
+        if (!canvas_el) return;
         const context = canvas_el.getContext("2d");
         if (!context) return;
-
-        const pixel_ratio =
-            typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
-        const backing_width = Math.max(1, Math.round(width * pixel_ratio));
-        const backing_height = Math.max(1, Math.round(height * pixel_ratio));
-
-        if (canvas_el.width !== backing_width) {
-            canvas_el.width = backing_width;
-        }
-        if (canvas_el.height !== backing_height) {
-            canvas_el.height = backing_height;
-        }
-
-        context.setTransform(pixel_ratio, 0, 0, pixel_ratio, 0, 0);
-        context.clearRect(0, 0, width, height);
-
         context.font = captionFont(style, scale);
         const layout = captionTextLayout({
             text: caption_text,
             style,
-            width,
-            height,
+            width: max_width * scale,
             scale,
-            measureText: (text: string) => context.measureText(text),
+            measureText: (text) => context.measureText(text),
         });
-
-        const text_align: CanvasTextAlign =
-            layout.align === "left" || layout.align === "right"
-                ? layout.align
-                : "center";
-
+        const { width, height } = layout;
+        dimensions = { width, height };
+        const pixel_ratio = window.devicePixelRatio || 1;
+        const backing_width = Math.max(1, Math.ceil(width * pixel_ratio));
+        const backing_height = Math.max(1, Math.ceil(height * pixel_ratio));
+        canvas_el.width = backing_width;
+        canvas_el.height = backing_height;
+        context.setTransform(pixel_ratio, 0, 0, pixel_ratio, 0, 0);
+        context.clearRect(0, 0, width, height);
         context.font = layout.font;
+        const text_align = layout.align as CanvasTextAlign;
         context.textAlign = text_align;
         context.textBaseline = "top";
         context.lineJoin = "round";
         context.miterLimit = 2;
-        context.lineWidth = Math.max(0, (style.stroke_width ?? 0) * scale * 2);
-        context.strokeStyle = style.stroke_color || "#000000";
-        context.fillStyle = style.text_color || "#ffffff";
-
+        context.lineWidth = Math.max(0, style.stroke_width * scale * 2);
+        context.strokeStyle = style.stroke_color;
+        context.fillStyle = style.text_color;
         for (const line of layout.lines) {
-            if (context.lineWidth > 0) {
+            if (context.lineWidth > 0)
                 context.strokeText(line.text, line.x, line.y);
-            }
             context.fillText(line.text, line.x, line.y);
         }
-
         if (context.lineWidth <= 0 || typeof document === "undefined") return;
 
         const mask_canvas = document.createElement("canvas");
@@ -175,67 +132,42 @@
         context.putImageData(output, 0, 0);
     };
 
-    const scheduleFrame = (callback: FrameRequestCallback) => {
-        if (typeof requestAnimationFrame === "function") {
-            requestAnimationFrame(callback);
-            return;
-        }
-
-        setTimeout(() => callback(performance.now()), 0);
-    };
-
-    const queueDraw = () => {
-        const token = ++draw_token;
-
-        void tick().then(() => {
-            if (token !== draw_token) return;
-
-            scheduleFrame(() => {
-                if (token !== draw_token) return;
-
-                const size = measureCaptionSize();
-                drawCaption(size.width, size.height);
-            });
-        });
-    };
-
     onMount(() => {
-        queueDraw();
-        if (!wrapper_el) return;
-
-        const observer = new ResizeObserver(queueDraw);
-        observer.observe(wrapper_el);
-
-        return () => observer.disconnect();
+        void document.fonts.ready.then(() => (font_revision += 1));
     });
-
     $effect(() => {
-        wrapper_el;
         canvas_el;
         caption_text;
+        max_width;
+        scale;
+        font_revision;
         style.align;
         style.font_size;
         style.padding;
-        style.stroke_color;
         style.stroke_width;
+        style.stroke_color;
         style.text_color;
-        scale;
-        queueDraw();
+        const token = ++draw_token;
+        void tick().then(() => {
+            if (token === draw_token) drawCaption();
+        });
     });
 </script>
 
-{#if has_segment || test_mode}
+{#if caption_text.trim()}
     <div
-        class="pointer-events-none relative box-border h-full w-full overflow-hidden select-none"
-        style={caption_style}
-        bind:this={wrapper_el}
+        data-caption
+        class="pointer-events-none relative shrink-0 select-none"
+        style:width={dimensions.width + "px"}
+        style:height={dimensions.height + "px"}
+        style:background-color={`rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${style.background_opacity / 100})`}
+        style:border-radius={style.border_radius * scale + "px"}
     >
         <canvas
             class="absolute inset-0 block h-full w-full"
             bind:this={canvas_el}
             aria-hidden="true"
-        >
-        </canvas>
+        ></canvas>
         <span class="sr-only">{caption_text}</span>
     </div>
 {/if}

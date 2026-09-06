@@ -512,19 +512,21 @@
                     >
                         {msgs.settings_model_cache_label()}
                     </Label>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         type="button"
                         onclick={copy_cache_path}
                         disabled={!app_state.obj.model_path}
                         aria-label={msgs.settings_cache_copy_aria()}
-                        class="text-muted-foreground/70 hover:text-foreground focus-visible:text-foreground cursor-pointer transition-colors duration-(--scrybe-duration-fast) focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
+                        class="text-muted-foreground/70 hover:text-foreground focus-visible:text-foreground size-auto rounded-none p-0 hover:bg-transparent disabled:opacity-30 [&_svg]:size-3.5"
                     >
                         {#if cache_copied}
                             <Check class="text-status-live size-3.5" />
                         {:else}
                             <Copy class="size-3.5" />
                         {/if}
-                    </button>
+                    </Button>
                 </div>
                 <div
                     class="border-border/60 bg-background/40 text-muted-foreground rounded border p-2 font-mono text-[11px] leading-snug break-all"
@@ -567,9 +569,11 @@
                 {/each}
             </div>
             <div class="flex flex-col gap-1">
-                <button
+                <Button
+                    variant="ghost"
+                    size="sm"
                     type="button"
-                    class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 self-start text-[11px] font-medium transition-colors duration-(--scrybe-duration-fast)"
+                    class="text-muted-foreground hover:text-foreground min-h-0 gap-1 self-start rounded-none p-0 text-[11px] hover:bg-transparent [&_svg]:size-3.5"
                     onclick={() => (show_advanced = !show_advanced)}
                 >
                     {#if show_advanced}
@@ -579,7 +583,7 @@
                         <ChevronDown class="size-3.5" />
                         {msgs.settings_show_advanced()}
                     {/if}
-                </button>
+                </Button>
                 {#if show_advanced}
                     {#each ADVANCED_TOGGLES as toggle (toggle.key)}
                         {@const label = toggle.label()}

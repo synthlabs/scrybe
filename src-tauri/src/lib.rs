@@ -1,4 +1,6 @@
+mod overlay;
 use hf_hub::api::sync::Api;
+use overlay::{start_overlay_test, stop_overlay_test, update_overlay_test, OverlayTestState};
 use rust_embed::RustEmbed;
 use scrybe_core::{
     audio::{self, AudioManager},
@@ -150,22 +152,6 @@ struct WhisperSetupResult {
     vad_runtime: VadRuntimeState,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, specta::Type)]
-#[serde(default)]
-struct OverlayTestState {
-    visible: bool,
-    text: String,
-    expires_at_ms: Option<u64>,
-}
-
-impl OverlayTestState {
-    fn clear(&mut self) {
-        self.visible = false;
-        self.text.clear();
-        self.expires_at_ms = None;
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(default)]
 struct InternalState {
@@ -176,7 +162,6 @@ struct InternalState {
     name: String,
     runtime_dependency: RuntimeDependencyState,
     vad_runtime: VadRuntimeState,
-    overlay_test: OverlayTestState,
 }
 
 impl Default for InternalState {
@@ -189,7 +174,6 @@ impl Default for InternalState {
             name: "".to_owned(),
             runtime_dependency: RuntimeDependencyState::default(),
             vad_runtime: VadRuntimeState::default(),
-            overlay_test: OverlayTestState::default(),
         }
     }
 }
@@ -212,7 +196,6 @@ impl InternalState {
 
     fn reset_runtime_only_state(&mut self) {
         self.stop_transcription();
-        self.overlay_test.clear();
     }
 
     fn is_transcription_run_active(&self, run_id: &str) -> bool {
@@ -313,10 +296,10 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<types::AppState>()
         .typ::<types::AdvancedSettings>()
         .typ::<types::HomeRightRailSettings>()
-        .typ::<types::OverlayEditorSettings>()
         .typ::<types::OverlayConfig>()
         .typ::<types::OverlayCanvas>()
-        .typ::<types::OverlayBox>()
+        .typ::<types::OverlayLayout>()
+        .typ::<types::OverlayAnchor>()
         .typ::<types::OverlayStyle>()
         .typ::<types::OverlayPadding>()
         .typ::<types::WebsocketRequest>()
@@ -340,6 +323,9 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             download_model_preset,
             emit_state,
             update_state,
+            start_overlay_test,
+            update_overlay_test,
+            stop_overlay_test,
         ])
 }
 
@@ -356,6 +342,7 @@ fn emit_state(
         "app_state" => state_syncer.emit::<types::AppState>("app_state"),
         "gate_telemetry" => state_syncer.emit::<GateTelemetryState>("gate_telemetry"),
         "audio_metrics" => state_syncer.emit::<AudioMetricsState>("audio_metrics"),
+        "overlay_test" => state_syncer.emit::<OverlayTestState>("overlay_test"),
         _ => return false,
     };
 
@@ -1157,6 +1144,7 @@ pub fn run() {
                     persist_keys: HashMap::from([
                         ("gate_telemetry".to_owned(), false),
                         ("audio_metrics".to_owned(), false),
+                        ("overlay_test".to_owned(), false),
                     ]),
                     ..Default::default()
                 },
@@ -1164,6 +1152,7 @@ pub fn run() {
             );
             state_syncer.set("gate_telemetry", GateTelemetryState::default());
             state_syncer.set("audio_metrics", AudioMetricsState::default());
+            state_syncer.set("overlay_test", OverlayTestState::default());
             let _ = state_syncer.load::<types::AppState>("app_state");
 
             let mut internal_state = state_syncer.load::<InternalState>("internal_state");
@@ -1393,24 +1382,5 @@ mod tests {
         state.clear_transcription_run_if_current("old");
 
         assert!(state.is_transcription_run_active("new"));
-    }
-
-    #[test]
-    fn reset_runtime_only_state_clears_overlay_test() {
-        let mut state = InternalState::default();
-        state.overlay_test = OverlayTestState {
-            visible: true,
-            text: "preview".to_owned(),
-            expires_at_ms: Some(123),
-        };
-        assert!(state.claim_transcription_run("run".to_owned()));
-
-        state.reset_runtime_only_state();
-
-        assert!(!state.transcribe_running);
-        assert_eq!(state.active_transcription_run_id, None);
-        assert!(!state.overlay_test.visible);
-        assert_eq!(state.overlay_test.text, "");
-        assert_eq!(state.overlay_test.expires_at_ms, None);
     }
 }

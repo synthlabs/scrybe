@@ -7,7 +7,6 @@ pub struct AppState {
     pub audio_segment_size: u64,
     pub sidebar_open: bool,
     pub overlay_config: OverlayConfig,
-    pub overlay_editor: OverlayEditorSettings,
     pub home_right_rail: HomeRightRailSettings,
     pub whisper_params: scrybe_core::whisper::WhisperParams,
     pub advanced_settings: AdvancedSettings,
@@ -22,7 +21,6 @@ impl Default for AppState {
             audio_segment_size: 15,
             sidebar_open: true,
             overlay_config: OverlayConfig::default(),
-            overlay_editor: OverlayEditorSettings::default(),
             home_right_rail: HomeRightRailSettings::default(),
             whisper_params: scrybe_core::whisper::WhisperParams::default(),
             advanced_settings: AdvancedSettings::default(),
@@ -100,6 +98,100 @@ impl OverlayBox {
             w,
             h,
         }
+    }
+}
+
+#[derive(
+    Debug, Default, serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, specta::Type,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum OverlayAnchor {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    MiddleCenter,
+    MiddleRight,
+    BottomLeft,
+    #[default]
+    BottomCenter,
+    BottomRight,
+}
+
+impl OverlayAnchor {
+    pub const ALL: [Self; 9] = [
+        Self::TopLeft,
+        Self::TopCenter,
+        Self::TopRight,
+        Self::MiddleLeft,
+        Self::MiddleCenter,
+        Self::MiddleRight,
+        Self::BottomLeft,
+        Self::BottomCenter,
+        Self::BottomRight,
+    ];
+
+    pub fn factors(self) -> (f64, f64) {
+        let index = Self::ALL.iter().position(|anchor| *anchor == self).unwrap();
+        ((index % 3) as f64 / 2.0, (index / 3) as f64 / 2.0)
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
+#[serde(default)]
+pub struct OverlayLayout {
+    pub anchor: OverlayAnchor,
+    pub x: i32,
+    pub y: i32,
+    pub max_width: i32,
+}
+
+impl Default for OverlayLayout {
+    fn default() -> Self {
+        Self::from_box(OverlayBox::default(), &OverlayCanvas::default())
+    }
+}
+
+impl OverlayLayout {
+    fn normalized(mut self, canvas: &OverlayCanvas) -> Self {
+        self.max_width = self.max_width.clamp(OVERLAY_MIN_BOX_WIDTH, canvas.width);
+        let (horizontal, _) = self.anchor.factors();
+        let left = (self.max_width as f64 * horizontal).round() as i32;
+        let right = canvas.width - self.max_width + left;
+        self.x = self.x.clamp(left, right);
+        self.y = self.y.clamp(0, canvas.height);
+        self
+    }
+
+    fn from_box(old: OverlayBox, canvas: &OverlayCanvas) -> Self {
+        let old = old.clamp_to(canvas);
+        let margin = (canvas.width.min(canvas.height) as f64 * 0.04).round() as i32;
+        let anchor = OverlayAnchor::ALL
+            .into_iter()
+            .min_by_key(|anchor| {
+                let (hx, vy) = anchor.factors();
+                let snap = |extent: i32, size: i32, factor: f64| {
+                    let point = if factor == 0.0 {
+                        margin
+                    } else if factor == 1.0 {
+                        extent - size - margin
+                    } else {
+                        ((extent - size) as f64 / 2.0).round() as i32
+                    };
+                    point.clamp(0, extent - size)
+                };
+                (snap(canvas.width, old.w, hx) - old.x).abs()
+                    + (snap(canvas.height, old.h, vy) - old.y).abs()
+            })
+            .unwrap();
+        let (hx, vy) = anchor.factors();
+        Self {
+            anchor,
+            x: old.x + (old.w as f64 * hx).round() as i32,
+            y: old.y + (old.h as f64 * vy).round() as i32,
+            max_width: old.w,
+        }
+        .normalized(canvas)
     }
 }
 
@@ -183,8 +275,7 @@ impl OverlayStyle {
 #[derive(Debug, serde::Serialize, Clone, PartialEq, specta::Type)]
 pub struct OverlayConfig {
     pub canvas: OverlayCanvas,
-    #[serde(rename = "box")]
-    pub r#box: OverlayBox,
+    pub layout: OverlayLayout,
     pub style: OverlayStyle,
 }
 
@@ -192,7 +283,7 @@ impl Default for OverlayConfig {
     fn default() -> Self {
         let canvas = OverlayCanvas::default();
         Self {
-            r#box: OverlayBox::default().clamp_to(&canvas),
+            layout: OverlayLayout::default(),
             canvas,
             style: OverlayStyle::default(),
         }
@@ -225,7 +316,7 @@ impl OverlayConfig {
             config.style = config.style.with_legacy(wire.legacy);
         }
 
-        config.r#box = wire
+        let legacy_box = wire
             .r#box
             .unwrap_or_else(|| {
                 if has_v2_canvas {
@@ -235,6 +326,10 @@ impl OverlayConfig {
                 }
             })
             .clamp_to(&config.canvas);
+        config.layout = wire
+            .layout
+            .unwrap_or_else(|| OverlayLayout::from_box(legacy_box, &config.canvas))
+            .normalized(&config.canvas);
         config
     }
 }
@@ -242,6 +337,7 @@ impl OverlayConfig {
 #[derive(Default, serde::Deserialize)]
 #[serde(default)]
 struct OverlayConfigWire {
+    layout: Option<OverlayLayout>,
     canvas: Option<OverlayCanvas>,
     #[serde(rename = "box")]
     r#box: Option<OverlayBox>,
@@ -327,12 +423,12 @@ mod overlay_config_tests {
             }
         );
         assert_eq!(
-            config.r#box,
-            OverlayBox {
-                x: 384,
-                y: 897,
-                w: 1152,
-                h: 140
+            config.layout,
+            OverlayLayout {
+                anchor: OverlayAnchor::BottomCenter,
+                x: 960,
+                y: 1037,
+                max_width: 1152
             }
         );
         assert_eq!(config.style.align, "center");
@@ -366,7 +462,7 @@ mod overlay_config_tests {
         assert_eq!(config.style.font_size, 38);
         assert_eq!(config.style.border_radius, 18);
         assert_eq!(config.style.padding, OverlayPadding::None);
-        assert_eq!(config.r#box, OverlayBox::default());
+        assert_eq!(config.layout, OverlayLayout::default());
     }
 
     #[test]
@@ -391,12 +487,12 @@ mod overlay_config_tests {
         assert_eq!(config.canvas.width, 200);
         assert_eq!(config.canvas.height, 60);
         assert_eq!(
-            config.r#box,
-            OverlayBox {
+            config.layout,
+            OverlayLayout {
+                anchor: OverlayAnchor::TopLeft,
                 x: 0,
                 y: 0,
-                w: 200,
-                h: 60
+                max_width: 200
             }
         );
         assert_eq!(config.style.align, "center");
@@ -408,6 +504,66 @@ mod overlay_config_tests {
         assert_eq!(config.style.background_opacity, 0);
         assert_eq!(config.style.border_radius, 64);
         assert_eq!(config.style.padding, OverlayPadding::Normal);
+    }
+
+    #[test]
+    fn migrating_saved_boxes_preserves_the_anchor_point_and_appearance() {
+        let config: OverlayConfig = serde_json::from_value(json!({
+            "box": {"x": 725, "y": 897, "w": 1152, "h": 140},
+            "style": {"font_size": 48, "text_color": "#abc", "background_opacity": 72}
+        }))
+        .unwrap();
+        assert_eq!(
+            config.layout,
+            OverlayLayout {
+                anchor: OverlayAnchor::BottomRight,
+                x: 1877,
+                y: 1037,
+                max_width: 1152
+            }
+        );
+        assert_eq!(config.style.font_size, 48);
+        assert_eq!(config.style.text_color, "#abc");
+        assert_eq!(config.style.background_opacity, 72);
+        let saved = serde_json::to_value(&config).unwrap();
+        assert!(saved.get("box").is_none());
+        assert_eq!(
+            serde_json::from_value::<OverlayConfig>(saved).unwrap(),
+            config
+        );
+    }
+
+    #[test]
+    fn freely_placed_boxes_keep_their_point_after_migration() {
+        let config: OverlayConfig = serde_json::from_value(json!({
+            "box": {"x": 310, "y": 212, "w": 600, "h": 160}
+        }))
+        .unwrap();
+        assert_eq!(
+            config.layout,
+            OverlayLayout {
+                anchor: OverlayAnchor::TopLeft,
+                x: 310,
+                y: 212,
+                max_width: 600
+            }
+        );
+    }
+
+    #[test]
+    fn layout_normalization_keeps_each_anchor_and_width_within_the_canvas() {
+        for anchor in OverlayAnchor::ALL {
+            let layout = OverlayLayout {
+                anchor,
+                x: -5000,
+                y: 9000,
+                max_width: 4000,
+            }
+            .normalized(&OverlayCanvas::default());
+            assert_eq!(layout.max_width, 1920);
+            assert_eq!(layout.y, 1080);
+            assert_eq!(layout.x, (1920.0 * anchor.factors().0).round() as i32);
+        }
     }
 
     #[test]
@@ -468,12 +624,6 @@ impl Default for HomeRightRailSettings {
     }
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
-#[serde(default)]
-pub struct OverlayEditorSettings {
-    pub advanced_open: bool,
-}
-
 #[cfg(test)]
 mod ui_settings_tests {
     use super::*;
@@ -487,7 +637,6 @@ mod ui_settings_tests {
         assert!(state.home_right_rail.session);
         assert!(!state.home_right_rail.audio_metrics);
         assert!(!state.home_right_rail.gate);
-        assert!(!state.overlay_editor.advanced_open);
         assert!(state.sidebar_open);
     }
 
@@ -506,7 +655,6 @@ mod ui_settings_tests {
         assert!(!state.home_right_rail.session);
         assert!(state.home_right_rail.audio_metrics);
         assert!(state.home_right_rail.gate);
-        assert!(!state.overlay_editor.advanced_open);
         assert!(state.sidebar_open);
     }
 

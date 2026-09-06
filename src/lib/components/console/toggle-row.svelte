@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Switch } from "$lib/components/ui/switch/index.ts";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import { Label } from "$lib/components/ui/label/index.ts";
     import * as Tooltip from "$lib/components/ui/tooltip/index.ts";
     import Info from "@lucide/svelte/icons/info";
@@ -51,7 +52,16 @@
                 class="text-muted-foreground/70 hover:text-muted-foreground focus-visible:text-foreground focus-visible:outline-none"
                 aria-label="More info"
             >
-                <Info class="size-3.5" />
+                {#snippet child({ props })}
+                    <Button
+                        {...props}
+                        variant="ghost"
+                        size="icon"
+                        class={`size-auto rounded-none p-0 hover:bg-transparent [&_svg]:size-3.5 ${props.class ?? ""}`}
+                    >
+                        <Info class="size-3.5" />
+                    </Button>
+                {/snippet}
             </Tooltip.Trigger>
             <Tooltip.Content side="left" class="max-w-60 text-xs">
                 {description}

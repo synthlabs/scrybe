@@ -4,6 +4,7 @@
     import { MediaQuery } from "svelte/reactivity";
     import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import * as Sheet from "$lib/components/ui/sheet/index.ts";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import SectionHelp from "./section-help.svelte";
     import ChevronDown from "@lucide/svelte/icons/chevron-down";
     import {
@@ -327,10 +328,18 @@
                     <Collapsible.Trigger
                         class="focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 min-w-0 flex-1 items-center gap-2 py-3 pr-5 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
-                        {@render sectionTrigger(
-                            msgs.home_rail_audio_metrics(),
-                            show_audio_metrics,
-                        )}
+                        {#snippet child({ props })}
+                            <Button
+                                {...props}
+                                variant="ghost"
+                                class={`justify-start pl-0 font-normal hover:bg-transparent [&_svg]:shrink ${props.class ?? ""}`}
+                            >
+                                {@render sectionTrigger(
+                                    msgs.home_rail_audio_metrics(),
+                                    show_audio_metrics,
+                                )}
+                            </Button>
+                        {/snippet}
                     </Collapsible.Trigger>
                 </div>
                 <Collapsible.Content
@@ -382,10 +391,18 @@
                     <Collapsible.Trigger
                         class="focus-visible:ring-scrybe-ring focus-visible:ring-offset-card flex min-h-12 min-w-0 flex-1 items-center gap-2 py-3 pr-5 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
-                        {@render sectionTrigger(
-                            msgs.home_rail_gate(),
-                            show_gate,
-                        )}
+                        {#snippet child({ props })}
+                            <Button
+                                {...props}
+                                variant="ghost"
+                                class={`justify-start pl-0 font-normal hover:bg-transparent [&_svg]:shrink ${props.class ?? ""}`}
+                            >
+                                {@render sectionTrigger(
+                                    msgs.home_rail_gate(),
+                                    show_gate,
+                                )}
+                            </Button>
+                        {/snippet}
                     </Collapsible.Trigger>
                 </div>
                 <Collapsible.Content

@@ -1,8 +1,9 @@
-import { captionAlignItems, paddingPixels } from "./layout-math.js";
+import { paddingPixels } from "./layout-math.js";
 
-const CAPTION_FONT_FAMILY = '"Arial Black", Arial, sans-serif';
-const CAPTION_FONT_WEIGHT = 900;
-const CAPTION_LINE_HEIGHT = 1.15;
+const CAPTION_FONT_FAMILY =
+    'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif';
+const CAPTION_FONT_WEIGHT = 500;
+const CAPTION_LINE_HEIGHT = 1.4;
 
 /** @param {unknown} value */
 function finiteNumber(value) {
@@ -186,48 +187,42 @@ export function wrapCanvasText(measureText, text, maxWidth) {
 }
 
 /**
- * @param {{
- *     text: string,
- *     style: { align?: string, font_size?: number, padding?: string, stroke_width?: number },
- *     width: number,
- *     height: number,
- *     scale?: number,
- *     measureText: (text: string) => number | { width: number },
- * }} options
+ * @param {{ text: string, style: { align?: string, font_size?: number, padding?: string, stroke_width?: number }, width: number, scale?: number, measureText: (text: string) => number | { width: number } }} options
  */
 export function captionTextLayout(options) {
     const scale = options.scale ?? 1;
-    const padding = paddingPixels(options.style.padding) * scale;
-    const strokeWidth = Math.max(
+    const padding = paddingPixels(options.style.padding);
+    const stroke = Math.max(
         0,
         finiteNumber(options.style.stroke_width ?? 0) * scale,
     );
-    const inset = padding + strokeWidth;
-    const drawableWidth = Math.max(0, options.width - inset * 2);
-    const drawableHeight = Math.max(0, options.height - inset * 2);
-    const lineHeight = captionLineHeight(options.style, scale);
-    const lines = wrapCanvasText(
-        options.measureText,
-        options.text,
-        drawableWidth,
+    const insetX = padding.x * scale + stroke;
+    const insetY = padding.y * scale + stroke;
+    const available = Math.max(1, options.width - insetX * 2);
+    const lines = wrapCanvasText(options.measureText, options.text, available);
+    const contentWidth = Math.min(
+        available,
+        Math.max(
+            1,
+            ...lines.map((text) => measureWidth(options.measureText, text)),
+        ),
     );
-    const blockHeight = lines.length * lineHeight;
+    const width = Math.ceil(contentWidth + insetX * 2);
+    const lineHeight = captionLineHeight(options.style, scale);
+    const height = Math.ceil(lines.length * lineHeight + insetY * 2);
     const align =
         options.style.align === "left" || options.style.align === "right"
             ? options.style.align
             : "center";
     const x =
         align === "left"
-            ? inset
+            ? insetX
             : align === "right"
-              ? options.width - inset
-              : options.width / 2;
-    const yStart =
-        captionAlignItems(options.style.padding) === "flex-start"
-            ? inset
-            : inset + Math.max(0, (drawableHeight - blockHeight) / 2);
-
+              ? width - insetX
+              : width / 2;
     return {
+        width,
+        height,
         align,
         baseline: "top",
         font: captionFont(options.style, scale),
@@ -235,7 +230,7 @@ export function captionTextLayout(options) {
         lines: lines.map((text, index) => ({
             text,
             x,
-            y: yStart + index * lineHeight,
+            y: insetY + index * lineHeight,
         })),
     };
 }

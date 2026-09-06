@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-    captionAlignItems,
     canvasViewportTransform,
     clampBox,
     DEFAULT_OVERLAY_CONFIG,
@@ -82,20 +81,12 @@ test("resizeBox pins the opposite edge at minimum size", () => {
 });
 
 test("padding presets map to stream-space pixels", () => {
-    assert.equal(paddingPixels("none"), 0);
-    assert.equal(paddingPixels("normal"), 24);
-    assert.equal(paddingPixels("large"), 40);
-    assert.equal(paddingPixels("tight"), 0);
-    assert.equal(paddingPixels("wide"), 40);
-    assert.equal(paddingPixels("unknown"), 24);
-});
-
-test("caption vertical alignment only anchors top when padding is disabled", () => {
-    assert.equal(captionAlignItems("none"), "flex-start");
-    assert.equal(captionAlignItems("tight"), "flex-start");
-    assert.equal(captionAlignItems("normal"), "center");
-    assert.equal(captionAlignItems("large"), "center");
-    assert.equal(captionAlignItems("unknown"), "center");
+    assert.deepEqual(paddingPixels("none"), { x: 0, y: 0 });
+    assert.deepEqual(paddingPixels("normal"), { x: 16, y: 8 });
+    assert.deepEqual(paddingPixels("large"), { x: 32, y: 16 });
+    assert.deepEqual(paddingPixels("tight"), { x: 0, y: 0 });
+    assert.deepEqual(paddingPixels("wide"), { x: 32, y: 16 });
+    assert.deepEqual(paddingPixels("unknown"), { x: 16, y: 8 });
 });
 
 test("default overlay style keeps text outline disabled", () => {

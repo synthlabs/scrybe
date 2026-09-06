@@ -54,6 +54,39 @@ export const commands = {
     async updateState(state: StateUpdate): Promise<boolean> {
         return await TAURI_INVOKE("update_state", { state });
     },
+    async startOverlayTest(
+        config: OverlayConfig,
+        text: string,
+    ): Promise<Result<OverlayTestState, string>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("start_overlay_test", {
+                    config,
+                    text,
+                }),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
+    async updateOverlayTest(
+        id: string,
+        revision: number,
+        config: OverlayConfig,
+        text: string,
+    ): Promise<boolean> {
+        return await TAURI_INVOKE("update_overlay_test", {
+            id,
+            revision,
+            config,
+            text,
+        });
+    },
+    async stopOverlayTest(id: string): Promise<boolean> {
+        return await TAURI_INVOKE("stop_overlay_test", { id });
+    },
 };
 
 /** user-defined events **/
@@ -73,7 +106,6 @@ export type AppState = {
     audio_segment_size: number;
     sidebar_open: boolean;
     overlay_config: OverlayConfig;
-    overlay_editor: OverlayEditorSettings;
     home_right_rail: HomeRightRailSettings;
     whisper_params: WhisperParams;
     advanced_settings: AdvancedSettings;
@@ -132,7 +164,6 @@ export type InternalState = {
     name: string;
     runtime_dependency: RuntimeDependencyState;
     vad_runtime: VadRuntimeState;
-    overlay_test: OverlayTestState;
 };
 export type ModelPreset = {
     id: string;
@@ -144,14 +175,28 @@ export type ModelPreset = {
     resource_rank: number;
     auto_selectable: boolean;
 };
-export type OverlayBox = { x: number; y: number; w: number; h: number };
+export type OverlayAnchor =
+    | "top_left"
+    | "top_center"
+    | "top_right"
+    | "middle_left"
+    | "middle_center"
+    | "middle_right"
+    | "bottom_left"
+    | "bottom_center"
+    | "bottom_right";
 export type OverlayCanvas = { width: number; height: number };
 export type OverlayConfig = {
     canvas: OverlayCanvas;
-    box: OverlayBox;
+    layout: OverlayLayout;
     style: OverlayStyle;
 };
-export type OverlayEditorSettings = { advanced_open: boolean };
+export type OverlayLayout = {
+    anchor: OverlayAnchor;
+    x: number;
+    y: number;
+    max_width: number;
+};
 export type OverlayPadding = "none" | "normal" | "large";
 export type OverlayStyle = {
     align: string;
@@ -165,9 +210,12 @@ export type OverlayStyle = {
     padding: OverlayPadding;
 };
 export type OverlayTestState = {
-    visible: boolean;
+    id: string;
+    config: OverlayConfig | null;
     text: string;
-    expires_at_ms: number | null;
+    started_at_ms: number;
+    expires_at_ms: number;
+    revision: number;
 };
 export type RuntimeDependencyState = {
     status: RuntimeDependencyStatus;

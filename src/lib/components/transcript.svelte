@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { Button } from "$lib/components/ui/button/index.ts";
     import TranscriptRow from "$lib/components/home/transcript-row.svelte";
     import { session } from "$lib/stores/session.svelte";
     import { m as msgs } from "$lib/paraglide/messages";
@@ -46,12 +47,14 @@
             <p class="text-muted-foreground mt-2 text-sm leading-6">
                 {msgs.home_empty_body()}
             </p>
-            <a
+            <Button
+                variant="link"
+                size="sm"
                 href="/settings"
-                class="text-scrybe focus-visible:ring-scrybe-ring focus-visible:ring-offset-background mt-4 inline-flex min-h-8 items-center rounded-md px-2 text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                class="text-scrybe focus-visible:ring-scrybe-ring focus-visible:ring-offset-background mt-4 min-h-8 px-2 py-0"
             >
                 {msgs.home_empty_settings()}
-            </a>
+            </Button>
         </div>
     {:else}
         <div class="mx-auto w-full max-w-4xl pb-8">

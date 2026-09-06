@@ -15,6 +15,14 @@ export function showHomeActionError(action: HomeAction, error: unknown) {
         ],
         copy: [msgs.home_error_copy, msgs.home_error_copy_recovery],
     }[action];
+    return showActionError(copy[0](), copy[1](), error);
+}
+
+export function showActionError(
+    title: string,
+    recovery: string,
+    error: unknown,
+) {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const cancelTimeout = () => {
         clearTimeout(timeout);
@@ -25,8 +33,8 @@ export function showHomeActionError(action: HomeAction, error: unknown) {
         duration: Infinity,
         onDismiss: cancelTimeout,
         componentProps: {
-            title: copy[0](),
-            recovery: copy[1](),
+            title,
+            recovery,
             details: error instanceof Error ? error.message : String(error),
             onExpand: cancelTimeout,
             onDismiss: () => {

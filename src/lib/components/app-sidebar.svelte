@@ -1,5 +1,6 @@
 <script lang="ts">
     import NavMain from "$lib/components/nav-main.svelte";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import * as Sidebar from "$lib/components/ui/sidebar/index.ts";
     import {
         LanguageController,
@@ -77,8 +78,10 @@
             <Tooltip.Root>
                 <Tooltip.Trigger>
                     {#snippet child({ props })}
-                        <a
+                        <Button
                             {...props}
+                            variant="ghost"
+                            size="icon"
                             href="/about"
                             aria-label={msgs.sidebar_about()}
                             aria-current={page.url.pathname === "/about"
@@ -88,7 +91,7 @@
                             class="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-sidebar-ring data-[active=true]:text-scrybe data-[active=true]:hover:text-scrybe focus-visible:ring-offset-sidebar inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                         >
                             <LifeBuoy class="size-4" />
-                        </a>
+                        </Button>
                     {/snippet}
                 </Tooltip.Trigger>
                 <Tooltip.Content side="right"

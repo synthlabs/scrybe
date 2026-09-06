@@ -1,5 +1,6 @@
 <script lang="ts">
     import Info from "@lucide/svelte/icons/info";
+    import { Button } from "$lib/components/ui/button/index.ts";
     import * as Tooltip from "$lib/components/ui/tooltip/index.ts";
     import { m as msgs } from "$lib/paraglide/messages";
 
@@ -42,7 +43,16 @@
             onkeydown={scroll_help}
             class="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-(--scrybe-duration-fast) focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
-            <Info class="size-4" />
+            {#snippet child({ props })}
+                <Button
+                    {...props}
+                    variant="ghost"
+                    size="icon"
+                    class={`p-0 hover:bg-transparent ${props.class ?? ""}`}
+                >
+                    <Info class="size-4" />
+                </Button>
+            {/snippet}
         </Tooltip.Trigger>
         <Tooltip.Content
             bind:ref={content}

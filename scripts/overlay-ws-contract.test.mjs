@@ -8,6 +8,7 @@ const readRepoFile = (path) =>
 const backendFiles = [
     "src-tauri/src/lib.rs",
     "src-tauri/src/ws.rs",
+    "src-tauri/src/overlay.rs",
 ];
 
 const overlayFiles = [
@@ -22,6 +23,7 @@ const overlayFiles = [
 const backendOwnedTypes = [
     "AppState",
     "OverlayConfig",
+    "OverlayTestState",
     "WebsocketRequest",
     "WebsocketResponse",
     "WhisperSegment",
@@ -45,7 +47,10 @@ function collectBindingsImports(source) {
 
     for (const match of source.matchAll(importPattern)) {
         for (const part of match[1].split(",")) {
-            const name = part.trim().split(/\s+as\s+/)[0]?.trim();
+            const name = part
+                .trim()
+                .split(/\s+as\s+/)[0]
+                ?.trim();
             if (name) imports.add(name);
         }
     }
@@ -166,7 +171,9 @@ test("overlay backend-owned DTOs come from generated bindings", () => {
 
 test("overlay websocket response kinds match backend response kinds", () => {
     const backendResponseKinds = collectBackendResponseKinds();
-    const overlayRoute = overlaySources.get("src/routes/v1/overlay/+page.svelte");
+    const overlayRoute = overlaySources.get(
+        "src/routes/v1/overlay/+page.svelte",
+    );
     const overlayCases = collectOverlayCaseBlocks(overlayRoute);
 
     for (const { kind } of overlayCases) {
@@ -182,7 +189,9 @@ test("overlay state payload handlers use canonical state update kinds", () => {
     const stateKeyByType = new Map(
         [...stateTypeByKey].map(([key, typeName]) => [typeName, key]),
     );
-    const overlayRoute = overlaySources.get("src/routes/v1/overlay/+page.svelte");
+    const overlayRoute = overlaySources.get(
+        "src/routes/v1/overlay/+page.svelte",
+    );
     const overlayCases = collectOverlayCaseBlocks(overlayRoute);
     const payloadPattern =
         /(?:const|let)\s+\w+\s*:\s*(\w+)\s*=\s*JSON\.parse\(event\.data\)/g;
@@ -203,7 +212,9 @@ test("overlay state payload handlers use canonical state update kinds", () => {
 
 test("overlay websocket request kinds match backend request handler", () => {
     const backendRequestKinds = collectBackendRequestKinds();
-    const overlayRoute = overlaySources.get("src/routes/v1/overlay/+page.svelte");
+    const overlayRoute = overlaySources.get(
+        "src/routes/v1/overlay/+page.svelte",
+    );
     const overlayRequestKinds = collectOverlayRequestKinds(overlayRoute);
 
     for (const kind of overlayRequestKinds) {

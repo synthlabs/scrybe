@@ -25,11 +25,8 @@ export let DefaultAppState: AppState = {
     sidebar_open: true,
     overlay_config: {
         canvas: { ...DEFAULT_OVERLAY_CONFIG.canvas },
-        box: { ...DEFAULT_OVERLAY_CONFIG.box },
+        layout: { ...DEFAULT_OVERLAY_CONFIG.layout },
         style: { ...DEFAULT_OVERLAY_CONFIG.style },
-    },
-    overlay_editor: {
-        advanced_open: false,
     },
     home_right_rail: {
         open: false,
@@ -71,11 +68,6 @@ export let DefaultInternalState: InternalState = {
     vad_runtime: {
         status: "unknown",
         reason: "",
-    },
-    overlay_test: {
-        visible: false,
-        text: "",
-        expires_at_ms: null,
     },
 };
 

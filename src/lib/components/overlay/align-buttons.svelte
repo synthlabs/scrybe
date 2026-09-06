@@ -1,33 +1,44 @@
 <script lang="ts">
-    import * as ToggleGroup from "$lib/components/ui/toggle-group/index.ts";
     import AlignLeft from "@lucide/svelte/icons/align-left";
     import AlignCenter from "@lucide/svelte/icons/align-center";
     import AlignRight from "@lucide/svelte/icons/align-right";
-
-    interface Props {
+    import IconOption from "./icon-option.svelte";
+    import { m as msgs } from "$lib/paraglide/messages";
+    let {
+        value,
+        onChange,
+        ariaLabel,
+        disabled = false,
+    }: {
         value: string;
-        onChange: (next: string) => void;
+        onChange: (value: string) => void;
         ariaLabel?: string;
-    }
-
-    let { value, onChange, ariaLabel }: Props = $props();
+        disabled?: boolean;
+    } = $props();
+    const options = [
+        { value: "left", label: msgs.overlay_align_left, icon: AlignLeft },
+        {
+            value: "center",
+            label: msgs.overlay_align_center,
+            icon: AlignCenter,
+        },
+        { value: "right", label: msgs.overlay_align_right, icon: AlignRight },
+    ];
 </script>
 
-<ToggleGroup.Root
-    type="single"
-    {value}
-    aria-label={ariaLabel}
-    onValueChange={(v) => {
-        if (v) onChange(v);
-    }}
+<div
+    class="flex flex-wrap gap-2"
+    role="group"
+    aria-label={ariaLabel ?? msgs.overlay_align_label()}
 >
-    <ToggleGroup.Item value="left" aria-label="Left">
-        <AlignLeft class="size-3.5" />
-    </ToggleGroup.Item>
-    <ToggleGroup.Item value="center" aria-label="Center">
-        <AlignCenter class="size-3.5" />
-    </ToggleGroup.Item>
-    <ToggleGroup.Item value="right" aria-label="Right">
-        <AlignRight class="size-3.5" />
-    </ToggleGroup.Item>
-</ToggleGroup.Root>
+    {#each options as option}
+        <IconOption
+            label={option.label()}
+            selected={value === option.value}
+            onclick={() => onChange(option.value)}
+            {disabled}
+        >
+            <option.icon class="size-[1.125rem]" />
+        </IconOption>
+    {/each}
+</div>

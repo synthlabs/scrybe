@@ -1,155 +1,132 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import type {
         AppState,
-        InternalState,
         OverlayConfig,
+        OverlayTestState,
         WebsocketRequest,
         WebsocketResponse,
         WhisperSegment,
     } from "$lib/bindings";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
-    import { DefaultAppState, DefaultInternalState } from "$lib/defaults";
+    import CaptionSample from "$lib/components/overlay/caption-sample.svelte";
+    import { DefaultAppState } from "$lib/defaults";
     import { canvasViewportTransform } from "$lib/overlay/layout-math.js";
-    import { onMount } from "svelte";
+    import { placementStyle } from "$lib/overlay/placement.js";
 
-    const emptySegment = (): WhisperSegment => ({
+    let config: OverlayConfig = $state(DefaultAppState.overlay_config);
+    const emptyTest = (): OverlayTestState => ({
         id: "",
-        index: 0,
-        items: [],
+        config: null,
+        text: "",
+        started_at_ms: 0,
+        expires_at_ms: 0,
+        revision: 0,
     });
-
-    let current_segment: WhisperSegment = $state({
-        id: "",
-        index: 0,
-        items: [],
-    });
-
-    let overlay_config: OverlayConfig = $state(DefaultAppState.overlay_config);
-    let overlay_test = $state(DefaultInternalState.overlay_test);
-    let viewport = $state({
-        width: 1,
-        height: 1,
-    });
+    let test = $state<OverlayTestState>(emptyTest());
+    let segment: WhisperSegment = $state({ id: "", index: 0, items: [] });
+    let viewport = $state({ width: 1, height: 1 });
     let now = $state(Date.now());
-
-    let box_style = $derived(
-        [
-            `left: ${overlay_config.box.x}px`,
-            `top: ${overlay_config.box.y}px`,
-            `width: ${overlay_config.box.w}px`,
-            `height: ${overlay_config.box.h}px`,
-        ].join("; "),
+    const testing = $derived(
+        test !== null && test.config !== null && test.expires_at_ms > now,
     );
-    let viewport_transform = $derived(
-        canvasViewportTransform(overlay_config.canvas, viewport),
+    const displayed = $derived(testing && test?.config ? test.config : config);
+    const transform = $derived(
+        canvasViewportTransform(displayed.canvas, viewport),
     );
-    let canvas_style = $derived(
-        [
-            `left: ${viewport_transform.x}px`,
-            `top: ${viewport_transform.y}px`,
-            `width: ${overlay_config.canvas.width}px`,
-            `height: ${overlay_config.canvas.height}px`,
-            `transform: scale(${viewport_transform.scale})`,
-            "transform-origin: top left",
-        ].join("; "),
-    );
-    let overlay_test_visible = $derived(
-        overlay_test.visible &&
-            (!overlay_test.expires_at_ms || overlay_test.expires_at_ms > now),
-    );
-    let rendered_segment = $derived(
-        overlay_test_visible ? emptySegment() : current_segment,
-    );
-    const overlay_body_classes = [
-        "m-0",
-        "h-full",
-        "w-full",
-        "overflow-hidden",
-        "!bg-transparent",
-    ];
-    const overlay_html_classes = ["!bg-transparent"];
+    const clear = () => {
+        segment = { id: "", index: 0, items: [] };
+        test = emptyTest();
+    };
 
     onMount(() => {
-        document.body.classList.add(...overlay_body_classes);
-        document.documentElement.classList.add(...overlay_html_classes);
-
-        const measure = () => {
-            viewport = {
-                width: window.innerWidth,
-                height: window.innerHeight,
-            };
-        };
-
+        const classes = [
+            "m-0",
+            "h-full",
+            "w-full",
+            "overflow-hidden",
+            "!bg-transparent",
+        ];
+        document.body.classList.add(...classes);
+        document.documentElement.classList.add("!bg-transparent");
+        const measure = () =>
+            (viewport = { width: innerWidth, height: innerHeight });
         measure();
         window.addEventListener("resize", measure);
-        const timer = setInterval(() => (now = Date.now()), 1000);
-
+        const timer = setInterval(() => (now = Date.now()), 100);
+        const ws = new WebSocket("ws://localhost:3030/ws");
+        ws.onmessage = (event) => {
+            const response: WebsocketResponse = JSON.parse(event.data);
+            switch (response.kind) {
+                case "segment_update":
+                    segment = JSON.parse(response.data);
+                    break;
+                case "app_state_update": {
+                    const state: AppState = JSON.parse(response.data);
+                    config = state.overlay_config;
+                    break;
+                }
+                case "overlay_test_update": {
+                    const state: OverlayTestState = JSON.parse(response.data);
+                    if (
+                        state.started_at_ms < test.started_at_ms ||
+                        (state.started_at_ms === test.started_at_ms &&
+                            state.revision < test.revision)
+                    )
+                        break;
+                    test = state;
+                    break;
+                }
+            }
+        };
+        ws.onopen = () => {
+            const app_request: WebsocketRequest = {
+                kind: "get_appstate",
+                data: "{}",
+            };
+            const test_request: WebsocketRequest = {
+                kind: "get_overlay_test",
+                data: "{}",
+            };
+            ws.send(JSON.stringify(app_request));
+            ws.send(JSON.stringify(test_request));
+        };
+        ws.onclose = clear;
+        ws.onerror = clear;
         return () => {
-            document.body.classList.remove(...overlay_body_classes);
-            document.documentElement.classList.remove(...overlay_html_classes);
-            window.removeEventListener("resize", measure);
+            ws.close();
             clearInterval(timer);
+            window.removeEventListener("resize", measure);
+            document.body.classList.remove(...classes);
+            document.documentElement.classList.remove("!bg-transparent");
         };
     });
-
-    const clearOverlay = () => {
-        current_segment = emptySegment();
-        overlay_test = {
-            visible: false,
-            text: "",
-            expires_at_ms: null,
-        };
-    };
-
-    const ws = new WebSocket("ws://localhost:3030/ws");
-    ws.onmessage = (ws_event) => {
-        let event: WebsocketResponse = JSON.parse(ws_event.data);
-
-        switch (event.kind) {
-            case "segment_update":
-                current_segment = JSON.parse(event.data);
-                break;
-            case "app_state_update":
-                const appstate: AppState = JSON.parse(event.data);
-                overlay_config = appstate.overlay_config;
-                break;
-            case "internal_state_update":
-                const internal_state: InternalState = JSON.parse(event.data);
-                overlay_test = internal_state.overlay_test;
-                break;
-            default:
-                console.warn("unknown websocket event type", event.kind);
-                break;
-        }
-    };
-    ws.onopen = () => {
-        const request: WebsocketRequest = {
-            kind: "get_appstate",
-            data: "{}",
-        };
-        ws.send(JSON.stringify(request));
-        const internal_state_request: WebsocketRequest = {
-            kind: "get_internalstate",
-            data: "{}",
-        };
-        ws.send(JSON.stringify(internal_state_request));
-    };
-    ws.onclose = clearOverlay;
-    ws.onerror = clearOverlay;
 </script>
 
 <div class="fixed inset-0 overflow-hidden bg-transparent">
-    <div class="absolute" style={canvas_style}>
-        <div
-            class="absolute transition-[left,top,width,height] duration-100 ease-linear will-change-[left,top,width,height]"
-            style={box_style}
-        >
-            <TextOverlay
-                style={overlay_config.style}
-                test_mode={overlay_test_visible}
-                test_text={overlay_test.text}
-                current_segment={rendered_segment}
-            />
+    <div
+        class="absolute origin-top-left"
+        style:left={transform.x + "px"}
+        style:top={transform.y + "px"}
+        style:width={displayed.canvas.width + "px"}
+        style:height={displayed.canvas.height + "px"}
+        style:transform={`scale(${transform.scale})`}
+    >
+        <div class="absolute" style={placementStyle(displayed.layout)}>
+            {#if testing && test}
+                <CaptionSample
+                    text={test.text}
+                    style={displayed.style}
+                    max_width={displayed.layout.max_width}
+                    started_at_ms={test.started_at_ms}
+                />
+            {:else}
+                <TextOverlay
+                    style={displayed.style}
+                    max_width={displayed.layout.max_width}
+                    current_segment={segment}
+                />
+            {/if}
         </div>
     </div>
 </div>

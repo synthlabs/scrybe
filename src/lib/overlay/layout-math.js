@@ -4,16 +4,16 @@
 /** @typedef {{ width: number, height: number }} OverlayViewport */
 /** @typedef {{ x: number, y: number, w: number, h: number }} OverlayBox */
 /** @typedef {{ align: OverlayAlign, font_size: number, text_color: string, stroke_color: string, stroke_width: number, background_color: string, background_opacity: number, border_radius: number, padding: OverlayPadding }} OverlayStyle */
-/** @typedef {{ canvas: OverlayCanvas, box: OverlayBox, style: OverlayStyle }} OverlayConfig */
+/** @typedef {import("../bindings").OverlayConfig} OverlayConfig */
 
 export const MIN_BOX_WIDTH = 200;
 export const MIN_BOX_HEIGHT = 60;
 export const DEFAULT_BOX_HEIGHT = 140;
 
 export const PADDING_PIXELS = {
-    none: 0,
-    normal: 24,
-    large: 40,
+    none: { x: 0, y: 0 },
+    normal: { x: 16, y: 8 },
+    large: { x: 32, y: 16 },
 };
 
 export const RESOLUTION_PRESETS = [
@@ -33,7 +33,7 @@ export const RESOLUTION_PRESETS = [
 /** @type {OverlayConfig} */
 export const DEFAULT_OVERLAY_CONFIG = {
     canvas: { width: 1920, height: 1080 },
-    box: { x: 384, y: 897, w: 1152, h: 140 },
+    layout: { anchor: "bottom_center", x: 960, y: 1037, max_width: 1152 },
     style: {
         align: "center",
         font_size: 32,
@@ -253,11 +253,6 @@ export function normalizePadding(padding) {
 /** @param {OverlayPadding | string | undefined} padding */
 export function paddingPixels(padding) {
     return PADDING_PIXELS[normalizePadding(padding)];
-}
-
-/** @param {OverlayPadding | string | undefined} padding */
-export function captionAlignItems(padding) {
-    return normalizePadding(padding) === "none" ? "flex-start" : "center";
 }
 
 /** @param {OverlayCanvas} canvas */
