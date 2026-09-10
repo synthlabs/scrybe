@@ -610,6 +610,7 @@ mod tests {
             start_time: 0,
             end_time: 100,
             text: text.to_owned(),
+            detected_language: Some("en".to_owned()),
         }
     }
 

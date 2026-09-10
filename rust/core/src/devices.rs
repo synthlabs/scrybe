@@ -1,6 +1,6 @@
 pub struct DeviceManager {}
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
 #[serde(default)]
 pub struct AudioDevice {
     pub name: String,

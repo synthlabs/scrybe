@@ -8,17 +8,22 @@
         title,
         children,
         id,
+        onOpenChange,
+        locked = false,
     }: {
         open?: boolean;
         title: string;
         children: Snippet;
         id: string;
+        onOpenChange?: (value: boolean) => void;
+        locked?: boolean;
     } = $props();
 </script>
 
-<Collapsible.Root bind:open class="border-border border-t">
+<Collapsible.Root bind:open {onOpenChange} class="border-border border-t">
     <Collapsible.Trigger
         {id}
+        disabled={locked}
         class="focus-visible:outline-scrybe flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 rounded-md py-3 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
     >
         {#snippet child({ props })}
@@ -36,6 +41,6 @@
     <Collapsible.Content
         class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up overflow-hidden duration-(--scrybe-duration-standard) ease-out"
     >
-        <div class="grid gap-5 pt-1 pb-5">{@render children()}</div>
+        <div class="grid grid-cols-1 gap-5 pt-1 pb-5">{@render children()}</div>
     </Collapsible.Content>
 </Collapsible.Root>

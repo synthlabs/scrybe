@@ -8,6 +8,7 @@
     import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { internal_state } from "$lib/stores/state.svelte";
+    import { settings_editor } from "$lib/stores/settings-editor.svelte";
 
     let debounce = $state(false);
     let listening = $derived(internal_state.obj.transcribe_running);
@@ -37,7 +38,7 @@
     variant="outline"
     size="sm"
     onclick={toggle}
-    disabled={debounce}
+    disabled={debounce || (!listening && settings_editor.busy)}
     aria-pressed={listening}
     aria-busy={debounce}
     class="border-border text-muted-foreground hover:bg-accent hover:text-foreground min-w-29 bg-transparent shadow-none"

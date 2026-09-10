@@ -669,7 +669,7 @@ mod ui_settings_tests {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
 #[serde(default)]
 pub struct AdvancedSettings {
     pub hallucination_protection_enabled: bool,

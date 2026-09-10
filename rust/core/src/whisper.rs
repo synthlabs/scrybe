@@ -25,6 +25,7 @@ pub struct WhisperText {
     pub start_time: i64,
     pub end_time: i64,
     pub text: String,
+    pub detected_language: Option<String>,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
@@ -94,26 +95,15 @@ pub struct WhisperProcessResult {
     pub evidence: WhisperProcessEvidence,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
 #[serde(default)]
 pub struct WhisperParams {
     pub toggles: WhisperToggles,
-    pub language: String,
 }
 
-impl Default for WhisperParams {
-    fn default() -> Self {
-        Self {
-            toggles: WhisperToggles::default(),
-            language: "auto".to_string(), // TODO: turn this into an enum
-        }
-    }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, specta::Type)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, specta::Type)]
 #[serde(default)]
 pub struct WhisperToggles {
-    pub translate: bool,
     pub suppress_blanks: bool,
     pub print_special: bool,
     pub print_progress: bool,
@@ -126,7 +116,6 @@ pub struct WhisperToggles {
 impl Default for WhisperToggles {
     fn default() -> Self {
         Self {
-            translate: false,
             suppress_blanks: true,
             print_special: false,
             print_progress: false,
@@ -290,8 +279,8 @@ impl WhisperManager {
         full_params.set_single_segment(params.toggles.single_segment);
         full_params.set_split_on_word(params.toggles.split_on_word);
         full_params.set_tdrz_enable(params.toggles.tdrz_enable);
-        full_params.set_translate(params.toggles.translate);
-        full_params.set_language(Some(params.language.as_str()));
+        full_params.set_translate(false);
+        full_params.set_language(None);
 
         // if !self.last_prompt.is_empty() {
         //     full_params.set_initial_prompt(&self.last_prompt.clone());
@@ -301,6 +290,8 @@ impl WhisperManager {
 
         let mut state = self.ctx.create_state().expect("failed to create state");
         state.full(full_params, samples)?;
+        let detected_language =
+            whisper_rs::get_lang_str(state.full_lang_id_from_state()).map(str::to_owned);
 
         let end = SystemTime::now();
 
@@ -326,6 +317,7 @@ impl WhisperManager {
                 start_time,
                 end_time,
                 text: segment_text.to_string(),
+                detected_language: detected_language.clone(),
             });
 
             debug!("{}", segment_text);
@@ -345,6 +337,7 @@ impl WhisperManager {
                     start_time: 0,
                     end_time: 0,
                     text: "<Speaker change>".to_owned(),
+                    detected_language: None,
                 });
             }
         }
@@ -548,5 +541,34 @@ mod runtime_tests {
         let mean = mean_speech_probability(&[0.1, 0.6, 0.8, 0.2], 16, &ranges);
 
         assert!((mean.unwrap() - 0.7).abs() < f32::EPSILON * 2.0);
+    }
+}
+
+#[cfg(test)]
+mod compatibility_tests {
+    use super::*;
+
+    #[test]
+    fn legacy_caption_items_without_language_remain_readable() {
+        let item: WhisperText =
+            serde_json::from_str(r#"{"index":3,"start_time":10,"end_time":50,"text":"hello"}"#)
+                .unwrap();
+        assert_eq!(item.text, "hello");
+        assert_eq!(item.detected_language, None);
+    }
+
+    #[test]
+    fn language_metadata_survives_segment_replacement_and_serialization() {
+        let mut accumulator =
+            crate::segments::SegmentAccumulator::new("fixture", std::time::Duration::from_secs(15));
+        let segment = accumulator.replace_items(vec![WhisperText {
+            text: "Привет".to_owned(),
+            detected_language: Some("ru".to_owned()),
+            ..WhisperText::default()
+        }]);
+        let wire = serde_json::to_string(&segment).unwrap();
+        let restored: WhisperSegment = serde_json::from_str(&wire).unwrap();
+        assert_eq!(restored.items[0].detected_language.as_deref(), Some("ru"));
+        assert_eq!(restored.items[0].text, "Привет");
     }
 }

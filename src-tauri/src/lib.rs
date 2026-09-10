@@ -32,6 +32,8 @@ use ws::WebsocketManager;
 
 mod internal;
 mod model_selection;
+mod settings;
+use settings::{apply_settings, SettingsRuntime, SettingsValues};
 mod types;
 mod ws;
 
@@ -305,6 +307,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<types::WebsocketRequest>()
         .typ::<types::WebsocketResponse>()
         .typ::<types::ModelPreset>()
+        .typ::<settings::SettingsApplyPhase>()
         .typ::<scrybe_core::whisper::WhisperParams>()
         .typ::<scrybe_core::whisper::WhisperToggles>()
         .typ::<scrybe_core::whisper::VadSensitivity>()
@@ -321,6 +324,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             get_audio_devices,
             list_model_presets,
             download_model_preset,
+            apply_settings,
             emit_state,
             update_state,
             start_overlay_test,
@@ -349,28 +353,12 @@ fn emit_state(
     return true;
 }
 
-fn broadcast_internal_state(
-    state_syncer: &StateSyncer,
-    ws_manager: &WebsocketManager,
-    internal_state: InternalState,
-) {
-    state_syncer.update("internal_state", internal_state.clone(), true);
-    let response =
-        WebsocketManager::to_ws_response("internal_state_update".to_owned(), internal_state);
-
-    match serde_json::to_string(&response) {
-        Ok(msg) => ws_manager.clone().broadcast(msg),
-        Err(err) => error!("error creating websocket response: {}", err),
-    }
-}
-
 // TODO: move this into a macro as well
 #[tauri::command]
 #[specta::specta]
 fn update_state(
     app: AppHandle,
     ws_manager: State<'_, WebsocketManager>,
-    whisper_manager: State<'_, SharedWhisperManager>,
     state: tauri_svelte_synced_store::StateUpdate,
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> bool {
@@ -408,63 +396,11 @@ fn update_state(
                     }
                 };
 
-            let app_state_snapshot = state_syncer.snapshot::<types::AppState>("app_state");
-            let mut vad_runtime_update = None;
-            if new_app_state.model_path != app_state_snapshot.model_path {
-                info!("Model path changed, re-setting up whisper manager");
-                let setup_result = setup_whisper_manager(&app, new_app_state.model_path.clone());
-                new_app_state.model_path = setup_result.model_path;
-                vad_runtime_update = Some(
-                    if new_app_state
-                        .advanced_settings
-                        .hallucination_protection_enabled
-                    {
-                        setup_result.vad_runtime
-                    } else {
-                        VadRuntimeState::disabled()
-                    },
-                );
-
-                let mut internal_state = state_syncer.snapshot::<InternalState>("internal_state");
-                internal_state.runtime_dependency = setup_result.runtime_dependency;
-                internal_state.vad_runtime = vad_runtime_update.clone().unwrap();
-                broadcast_internal_state(&state_syncer, &ws_manager, internal_state);
-            } else if new_app_state
-                .advanced_settings
-                .hallucination_protection_enabled
-                != app_state_snapshot
-                    .advanced_settings
-                    .hallucination_protection_enabled
-            {
-                vad_runtime_update = Some(
-                    if !new_app_state
-                        .advanced_settings
-                        .hallucination_protection_enabled
-                    {
-                        VadRuntimeState::disabled()
-                    } else if whisper_manager
-                        .lock()
-                        .unwrap()
-                        .as_ref()
-                        .map(WhisperManager::vad_available)
-                        .unwrap_or(false)
-                    {
-                        VadRuntimeState::ready()
-                    } else {
-                        VadRuntimeState::degraded("Silero VAD is unavailable")
-                    },
-                );
-            }
-
-            if let Some(vad_runtime) = vad_runtime_update {
-                let mut internal_state = state_syncer.snapshot::<InternalState>("internal_state");
-                if internal_state.vad_runtime.status != vad_runtime.status
-                    || internal_state.vad_runtime.reason != vad_runtime.reason
-                {
-                    internal_state.vad_runtime = vad_runtime;
-                    broadcast_internal_state(&state_syncer, &ws_manager, internal_state);
-                }
-            }
+            let runtime = app.state::<SettingsRuntime>();
+            let _commit = runtime.commit.lock().unwrap();
+            let current = state_syncer.snapshot::<types::AppState>("app_state");
+            SettingsValues::from(&current).write_to(&mut new_app_state);
+            new_app_state.model_path = current.model_path;
             state_syncer.update("app_state", new_app_state.clone(), true);
 
             let response = WebsocketManager::to_ws_response(
@@ -567,6 +503,11 @@ fn start_transcribe<'a>(
     app: AppHandle,
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> Result<(), String> {
+    let settings_runtime = app.state::<SettingsRuntime>();
+    let _settings_operation = settings_runtime
+        .operation
+        .try_lock()
+        .map_err(|_| "Settings are being applied. Try again when they finish.".to_owned())?;
     debug!(
         "{:?} start_transcribe",
         SystemTime::now()
@@ -1100,6 +1041,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(Arc::new(Mutex::new(None::<WhisperManager>)))
+        .manage(SettingsRuntime::default())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
             app.emit("single-instance", argv).unwrap();

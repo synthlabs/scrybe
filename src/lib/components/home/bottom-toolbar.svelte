@@ -12,6 +12,7 @@
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
     import { app_state, internal_state } from "$lib/stores/state.svelte";
+    import { settings_editor } from "$lib/stores/settings-editor.svelte";
 
     let listening = $derived(internal_state.obj.transcribe_running);
     let transcript_empty = $derived(session.segments.length === 0);
@@ -73,7 +74,7 @@
         variant="ghost"
         size="sm"
         onclick={new_session}
-        disabled={busy}
+        disabled={busy || settings_editor.busy}
         aria-busy={busy}
         class="text-muted-foreground hover:text-foreground px-2"
     >

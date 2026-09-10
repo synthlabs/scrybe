@@ -14,6 +14,7 @@
         size?: "default" | "sm";
         class?: string;
         ariaLabel?: string;
+        disabled?: boolean;
     }
 
     let {
@@ -23,6 +24,7 @@
         size = "default",
         class: className,
         ariaLabel,
+        disabled = false,
     }: Props = $props();
 </script>
 
@@ -30,6 +32,7 @@
     type="single"
     {value}
     {size}
+    {disabled}
     aria-label={ariaLabel}
     onValueChange={(v) => {
         if (v) {

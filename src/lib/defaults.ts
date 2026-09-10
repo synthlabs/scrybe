@@ -36,7 +36,6 @@ export let DefaultAppState: AppState = {
     },
     whisper_params: {
         toggles: {
-            translate: false,
             suppress_blanks: true,
             print_special: false,
             print_progress: false,
@@ -45,7 +44,6 @@ export let DefaultAppState: AppState = {
             split_on_word: false,
             tdrz_enable: false,
         },
-        language: "auto",
     },
     advanced_settings: {
         hallucination_protection_enabled: true,

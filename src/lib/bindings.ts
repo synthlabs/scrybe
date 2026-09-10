@@ -48,6 +48,19 @@ export const commands = {
             else return { status: "error", error: e as any };
         }
     },
+    async applySettings(
+        request: SettingsRequest,
+    ): Promise<Result<SettingsSnapshot, SettingsError>> {
+        try {
+            return {
+                status: "ok",
+                data: await TAURI_INVOKE("apply_settings", { request }),
+            };
+        } catch (e) {
+            if (e instanceof Error) throw e;
+            else return { status: "error", error: e as any };
+        }
+    },
     async emitState(name: string): Promise<boolean> {
         return await TAURI_INVOKE("emit_state", { name });
     },
@@ -175,6 +188,9 @@ export type ModelPreset = {
     resource_rank: number;
     auto_selectable: boolean;
 };
+export type ModelSelection =
+    | { kind: "preset"; id: string }
+    | { kind: "file"; path: string };
 export type OverlayAnchor =
     | "top_left"
     | "top_center"
@@ -236,6 +252,28 @@ export type SegmentSuppressionReason =
     | "AmbiguousHallucination"
     | "DuplicateNormalizedText"
     | "PendingDrasticChange";
+export type SettingsApplyPhase = "downloading" | "loading" | "applying";
+export type SettingsError = { kind: SettingsErrorKind; details: string };
+export type SettingsErrorKind =
+    | "busy"
+    | "running"
+    | "invalid_device"
+    | "invalid_value"
+    | "download"
+    | "model_load"
+    | "save"
+    | "internal";
+export type SettingsRequest = {
+    values: SettingsValues;
+    model: ModelSelection | null;
+};
+export type SettingsSnapshot = { values: SettingsValues; model_path: string };
+export type SettingsValues = {
+    current_device: AudioDevice;
+    audio_segment_size: number;
+    whisper_params: WhisperParams;
+    advanced_settings: AdvancedSettings;
+};
 export type StateUpdate = {
     version: number | null;
     name: string;
@@ -250,7 +288,7 @@ export type WebsocketResponse = {
     data: string;
     is_error: boolean;
 };
-export type WhisperParams = { toggles: WhisperToggles; language: string };
+export type WhisperParams = { toggles: WhisperToggles };
 export type WhisperSegment = {
     id: string;
     index: number;
@@ -261,9 +299,9 @@ export type WhisperText = {
     start_time: number;
     end_time: number;
     text: string;
+    detected_language: string | null;
 };
 export type WhisperToggles = {
-    translate: boolean;
     suppress_blanks: boolean;
     print_special: boolean;
     print_progress: boolean;
