@@ -50,6 +50,7 @@
     --color-scrybe-soft: var(--c-scrybe-soft);
     --color-scrybe-ring: var(--c-scrybe-ring);
     --color-scrybe-press: var(--c-scrybe-press);
+    --color-scrybe-raised-hover: var(--scrybe-color-raised-hover);
 
     --color-status-live: var(--c-status-live);
     --color-status-warn: var(--c-status-warn);
@@ -122,6 +123,11 @@
     --scrybe-color-canvas: #101114;
     --scrybe-color-surface: #14161a;
     --scrybe-color-raised: #1f2329;
+    --scrybe-color-raised-hover: color-mix(
+        in srgb,
+        var(--scrybe-color-raised) 92%,
+        var(--scrybe-color-text)
+    );
     --scrybe-color-border: #2b2f36;
     --scrybe-color-border-control: #69717e;
     --scrybe-color-text: #efeff1;

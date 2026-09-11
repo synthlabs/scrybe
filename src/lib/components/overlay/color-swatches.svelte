@@ -57,6 +57,7 @@
                     ? value
                     : "conic-gradient(#ed7777,#e9b163,#47d175,#af6dc7,#ed7777)"}
             ></span>
+            {#if custom}<Check class="swatch-check" size={14} />{/if}
             <Tooltip.Provider delayDuration={200}
                 ><Tooltip.Root
                     ><Tooltip.Trigger>
@@ -98,13 +99,18 @@
         place-items: center;
         width: 2.25rem;
         height: 2.25rem;
-        border: 1px solid var(--scrybe-color-border-control);
+        border: 1px solid transparent;
         border-radius: 0.375rem;
+        color: var(--muted-foreground);
+        background: var(--scrybe-color-raised);
         cursor: pointer;
     }
+    .custom-color:hover {
+        background: var(--scrybe-color-raised-hover);
+    }
     .custom-color.active {
-        border-color: var(--scrybe-color-brand);
         background: var(--scrybe-fill-selected);
+        color: var(--scrybe-color-brand);
     }
     .custom-color:focus-within {
         outline: 2px solid var(--scrybe-color-focus);

@@ -15,6 +15,9 @@
     import PreviewFrame from "$lib/components/overlay/preview-frame.svelte";
     import OverlayCanvas from "$lib/components/overlay/overlay-canvas.svelte";
     import TextOverlay from "$lib/components/overlay/text-overlay.svelte";
+    import { Panel } from "$lib/components/ui/panel/index.ts";
+    import Move from "@lucide/svelte/icons/move";
+    import Palette from "@lucide/svelte/icons/palette";
     import type {
         OverlayConfig,
         OverlayStyle,
@@ -266,139 +269,149 @@
                 {/if}
             </PreviewFrame>
         </section>
-        <div class="preset-row">
-            <Label for="overlay-preset">{msgs.overlay_preset()}</Label>
-            <Select.Root
-                type="single"
-                value={preset}
-                {disabled}
-                onValueChange={(value) =>
-                    edit({
-                        ...config,
-                        style: applyPreset(config.style, value),
-                    })}
-            >
-                <Select.Trigger id="overlay-preset" class="w-full sm:w-56"
-                    >{preset_labels[preset]()}</Select.Trigger
+        <Panel as="div" class="mt-5">
+            <div class="preset-row">
+                <Label for="overlay-preset">{msgs.overlay_preset()}</Label>
+                <Select.Root
+                    type="single"
+                    value={preset}
+                    {disabled}
+                    onValueChange={(value) =>
+                        edit({
+                            ...config,
+                            style: applyPreset(config.style, value),
+                        })}
                 >
-                <Select.Content>
-                    {#if preset === "custom"}<Select.Item
-                            value="custom"
-                            label={msgs.overlay_preset_custom()}
-                            disabled>{msgs.overlay_preset_custom()}</Select.Item
-                        >{/if}
-                    {#each STYLE_PRESETS as item}
-                        <Select.Item
-                            value={item.id}
-                            label={preset_labels[item.id]()}
-                        >
-                            <span class="preset-option"
-                                ><span>{preset_labels[item.id]()}</span><span
-                                    class="preset-sample"
-                                    ><TextOverlay
-                                        test_mode
-                                        test_text={msgs.overlay_preset_sample()}
-                                        style={{
-                                            ...config.style,
-                                            ...item.style,
-                                            font_size: 32,
-                                        }}
-                                        max_width={400}
-                                        scale={0.4}
-                                    /></span
-                                ></span
+                    <Select.Trigger id="overlay-preset" class="w-full sm:w-56"
+                        >{preset_labels[preset]()}</Select.Trigger
+                    >
+                    <Select.Content>
+                        {#if preset === "custom"}<Select.Item
+                                value="custom"
+                                label={msgs.overlay_preset_custom()}
+                                disabled
+                                >{msgs.overlay_preset_custom()}</Select.Item
+                            >{/if}
+                        {#each STYLE_PRESETS as item}
+                            <Select.Item
+                                value={item.id}
+                                label={preset_labels[item.id]()}
                             >
-                        </Select.Item>
-                    {/each}
-                </Select.Content>
-            </Select.Root>
-        </div>
-        <div class="basic-controls">
-            <div class="anchor-controls">
-                <span class="control-label">{msgs.overlay_anchor_label()}</span>
-                <div
-                    class="anchor-grid"
-                    role="group"
-                    aria-label={msgs.overlay_anchor_label()}
-                >
-                    {#each ANCHORS as anchor, index}
-                        <IconOption
-                            label={anchor_labels[anchor]()}
-                            selected={config.layout.anchor === anchor}
+                                <span class="preset-option"
+                                    ><span>{preset_labels[item.id]()}</span
+                                    ><span class="preset-sample"
+                                        ><TextOverlay
+                                            test_mode
+                                            test_text={msgs.overlay_preset_sample()}
+                                            style={{
+                                                ...config.style,
+                                                ...item.style,
+                                                font_size: 32,
+                                            }}
+                                            max_width={400}
+                                            scale={0.4}
+                                        /></span
+                                    ></span
+                                >
+                            </Select.Item>
+                        {/each}
+                    </Select.Content>
+                </Select.Root>
+            </div>
+            <div class="basic-controls">
+                <div class="anchor-controls">
+                    <span class="control-label"
+                        >{msgs.overlay_anchor_label()}</span
+                    >
+                    <div
+                        class="anchor-grid"
+                        role="group"
+                        aria-label={msgs.overlay_anchor_label()}
+                    >
+                        {#each ANCHORS as anchor, index}
+                            <IconOption
+                                label={anchor_labels[anchor]()}
+                                selected={config.layout.anchor === anchor}
+                                {disabled}
+                                onclick={() =>
+                                    edit({
+                                        ...config,
+                                        layout: snapLayout(
+                                            config.canvas,
+                                            anchor,
+                                            config.layout.max_width,
+                                        ),
+                                    })}
+                            >
+                                <span
+                                    class="anchor-cell"
+                                    style:justify-content={[
+                                        "flex-start",
+                                        "center",
+                                        "flex-end",
+                                    ][index % 3]}
+                                    style:align-items={[
+                                        "flex-start",
+                                        "center",
+                                        "flex-end",
+                                    ][Math.floor(index / 3)]}
+                                    ><span></span></span
+                                >
+                            </IconOption>
+                        {/each}
+                    </div>
+                </div>
+                <div class="appearance-controls">
+                    <div class="control-group">
+                        <span class="control-label"
+                            >{msgs.overlay_align_label()}</span
+                        ><AlignButtons
+                            value={config.style.align}
+                            onChange={(value) => style("align", value)}
                             {disabled}
-                            onclick={() =>
+                        />
+                    </div>
+                    {@render range(
+                        "font_size",
+                        msgs.overlay_font_size_label(),
+                        16,
+                        96,
+                        "px",
+                    )}
+                    <div class="control-group">
+                        <span class="control-label"
+                            >{msgs.overlay_background_color_label()}</span
+                        ><ColorSwatches
+                            value={config.style.background_color}
+                            presets={BACKGROUND_SWATCHES}
+                            label={msgs.overlay_background_color_label()}
+                            allowCustom={false}
+                            {disabled}
+                            onChange={(value) =>
                                 edit({
                                     ...config,
-                                    layout: snapLayout(
-                                        config.canvas,
-                                        anchor,
-                                        config.layout.max_width,
-                                    ),
+                                    style: pairedColor(config.style, value),
                                 })}
-                        >
-                            <span
-                                class="anchor-cell"
-                                style:justify-content={[
-                                    "flex-start",
-                                    "center",
-                                    "flex-end",
-                                ][index % 3]}
-                                style:align-items={[
-                                    "flex-start",
-                                    "center",
-                                    "flex-end",
-                                ][Math.floor(index / 3)]}><span></span></span
-                            >
-                        </IconOption>
-                    {/each}
+                        />
+                    </div>
+                    {@render range(
+                        "background_opacity",
+                        msgs.overlay_opacity_label(),
+                        0,
+                        100,
+                        "%",
+                    )}
                 </div>
             </div>
-            <div class="appearance-controls">
-                <div class="control-group">
-                    <span class="control-label"
-                        >{msgs.overlay_align_label()}</span
-                    ><AlignButtons
-                        value={config.style.align}
-                        onChange={(value) => style("align", value)}
-                        {disabled}
-                    />
-                </div>
-                {@render range(
-                    "font_size",
-                    msgs.overlay_font_size_label(),
-                    16,
-                    96,
-                    "px",
-                )}
-                <div class="control-group">
-                    <span class="control-label"
-                        >{msgs.overlay_background_color_label()}</span
-                    ><ColorSwatches
-                        value={config.style.background_color}
-                        presets={BACKGROUND_SWATCHES}
-                        label={msgs.overlay_background_color_label()}
-                        allowCustom={false}
-                        {disabled}
-                        onChange={(value) =>
-                            edit({
-                                ...config,
-                                style: pairedColor(config.style, value),
-                            })}
-                    />
-                </div>
-                {@render range(
-                    "background_opacity",
-                    msgs.overlay_opacity_label(),
-                    0,
-                    100,
-                    "%",
-                )}
-            </div>
-        </div>
-        <div class="advanced-controls">
+        </Panel>
+        <Panel
+            as="div"
+            class="advanced-controls mt-6 overflow-hidden py-0 sm:py-0"
+        >
             <Disclosure
                 id="overlay-position-toggle"
                 title={msgs.overlay_position_heading()}
+                icon={Move}
                 bind:open={editor.position_open}
             >
                 <p class="text-muted-foreground text-sm leading-5">
@@ -534,6 +547,7 @@
             <Disclosure
                 id="overlay-styling-toggle"
                 title={msgs.overlay_more_styling()}
+                icon={Palette}
                 bind:open={editor.styling_open}
             >
                 <div class="settings-grid">
@@ -617,7 +631,7 @@
                     </div>
                 </div>
             </Disclosure>
-        </div>
+        </Panel>
     </div>
     <div class="apply-bar">
         <span class="text-muted-foreground text-xs" role="status"
@@ -633,7 +647,7 @@
             >
             <Button
                 id="overlay-apply"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 disabled={disabled || editor.test_busy || !editor.dirty}
                 aria-busy={editor.busy}
@@ -757,7 +771,7 @@
         align-items: center;
         gap: 1rem;
         flex-wrap: wrap;
-        margin-block: 1.25rem;
+        margin-bottom: 1.25rem;
     }
     .basic-controls {
         display: grid;
@@ -810,9 +824,6 @@
         font-family: var(--scrybe-font-mono);
         font-size: 0.75rem;
         color: var(--muted-foreground);
-    }
-    .advanced-controls {
-        margin-top: 1.5rem;
     }
     .apply-bar {
         display: flex;

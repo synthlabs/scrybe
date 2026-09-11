@@ -8,9 +8,14 @@
     import { Slider } from "$lib/components/ui/slider/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
     import * as Sheet from "$lib/components/ui/sheet/index.ts";
+    import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import Disclosure from "$lib/components/overlay/disclosure.svelte";
     import SegmentedControl from "$lib/components/console/segmented-control.svelte";
     import ToggleField from "$lib/components/settings/toggle-field.svelte";
+    import { Panel } from "$lib/components/ui/panel/index.ts";
+    import Mic from "@lucide/svelte/icons/mic";
+    import Brain from "@lucide/svelte/icons/brain";
+    import LifeBuoy from "@lucide/svelte/icons/life-buoy";
     import {
         commands,
         type AudioDevice,
@@ -395,15 +400,19 @@
             </div>
         {/if}
         {#if audio_match || segment_match}
-            <section
+            <Panel
                 aria-labelledby="settings-audio-heading"
                 class="mb-7"
                 data-settings-section="audio"
             >
                 <h2
                     id="settings-audio-heading"
-                    class="mb-4 text-base font-semibold"
+                    class="mb-4 flex items-center gap-2 text-base font-semibold"
                 >
+                    <Mic
+                        class="text-muted-foreground size-5 shrink-0"
+                        aria-hidden="true"
+                    />
                     {msgs.settings_audio_heading()}
                 </h2>
                 {#if audio_match}
@@ -534,22 +543,29 @@
                         </div>
                     </Disclosure>
                 {/if}
-            </section>
+            </Panel>
         {/if}
         {#if model_match || matching_models.length || advanced_match}
-            <section
+            <Panel
                 aria-labelledby="settings-model-heading"
-                class="border-border mb-7 border-t pt-6"
+                class="mb-7"
                 data-settings-section="model"
             >
                 <h2
                     id="settings-model-heading"
-                    class="mb-4 text-base font-semibold"
+                    class="mb-4 flex items-center gap-2 text-base font-semibold"
                 >
+                    <Brain
+                        class="text-muted-foreground size-5 shrink-0"
+                        aria-hidden="true"
+                    />
                     {msgs.settings_model_heading()}
                 </h2>
                 {#if model_match || matching_models.length}
-                    <div class="mb-5">
+                    <Collapsible.Root
+                        class="mb-5"
+                        open={searching || editor.choices_open}
+                    >
                         <div
                             class="flex flex-wrap items-center justify-between gap-3"
                         >
@@ -573,26 +589,24 @@
                                 variant="outline"
                                 size="sm"
                                 aria-expanded={searching || editor.choices_open}
-                                aria-controls={searching || editor.choices_open
-                                    ? "settings-model-choices"
-                                    : undefined}
+                                aria-controls="settings-model-choices"
                                 onclick={() =>
                                     (editor.choices_open =
                                         !editor.choices_open)}
                             >
                                 {msgs.settings_change_model()}<ChevronDown
-                                    class={`size-4 transition-transform duration-(--scrybe-duration-standard) ${editor.choices_open ? "rotate-180" : ""}`}
+                                    class={`size-4 transition-transform duration-(--scrybe-duration-standard) ease-out ${searching || editor.choices_open ? "rotate-180" : ""}`}
                                 />
                             </Button>
                         </div>
                         <p class="text-muted-foreground mt-3 text-sm leading-5">
                             {msgs.settings_model_desc()}
                         </p>
-                        {#if searching || editor.choices_open}
-                            <div
-                                id="settings-model-choices"
-                                class="mt-4 grid grid-cols-1 gap-2"
-                            >
+                        <Collapsible.Content
+                            id="settings-model-choices"
+                            class="data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up -mx-1 overflow-hidden px-1 duration-(--scrybe-duration-standard) ease-out"
+                        >
+                            <div class="grid grid-cols-1 gap-2 pt-4 pb-1">
                                 {#if models_loading}<p
                                         class="text-muted-foreground text-sm"
                                         role="status"
@@ -627,7 +641,7 @@
                                                   selected_model?.id ===
                                                       model.id}
                                         <label
-                                            class={`focus-within:ring-ring focus-within:ring-offset-background flex cursor-pointer items-start gap-3 rounded-md border p-3 focus-within:ring-2 focus-within:ring-offset-2 ${selected ? "border-scrybe bg-scrybe/10" : "border-border hover:bg-accent/40"} ${disabled ? "pointer-events-none opacity-50" : ""}`}
+                                            class={`focus-within:ring-ring focus-within:ring-offset-background border-border flex cursor-pointer items-start gap-3 rounded-md border p-3 focus-within:ring-2 focus-within:ring-offset-2 ${selected ? "bg-scrybe-soft" : "hover:bg-accent/40"} ${disabled ? "pointer-events-none opacity-50" : ""}`}
                                         >
                                             <input
                                                 type="radio"
@@ -674,12 +688,12 @@
                                     {/each}
                                 </div>
                             </div>
-                        {/if}
-                    </div>
+                        </Collapsible.Content>
+                    </Collapsible.Root>
                 {/if}
                 {#if editor.model}
                     <p
-                        class="border-border bg-card/35 mb-5 rounded-md border p-3 text-sm leading-5"
+                        class="border-border bg-background mb-5 rounded-md border p-3 text-sm leading-5"
                         role="status"
                         data-settings-pending-model
                     >
@@ -754,7 +768,7 @@
                                     >
                                 </div>
                                 <p
-                                    class="bg-card/35 border-border rounded-md border p-3 font-mono text-xs leading-5 break-all"
+                                    class="bg-background border-border rounded-md border p-3 font-mono text-xs leading-5 break-all"
                                 >
                                     {displayed_path ||
                                         msgs.settings_model_path_placeholder()}
@@ -850,18 +864,21 @@
                         {/each}
                     </Disclosure>
                 {/if}
-            </section>
+            </Panel>
         {/if}
         {#if support_match}
-            <section
+            <Panel
                 aria-labelledby="settings-support-heading"
-                class="border-border border-t pt-6"
                 data-settings-section="support"
             >
                 <h2
                     id="settings-support-heading"
-                    class="text-base font-semibold"
+                    class="flex items-center gap-2 text-base font-semibold"
                 >
+                    <LifeBuoy
+                        class="text-muted-foreground size-5 shrink-0"
+                        aria-hidden="true"
+                    />
                     {msgs.settings_support_heading()}
                 </h2>
                 <p class="text-muted-foreground mt-2 text-sm leading-5">
@@ -875,7 +892,7 @@
                     onclick={() => (report_open = true)}
                     >{msgs.settings_bug_report_button()}</Button
                 >
-            </section>
+            </Panel>
         {/if}
     </div>
     <footer
@@ -946,7 +963,7 @@
                     >
                     <Button
                         id="settings-apply"
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         disabled={disabled ||
                             !editor.dirty ||

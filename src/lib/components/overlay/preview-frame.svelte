@@ -51,7 +51,7 @@
 
     async function switchPreview() {
         const revision = ++generation;
-        if (!frame || reduced_motion.current) return settle();
+        if (!frame) return settle();
         const height = frame.getBoundingClientRect().height;
         animation?.cancel();
         animation = undefined;
@@ -59,6 +59,8 @@
         resizing = true;
         pending = true;
         frame.style.height = `${height}px`;
+        // Commit the frozen height before the swap to preserve WebKit scroll position.
+        frame.getBoundingClientRect();
         await tick();
         if (revision !== generation) return;
         pending = false;

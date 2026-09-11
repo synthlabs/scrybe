@@ -17,7 +17,7 @@
                 outline:
                     "border-input bg-background hover:bg-accent hover:text-accent-foreground border",
                 secondary:
-                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                    "bg-secondary text-secondary-foreground hover:bg-scrybe-raised-hover",
                 ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
             },

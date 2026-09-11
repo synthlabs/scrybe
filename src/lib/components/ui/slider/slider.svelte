@@ -30,7 +30,7 @@ get along, so we shut typescript up by casting `value` to `never`.
         <span
             class="relative h-1 w-full grow overflow-hidden rounded-sm bg-[var(--scrybe-color-border-control)]"
         >
-            <SliderPrimitive.Range class="absolute h-full bg-transparent" />
+            <SliderPrimitive.Range class="bg-scrybe absolute h-full" />
         </span>
         {#each thumbs as thumb}
             <SliderPrimitive.Thumb

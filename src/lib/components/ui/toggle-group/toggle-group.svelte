@@ -2,7 +2,7 @@
     import { type VariantProps, tv } from "tailwind-variants";
 
     export const toggleGroupVariants = tv({
-        base: "inline-flex items-center gap-0.5 rounded-md border border-border/50 bg-background/20 p-0.5",
+        base: "border-border bg-background inline-flex items-center gap-0.5 rounded-md border p-0.5",
         variants: {
             size: {
                 default: "h-9",
@@ -14,11 +14,16 @@
         },
     });
 
-    export type ToggleGroupSize = VariantProps<typeof toggleGroupVariants>["size"];
+    export type ToggleGroupSize = VariantProps<
+        typeof toggleGroupVariants
+    >["size"];
 </script>
 
 <script lang="ts">
-    import { ToggleGroup as ToggleGroupPrimitive, type WithoutChildrenOrChild } from "bits-ui";
+    import {
+        ToggleGroup as ToggleGroupPrimitive,
+        type WithoutChildrenOrChild,
+    } from "bits-ui";
     import { cn } from "$lib/utils.ts";
     import type { Snippet } from "svelte";
 

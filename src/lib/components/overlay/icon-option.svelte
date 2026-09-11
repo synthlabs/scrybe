@@ -23,7 +23,7 @@
             {#snippet child({ props })}
                 <Button
                     {...props}
-                    variant="outline"
+                    variant="secondary"
                     size="icon"
                     type="button"
                     class={`icon-option p-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${selected ? "selected" : ""}`}
@@ -49,18 +49,18 @@
         width: 2.25rem;
         height: 2.25rem;
         flex-shrink: 0;
-        border: 1px solid var(--scrybe-color-border-control);
+        border: 1px solid transparent;
         border-radius: var(--scrybe-radius-control);
         color: var(--muted-foreground);
-        background: transparent;
+        background: var(--scrybe-color-raised);
         cursor: pointer;
     }
     :global(.icon-option:hover) {
-        background: var(--accent);
+        background: var(--scrybe-color-raised-hover);
     }
     :global(.icon-option.selected) {
         background: var(--scrybe-fill-selected);
-        border-color: var(--scrybe-color-brand);
+        border-color: transparent;
         color: var(--scrybe-color-brand);
     }
     :global(.icon-option:focus-visible) {
