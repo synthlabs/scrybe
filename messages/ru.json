@@ -112,7 +112,7 @@
     "overlay_position_heading": "Положение и размер",
     "overlay_position_desc": "Координаты указаны в пикселях трансляции. Начало координат — левый верхний угол холста.",
     "overlay_snap_to_zone": "Привязать к зоне",
-    "overlay_reset_default": "Сбросить",
+    "overlay_reset_default": "Восстановить настройки по умолчанию",
     "overlay_show_test_overlay": "Показать тест",
     "overlay_hide_test_overlay": "Скрыть тест",
     "overlay_text_heading": "Текст",

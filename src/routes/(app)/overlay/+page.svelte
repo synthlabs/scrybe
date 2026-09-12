@@ -58,6 +58,8 @@
     let now = $state(Date.now());
     let custom_resolution = $state(false);
     let guides = $state("off");
+    let footer_height = $state(0);
+    let window_height = $state(0);
     let copy_timer: ReturnType<typeof setTimeout>;
     const config = $derived(editor.config);
     const disabled = $derived(!app_state.ready || editor.busy);
@@ -117,6 +119,11 @@
     });
     function edit(next: OverlayConfig) {
         editor.edit(next);
+    }
+    function reset() {
+        if (disabled) return;
+        editor.reset();
+        custom_resolution = false;
     }
     function style<K extends keyof OverlayStyle>(
         key: K,
@@ -218,6 +225,8 @@
         />
     </div>
 {/snippet}
+
+<svelte:window bind:innerHeight={window_height} />
 
 <div class="overlay-page" data-overlay-editor>
     <div class="overlay-workspace">
@@ -633,31 +642,52 @@
             </Disclosure>
         </Panel>
     </div>
-    <div class="apply-bar">
-        <span class="text-muted-foreground text-xs" role="status"
-            >{editor.dirty ? msgs.overlay_unsaved() : ""}</span
-        >
-        <div class="flex flex-wrap gap-2">
+    <footer
+        class="apply-bar"
+        bind:clientHeight={footer_height}
+        class:sticky={footer_height < window_height * 0.4}
+    >
+        <div class="footer-actions">
             <Button
-                id="overlay-discard"
+                id="overlay-reset"
                 variant="ghost"
                 size="sm"
-                disabled={disabled || editor.test_busy || !editor.dirty}
-                onclick={discard}>{msgs.overlay_discard()}</Button
+                class="max-w-full"
+                {disabled}
+                onclick={reset}
             >
-            <Button
-                id="overlay-apply"
-                variant="secondary"
-                size="sm"
-                disabled={disabled || editor.test_busy || !editor.dirty}
-                aria-busy={editor.busy}
-                onclick={apply}
-                >{editor.busy
-                    ? msgs.overlay_applying()
-                    : msgs.overlay_apply()}</Button
-            >
+                <RotateCcw class="size-4" aria-hidden="true" />
+                <span class="min-w-0 wrap-anywhere"
+                    >{msgs.overlay_reset_default()}</span
+                >
+            </Button>
+            <div class="footer-commit-actions">
+                <span
+                    class="footer-status text-muted-foreground text-xs"
+                    role="status"
+                    >{editor.dirty ? msgs.overlay_unsaved() : ""}</span
+                >
+                <Button
+                    id="overlay-discard"
+                    variant="ghost"
+                    size="sm"
+                    disabled={disabled || editor.test_busy || !editor.dirty}
+                    onclick={discard}>{msgs.overlay_discard()}</Button
+                >
+                <Button
+                    id="overlay-apply"
+                    variant="secondary"
+                    size="sm"
+                    disabled={disabled || editor.test_busy || !editor.dirty}
+                    aria-busy={editor.busy}
+                    onclick={apply}
+                    >{editor.busy
+                        ? msgs.overlay_applying()
+                        : msgs.overlay_apply()}</Button
+                >
+            </div>
         </div>
-    </div>
+    </footer>
 </div>
 
 <Sheet.Root bind:open={setup_open}>
@@ -826,19 +856,46 @@
         color: var(--muted-foreground);
     }
     .apply-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        position: sticky;
+        container: footer / inline-size;
+        flex-shrink: 0;
         bottom: 0;
         z-index: 10;
         margin-top: auto;
         min-height: 3.25rem;
-        padding: 0.5rem 1rem;
+        padding: 0.5rem 0;
         border-top: 1px solid var(--border);
         background: var(--background);
+    }
+    .footer-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0 1rem;
+    }
+    .footer-commit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-left: auto;
+    }
+    @container footer (max-width: 32rem) {
+        .footer-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .footer-commit-actions {
+            display: contents;
+        }
+        .footer-status {
+            grid-row: 1;
+        }
+        .footer-actions :global(button) {
+            width: 100%;
+            min-width: 0;
+        }
     }
     .preset-option {
         display: flex;

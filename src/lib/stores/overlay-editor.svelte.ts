@@ -4,6 +4,7 @@ import type { OverlayConfig, OverlayTestState } from "$lib/bindings";
 import { app_state } from "./state.svelte";
 import { configKey } from "$lib/overlay/sample.js";
 import { debounce } from "$lib/overlay/timing.js";
+import { DEFAULT_OVERLAY_CONFIG } from "$lib/overlay/layout-math.js";
 
 export const overlay_test = new SyncedState<OverlayTestState>("overlay_test", {
     id: "",
@@ -48,6 +49,10 @@ class OverlayEditor {
         if (this.busy || !app_state.ready) return;
         this.draft = copy(config);
         this.queueTestUpdate();
+    }
+
+    reset() {
+        this.edit(DEFAULT_OVERLAY_CONFIG);
     }
 
     private sendTestUpdate = debounce(

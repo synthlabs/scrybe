@@ -42,6 +42,7 @@
     import Folder from "@lucide/svelte/icons/folder";
     import ChevronDown from "@lucide/svelte/icons/chevron-down";
     import LoaderCircle from "@lucide/svelte/icons/loader-circle";
+    import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
 
     let search = $state("");
     let devices: AudioDeviceOption[] = $state([]);
@@ -965,48 +966,58 @@
     <footer
         bind:clientHeight={footer_height}
         class:sticky={footer_height < window_height * 0.4}
-        class="border-border bg-background bottom-0 z-20 border-t py-3"
+        class="settings-footer border-border bg-background bottom-0 z-20 border-t py-3"
     >
-        <div class="mx-auto grid w-full max-w-3xl min-w-0 gap-3 px-4 sm:px-6">
-            {#if editor.error}
-                <div class="grid grid-cols-1 gap-2 text-sm" data-settings-error>
-                    <p class="text-destructive" role="alert">
-                        {error_messages[editor.error.kind]()}
-                    </p>
-                    <p class="text-muted-foreground">
-                        {msgs.settings_error_pending()}
-                    </p>
-                    <details class="text-muted-foreground text-xs">
-                        <summary
-                            class="focus-visible:outline-scrybe w-fit cursor-pointer rounded-md py-1 focus-visible:outline-2"
-                            >{msgs.settings_technical_details()}</summary
+        <div class="grid min-w-0 gap-3">
+            {#if editor.error || editor.requires_stop}
+                <div class="mx-auto grid w-full max-w-3xl min-w-0 gap-3 px-4">
+                    {#if editor.error}
+                        <div
+                            class="grid grid-cols-1 gap-2 text-sm"
+                            data-settings-error
                         >
-                        <pre
-                            class="mt-2 max-h-32 overflow-auto font-mono leading-5 break-words whitespace-pre-wrap">{editor
-                                .error.details}</pre>
-                    </details>
+                            <p class="text-destructive" role="alert">
+                                {error_messages[editor.error.kind]()}
+                            </p>
+                            <p class="text-muted-foreground">
+                                {msgs.settings_error_pending()}
+                            </p>
+                            <details class="text-muted-foreground text-xs">
+                                <summary
+                                    class="focus-visible:outline-scrybe w-fit cursor-pointer rounded-md py-1 focus-visible:outline-2"
+                                    >{msgs.settings_technical_details()}</summary
+                                >
+                                <pre
+                                    class="mt-2 max-h-32 overflow-auto font-mono leading-5 break-words whitespace-pre-wrap">{editor
+                                        .error.details}</pre>
+                            </details>
+                        </div>
+                    {/if}
+                    {#if editor.requires_stop}<p
+                            class="text-status-warn text-sm leading-5"
+                            role="status"
+                            id="settings-stop-notice"
+                        >
+                            {msgs.settings_stop_first()}
+                        </p>{/if}
                 </div>
             {/if}
-            {#if editor.requires_stop}<p
-                    class="text-status-warn text-sm leading-5"
-                    role="status"
-                    id="settings-stop-notice"
-                >
-                    {msgs.settings_stop_first()}
-                </p>{/if}
-            <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="footer-actions">
                 <Button
                     id="settings-reset"
                     variant="ghost"
                     size="sm"
-                    class="text-muted-foreground px-0 hover:bg-transparent"
+                    class="max-w-full"
                     {disabled}
                     onclick={() => editor.reset()}
-                    >{msgs.settings_reset_advanced()}</Button
+                    ><RotateCcw class="size-4" aria-hidden="true" /><span
+                        class="min-w-0 wrap-anywhere"
+                        >{msgs.settings_reset_advanced()}</span
+                    ></Button
                 >
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="footer-commit-actions">
                     <span
-                        class="text-muted-foreground text-xs"
+                        class="footer-status text-muted-foreground text-xs"
                         role="status"
                         data-settings-status
                     >
@@ -1058,3 +1069,40 @@
         >
     </Sheet.Root>
 </div>
+
+<style>
+    .settings-footer {
+        container: footer / inline-size;
+    }
+    .footer-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0 1rem;
+    }
+    .footer-commit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-left: auto;
+    }
+    @container footer (max-width: 32rem) {
+        .footer-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .footer-commit-actions {
+            display: contents;
+        }
+        .footer-status {
+            grid-row: 1;
+        }
+        .footer-actions :global(button) {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>

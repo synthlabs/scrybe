@@ -112,7 +112,7 @@
     "overlay_position_heading": "Position & Size",
     "overlay_position_desc": "Coordinates are in stream pixels. Origin is the top-left of your canvas.",
     "overlay_snap_to_zone": "Snap to zone",
-    "overlay_reset_default": "Reset to default",
+    "overlay_reset_default": "Reset to Default",
     "overlay_show_test_overlay": "Show test overlay",
     "overlay_hide_test_overlay": "Hide test overlay",
     "overlay_text_heading": "Text",
