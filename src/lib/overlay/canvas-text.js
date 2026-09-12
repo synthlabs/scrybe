@@ -12,6 +12,20 @@ function finiteNumber(value) {
 }
 
 /**
+ * @param {{ font_size?: number, stroke_width?: number }} style
+ * @param {number} [scale]
+ */
+export function captionOutline(style, scale = 1) {
+    const strokeWidth = Math.max(0, finiteNumber(style?.stroke_width ?? 0));
+    const fontSize = Math.max(1, finiteNumber(style?.font_size ?? 32));
+    const lineWidth = Math.max(0, strokeWidth * finiteNumber(scale) * 2);
+    return {
+        lineWidth,
+        fillCounters: lineWidth > 0 && strokeWidth >= fontSize / 8,
+    };
+}
+
+/**
  * Finds transparent pixels that are fully enclosed by opaque pixels.
  *
  * @param {Uint8ClampedArray | Uint8Array} rgba

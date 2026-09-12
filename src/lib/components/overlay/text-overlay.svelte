@@ -3,6 +3,7 @@
     import type { OverlayStyle, WhisperSegment } from "$lib/bindings";
     import {
         captionFont,
+        captionOutline,
         captionTextLayout,
         enclosedTransparentPixels,
     } from "$lib/overlay/canvas-text.js";
@@ -69,15 +70,16 @@
         context.textBaseline = "top";
         context.lineJoin = "round";
         context.miterLimit = 2;
-        context.lineWidth = Math.max(0, style.stroke_width * scale * 2);
+        const outline = captionOutline(style, scale);
+        if (outline.lineWidth > 0) context.lineWidth = outline.lineWidth;
         context.strokeStyle = style.stroke_color;
         context.fillStyle = style.text_color;
         for (const line of layout.lines) {
-            if (context.lineWidth > 0)
+            if (outline.lineWidth > 0)
                 context.strokeText(line.text, line.x, line.y);
             context.fillText(line.text, line.x, line.y);
         }
-        if (context.lineWidth <= 0 || typeof document === "undefined") return;
+        if (!outline.fillCounters || typeof document === "undefined") return;
 
         const mask_canvas = document.createElement("canvas");
         mask_canvas.width = backing_width;

@@ -1,12 +1,94 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+    captionOutline,
     captionTextLayout,
     enclosedTransparentPixels,
     wrapCanvasText,
 } from "../src/lib/overlay/canvas-text.js";
 
 const monospaceMeasure = (text) => ({ width: text.length * 10 });
+
+test("captionOutline disables both outline passes at zero width", () => {
+    for (const scale of [0.5, 1, 2]) {
+        assert.deepEqual(
+            captionOutline({ font_size: 32, stroke_width: 0 }, scale),
+            {
+                lineWidth: 0,
+                fillCounters: false,
+            },
+        );
+    }
+});
+
+test("captionOutline preserves normal strokes below the counter-fill cutoff", () => {
+    for (const stroke_width of [1, 2, 3]) {
+        assert.deepEqual(captionOutline({ font_size: 32, stroke_width }), {
+            lineWidth: stroke_width * 2,
+            fillCounters: false,
+        });
+    }
+});
+
+test("captionOutline fills counters at one eighth of the font size", () => {
+    for (const font_size of [16, 32, 44, 64, 96]) {
+        const cutoff = font_size / 8;
+        assert.equal(
+            captionOutline({ font_size, stroke_width: cutoff - 0.01 })
+                .fillCounters,
+            false,
+        );
+        assert.equal(
+            captionOutline({ font_size, stroke_width: cutoff }).fillCounters,
+            true,
+        );
+        assert.equal(
+            captionOutline({ font_size, stroke_width: Math.ceil(cutoff) })
+                .fillCounters,
+            true,
+        );
+    }
+    assert.equal(
+        captionOutline({ font_size: 44, stroke_width: 5 }).fillCounters,
+        false,
+    );
+    assert.equal(
+        captionOutline({ font_size: 44, stroke_width: 6 }).fillCounters,
+        true,
+    );
+});
+
+test("captionOutline scales stroke width without changing counter-fill eligibility", () => {
+    for (const scale of [0.25, 0.5, 1, 2]) {
+        for (const stroke_width of [3, 4, 12]) {
+            assert.deepEqual(
+                captionOutline({ font_size: 32, stroke_width }, scale),
+                {
+                    lineWidth: stroke_width * scale * 2,
+                    fillCounters: stroke_width >= 4,
+                },
+            );
+        }
+    }
+});
+
+test("captionOutline disables invalid or nonpositive strokes and scales", () => {
+    for (const stroke_width of [-1, NaN, Infinity]) {
+        assert.deepEqual(captionOutline({ font_size: 32, stroke_width }), {
+            lineWidth: 0,
+            fillCounters: false,
+        });
+    }
+    for (const scale of [0, -1, NaN, Infinity]) {
+        assert.deepEqual(
+            captionOutline({ font_size: 32, stroke_width: 4 }, scale),
+            {
+                lineWidth: 0,
+                fillCounters: false,
+            },
+        );
+    }
+});
 
 function rgbaFromAlphaGrid(rows) {
     const height = rows.length;
