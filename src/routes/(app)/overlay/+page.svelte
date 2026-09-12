@@ -102,9 +102,10 @@
         if (error)
             untrack(() => {
                 showActionError(
-                    msgs.overlay_error_test(),
-                    msgs.overlay_error_test_help(),
+                    msgs.overlay_error_test,
+                    msgs.overlay_error_test_help,
                     error,
+                    "overlay_error_test",
                 );
                 editor.test_error = null;
             });
@@ -156,9 +157,10 @@
             copy_timer = setTimeout(() => (copied = false), 1500);
         } catch (error) {
             showActionError(
-                msgs.overlay_error_copy(),
-                msgs.overlay_error_copy_help(),
+                msgs.overlay_error_copy,
+                msgs.overlay_error_copy_help,
                 error,
+                "overlay_error_copy",
             );
         }
     }
@@ -168,9 +170,10 @@
             toast.success(msgs.overlay_applied());
         } catch (error) {
             showActionError(
-                msgs.overlay_error_apply(),
-                msgs.overlay_error_apply_help(),
+                msgs.overlay_error_apply,
+                msgs.overlay_error_apply_help,
                 error,
+                "overlay_error_apply",
             );
         }
     }
@@ -180,9 +183,10 @@
             else await editor.startTest();
         } catch (error) {
             showActionError(
-                msgs.overlay_error_test(),
-                msgs.overlay_error_test_help(),
+                msgs.overlay_error_test,
+                msgs.overlay_error_test_help,
                 error,
+                "overlay_error_test",
             );
         }
     }
@@ -191,9 +195,10 @@
             await editor.discard();
         } catch (error) {
             showActionError(
-                msgs.overlay_error_test(),
-                msgs.overlay_error_test_help(),
+                msgs.overlay_error_test,
+                msgs.overlay_error_test_help,
                 error,
+                "overlay_error_test",
             );
         }
     }

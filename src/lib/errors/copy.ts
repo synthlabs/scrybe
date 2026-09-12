@@ -1,0 +1,46 @@
+import { m as msgs } from "$lib/paraglide/messages";
+import type { WizardCopy } from "$utils/inbound/copy";
+
+export function reportCopy(): WizardCopy {
+    return {
+        title: msgs.inbound_title(),
+        description: msgs.inbound_description(),
+        username: msgs.inbound_username(),
+        optional: msgs.inbound_optional(),
+        usernameHelp: msgs.inbound_username_help(),
+        message: msgs.inbound_message(),
+        messagePlaceholder: msgs.inbound_message_placeholder(),
+        system: msgs.inbound_system(),
+        systemHelp: msgs.inbound_system_help(),
+        build: msgs.inbound_build(),
+        buildHelp: msgs.inbound_build_help(),
+        log: msgs.inbound_log(),
+        logHelp: msgs.inbound_log_help(),
+        noLog: msgs.inbound_no_log(),
+        config: msgs.inbound_config(),
+        configHelp: msgs.inbound_config_help(),
+        error: msgs.inbound_error(),
+        errorHelp: msgs.inbound_error_help(),
+        preview: msgs.inbound_preview(),
+        discordLabel: msgs.inbound_discord_label(),
+        messageLabel: msgs.inbound_message_label(),
+        includedLabel: msgs.inbound_included_label(),
+        notProvided: msgs.inbound_not_provided(),
+        none: msgs.inbound_none(),
+        sending: msgs.inbound_sending(),
+        done: msgs.inbound_done(),
+        doneHelp: msgs.inbound_done_help(),
+        failed: msgs.inbound_failed(),
+        back: msgs.inbound_back(),
+        next: msgs.inbound_next(),
+        send: msgs.inbound_send(),
+        close: msgs.inbound_close(),
+        retry: msgs.inbound_retry(),
+        loading: msgs.inbound_loading(),
+        loadFailed: msgs.inbound_load_failed(),
+        technicalDetails: msgs.inbound_technical_details(),
+        step: (current, total) => msgs.inbound_step({ current, total }),
+        logSize: (raw, compressed) =>
+            msgs.inbound_log_size({ raw, compressed }),
+    };
+}

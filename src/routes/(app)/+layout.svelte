@@ -8,7 +8,8 @@
     import { onMount, onDestroy } from "svelte";
     import { checkForAppUpdates } from "$utils/updater";
     import { PUBLIC_UPDATE_INSTALL_MODE } from "$env/static/public";
-    import { ErrorToast } from "$utils/inbound";
+    import ErrorHost from "$lib/components/errors/error-host.svelte";
+    import { updaterError } from "$lib/errors";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import type { WhisperSegment, AudioCaptureFailure } from "$lib/bindings";
@@ -67,9 +68,10 @@
                     return;
                 failed_runs.add(failure.run_id);
                 showActionError(
-                    msgs.audio_capture_stopped(),
-                    msgs.audio_capture_recovery(),
+                    msgs.audio_capture_stopped,
+                    msgs.audio_capture_recovery,
                     failure.error.details,
+                    "audio_capture_stopped",
                 );
             },
         );
@@ -87,6 +89,7 @@
         await checkForAppUpdates(
             "https://github.com/synthlabs/scrybe/releases/latest",
             {
+                onError: updaterError,
                 updateAction:
                     PUBLIC_UPDATE_INSTALL_MODE === "package-manager"
                         ? {
@@ -129,8 +132,8 @@
     });
 </script>
 
-<Toaster />
-<ErrorToast />
+<Toaster position="bottom-right" />
+<ErrorHost />
 <RuntimeDependencyNotice />
 
 <Sidebar.Provider

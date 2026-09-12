@@ -1,7 +1,7 @@
 <script lang="ts">
     import { openUrl } from "@tauri-apps/plugin-opener";
     import { toast } from "svelte-sonner";
-    import Logger from "$utils/log";
+    import { notifyError } from "$lib/errors";
     import { m as msgs } from "$lib/paraglide/messages";
     import { internal_state } from "$lib/stores/state.svelte";
 
@@ -12,7 +12,11 @@
         try {
             await openUrl(url);
         } catch (e) {
-            Logger.error("failed to open runtime dependency action url", e);
+            notifyError(e, {
+                source: "runtime.link",
+                title: msgs.inbound_link_title,
+                recovery: msgs.inbound_link_recovery,
+            });
         }
     };
 
@@ -48,10 +52,18 @@
                 options,
             );
         } else if (dependency.status === "unavailable") {
-            toast.error(
-                dependency.reason || msgs.runtime_unavailable(),
-                options,
-            );
+            const url = dependency.action_url;
+            notifyError(dependency.reason || msgs.runtime_unavailable(), {
+                source: "runtime.unavailable",
+                title: msgs.inbound_runtime_title,
+                recovery: msgs.inbound_runtime_help,
+                action: url
+                    ? {
+                          label: msgs.runtime_open_nvidia_driver_page,
+                          run: () => open_action_url(url),
+                      }
+                    : undefined,
+            });
         }
     });
 

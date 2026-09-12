@@ -1,3 +1,5 @@
+import { captureInlineError } from "$lib/errors";
+import type { ErrorIncident } from "$utils/inbound/controller";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
     commands,
@@ -26,6 +28,7 @@ class SettingsEditor {
     busy = $state(false);
     phase: SettingsApplyPhase = $state("applying");
     error: SettingsError | null = $state(null);
+    error_report: ErrorIncident | null = $state(null);
     private baseline: SettingsValues | null = null;
 
     get values(): SettingsValues {
@@ -61,11 +64,13 @@ class SettingsEditor {
         if (this.busy || !app_state.ready) return;
         this.draft = copy(values);
         this.error = null;
+        this.error_report = null;
     }
     chooseModel(model: ModelSelection | null) {
         if (this.busy || !app_state.ready) return;
         this.model = copy(model);
         this.error = null;
+        this.error_report = null;
     }
     reset() {
         this.edit(resetAdvanced(copy(this.values), DefaultAppState));
@@ -76,12 +81,14 @@ class SettingsEditor {
         this.baseline = copy(this.draft);
         this.model = null;
         this.error = null;
+        this.error_report = null;
     }
     async apply() {
         if (!app_state.ready || this.busy || !this.dirty || this.requires_stop)
             return false;
         this.busy = true;
         this.error = null;
+        this.error_report = null;
         this.phase =
             this.model?.kind === "preset"
                 ? "downloading"
@@ -109,6 +116,7 @@ class SettingsEditor {
             this.model = null;
             return true;
         } catch (error) {
+            this.error_report = captureInlineError(error, "settings.apply");
             this.error =
                 error &&
                 typeof error === "object" &&

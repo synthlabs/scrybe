@@ -21,9 +21,10 @@
             await overlay_editor.stopTest();
         } catch (error) {
             showActionError(
-                msgs.overlay_error_test(),
-                msgs.overlay_error_test_help(),
+                msgs.overlay_error_test,
+                msgs.overlay_error_test_help,
                 error,
+                "overlay_error_test",
             );
         }
     }

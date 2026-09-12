@@ -27,7 +27,6 @@
                 await invoke("start_transcribe");
             }
         } catch (e) {
-            Logger.error("toggle transcribe failed", e);
             if (String(e) !== "Audio capture was cancelled.")
                 showHomeActionError(action, e);
         } finally {

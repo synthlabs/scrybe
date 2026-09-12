@@ -8,7 +8,6 @@
     import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
     import { showHomeActionError } from "$lib/home-errors";
-    import Logger from "$utils/log";
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
     import { app_state, internal_state } from "$lib/stores/state.svelte";
@@ -27,7 +26,6 @@
             session.clear();
             await invoke("start_transcribe");
         } catch (e) {
-            Logger.error("new session failed", e);
             showHomeActionError("new_session", e);
         } finally {
             setTimeout(() => (busy = false), 600);
@@ -41,7 +39,6 @@
             await navigator.clipboard.writeText(text);
             toast.success(msgs.home_toolbar_copied());
         } catch (e) {
-            Logger.error("clipboard write failed", e);
             showHomeActionError("copy", e);
         }
     };

@@ -1,12 +1,12 @@
-import { toast } from "svelte-sonner";
 import { m as msgs } from "$lib/paraglide/messages";
-import ActionError from "$lib/components/home/action-error.svelte";
-import type { ComponentProps, ComponentType } from "svelte";
+import { notifyError } from "$lib/errors";
+import type { ErrorPresentation } from "$utils/inbound/controller";
 
 export type HomeAction = "start" | "stop" | "new_session" | "copy";
 
 export function showHomeActionError(action: HomeAction, error: unknown) {
-    const copy = {
+    if (String(error) === "Audio capture was cancelled.") return;
+    const [title, recovery] = {
         start: [msgs.home_error_start, msgs.home_error_start_recovery],
         stop: [msgs.home_error_stop, msgs.home_error_stop_recovery],
         new_session: [
@@ -15,34 +15,14 @@ export function showHomeActionError(action: HomeAction, error: unknown) {
         ],
         copy: [msgs.home_error_copy, msgs.home_error_copy_recovery],
     }[action];
-    return showActionError(copy[0](), copy[1](), error);
+    return notifyError(error, { source: `home.${action}`, title, recovery });
 }
 
 export function showActionError(
-    title: string,
-    recovery: string,
+    title: ErrorPresentation["title"],
+    recovery: ErrorPresentation["recovery"],
     error: unknown,
+    source: string,
 ) {
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    const cancelTimeout = () => {
-        clearTimeout(timeout);
-        timeout = undefined;
-    };
-    // Sonner 0.3's component type still describes Svelte 4 constructors.
-    const id = toast.custom(ActionError as unknown as ComponentType, {
-        duration: Infinity,
-        onDismiss: cancelTimeout,
-        componentProps: {
-            title,
-            recovery,
-            details: error instanceof Error ? error.message : String(error),
-            onExpand: cancelTimeout,
-            onDismiss: () => {
-                cancelTimeout();
-                toast.dismiss(id);
-            },
-        } satisfies ComponentProps<typeof ActionError>,
-    });
-    timeout = setTimeout(() => toast.dismiss(id), 10000);
-    return id;
+    return notifyError(error, { source, title, recovery });
 }

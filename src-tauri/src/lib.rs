@@ -968,7 +968,7 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
         match download_preset_file(&selected_preset) {
             Ok(downloaded_model_path) => model_path = downloaded_model_path,
             Err(err) => {
-                error!("failed to download initial model preset: {}", err);
+                error!(target: inbound::capture::HANDLED_TARGET, "failed to download initial model preset: {}", err);
                 let manager_ref = app.state::<SharedWhisperManager>();
                 *manager_ref.lock().unwrap() = None;
                 return WhisperSetupResult {
@@ -995,7 +995,7 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
     debug!("creating whisper context");
     let vad_model = download_vad_model().map_err(|err| {
         let reason = format!("Failed to download Silero VAD model: {err}");
-        error!("{}", reason);
+        error!(target: inbound::capture::HANDLED_TARGET, "{}", reason);
         reason
     });
 
@@ -1010,7 +1010,7 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
             }
         }
         Err(gpu_err) => {
-            error!("failed to initialize Whisper with GPU: {}", gpu_err);
+            error!(target: inbound::capture::HANDLED_TARGET, "failed to initialize Whisper with GPU: {}", gpu_err);
             match create_whisper_manager(model_path.as_str(), false, &vad_model) {
                 Ok((whisper_manager, vad_runtime)) => {
                     *manager_ref.lock().unwrap() = Some(whisper_manager);
@@ -1024,7 +1024,7 @@ fn setup_whisper_manager(app: &AppHandle, mut model_path: String) -> WhisperSetu
                     }
                 }
                 Err(cpu_err) => {
-                    error!(
+                    error!(target: inbound::capture::HANDLED_TARGET,
                         "failed to initialize Whisper with CPU fallback: {}",
                         cpu_err
                     );
@@ -1145,7 +1145,13 @@ pub fn run() {
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: None,
                     }),
-                    inbound::capture::log_target(),
+                    // Model and inference outcomes already own these library diagnostics.
+                    inbound::capture::log_target().filter(|metadata| {
+                        !matches!(
+                            metadata.target(),
+                            "whisper_rs::whisper_logging_hook" | "whisper_rs::ggml_logging_hook"
+                        )
+                    }),
                 ])
                 .build(),
         )

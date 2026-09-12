@@ -1,13 +1,16 @@
 <script lang="ts">
     import { onMount, untrack } from "svelte";
     import { open } from "@tauri-apps/plugin-dialog";
-    import { ReportWizard } from "$utils/inbound";
+    import { captureInlineError, openErrorReport } from "$lib/errors";
+    import {
+        errorDetails,
+        type ErrorIncident,
+    } from "$utils/inbound/controller";
     import { Button } from "$lib/components/ui/button/index.ts";
     import { Input } from "$lib/components/ui/input/index.ts";
     import { Label } from "$lib/components/ui/label/index.ts";
     import { Slider } from "$lib/components/ui/slider/index.ts";
     import * as Select from "$lib/components/ui/select/index.ts";
-    import * as Sheet from "$lib/components/ui/sheet/index.ts";
     import * as Collapsible from "$lib/components/ui/collapsible/index.ts";
     import Disclosure from "$lib/components/overlay/disclosure.svelte";
     import SegmentedControl from "$lib/components/console/segmented-control.svelte";
@@ -54,7 +57,8 @@
     let disposed = false;
     const device_groups = $derived(groupAudioDevices(devices));
     let model_error = $state("");
-    let report_open = $state(false);
+    let device_report: ErrorIncident | null = $state(null);
+    let model_report: ErrorIncident | null = $state(null);
     let copied = $state(false);
     let footer_height = $state(0);
     let window_height = $state(0);
@@ -309,8 +313,14 @@
                 if (JSON.stringify(devices) !== JSON.stringify(result.data))
                     devices = result.data;
                 device_error = null;
+                device_report = null;
             } catch (error) {
                 if (disposed) return;
+                if (device_report?.error.message !== errorDetails(error))
+                    device_report = captureInlineError(
+                        error,
+                        "settings.devices",
+                    );
                 device_error =
                     error && typeof error === "object" && "kind" in error
                         ? (error as AudioError)
@@ -328,10 +338,12 @@
     async function loadModels() {
         models_loading = true;
         model_error = "";
+        model_report = null;
         try {
             models = await commands.listModelPresets();
         } catch (error) {
             model_error = String(error);
+            model_report = captureInlineError(error, "settings.models");
         } finally {
             models_loading = false;
         }
@@ -372,9 +384,10 @@
                 );
         } catch (error) {
             showActionError(
-                msgs.settings_file_error(),
-                msgs.settings_retry_help(),
+                msgs.settings_file_error,
+                msgs.settings_retry_help,
                 error,
+                "settings_file_error",
             );
         }
     }
@@ -386,9 +399,10 @@
             copy_timer = setTimeout(() => (copied = false), 1500);
         } catch (error) {
             showActionError(
-                msgs.settings_copy_error(),
-                msgs.settings_retry_help(),
+                msgs.settings_copy_error,
+                msgs.settings_retry_help,
                 error,
+                "settings_copy_error",
             );
         }
     }
@@ -549,7 +563,14 @@
                                 {device_error.kind === "service_unavailable"
                                     ? msgs.audio_service_unavailable()
                                     : msgs.settings_devices_error()}
-                            </p>{/if}
+                            </p>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="w-fit"
+                                onclick={() => openErrorReport(device_report)}
+                                >{msgs.inbound_report()}</Button
+                            >{/if}
                         {#if missing_device}<p
                                 class="text-status-warn text-sm"
                                 role="status"
@@ -694,6 +715,14 @@
                                         class="w-fit"
                                         onclick={loadModels}
                                         >{msgs.settings_retry()}</Button
+                                    >
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        class="w-fit"
+                                        onclick={() =>
+                                            openErrorReport(model_report)}
+                                        >{msgs.inbound_report()}</Button
                                     >
                                 {/if}
                                 <div
@@ -957,7 +986,7 @@
                     variant="outline"
                     size="sm"
                     class="mt-4"
-                    onclick={() => (report_open = true)}
+                    onclick={() => openErrorReport()}
                     >{msgs.settings_bug_report_button()}</Button
                 >
             </Panel>
@@ -991,6 +1020,14 @@
                                     class="mt-2 max-h-32 overflow-auto font-mono leading-5 break-words whitespace-pre-wrap">{editor
                                         .error.details}</pre>
                             </details>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="w-fit"
+                                onclick={() =>
+                                    openErrorReport(editor.error_report)}
+                                >{msgs.inbound_report()}</Button
+                            >
                         </div>
                     {/if}
                     {#if editor.requires_stop}<p
@@ -1061,13 +1098,6 @@
             </div>
         </div>
     </footer>
-    <Sheet.Root bind:open={report_open}>
-        <Sheet.Content class="w-full sm:max-w-xl"
-            ><ReportWizard
-                onclose={() => (report_open = false)}
-            /></Sheet.Content
-        >
-    </Sheet.Root>
 </div>
 
 <style>
