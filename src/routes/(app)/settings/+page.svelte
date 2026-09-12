@@ -18,12 +18,14 @@
     import LifeBuoy from "@lucide/svelte/icons/life-buoy";
     import {
         commands,
-        type AudioDevice,
+        type AudioDeviceOption,
+        type AudioError,
         type ModelPreset,
         type SettingsErrorKind,
         type VadSensitivity,
         type WhisperToggles,
     } from "$lib/bindings";
+    import { groupAudioDevices, savedAudioDevice } from "$lib/audio-devices";
     import { app_state } from "$lib/stores/state.svelte";
     import { settings_editor as editor } from "$lib/stores/settings-editor.svelte";
     import {
@@ -42,11 +44,14 @@
     import LoaderCircle from "@lucide/svelte/icons/loader-circle";
 
     let search = $state("");
-    let devices: AudioDevice[] = $state([]);
+    let devices: AudioDeviceOption[] = $state([]);
     let models: ModelPreset[] = $state([]);
     let devices_loading = $state(true);
     let models_loading = $state(true);
-    let device_error = $state("");
+    let device_error: AudioError | null = $state(null);
+    let devices_request: Promise<void> | null = null;
+    let disposed = false;
+    const device_groups = $derived(groupAudioDevices(devices));
     let model_error = $state("");
     let report_open = $state(false);
     let copied = $state(false);
@@ -79,11 +84,27 @@
             Boolean(values.current_device.id) &&
             !devices.some((device) => device.id === values.current_device.id),
     );
-    const device_label = $derived(
-        values.current_device.id
-            ? values.current_device.name
-            : msgs.audio_device_default(),
+    const selected_device = $derived(
+        devices.find((device) => device.id === values.current_device.id),
     );
+    const device_label = $derived(
+        selected_device
+            ? optionLabel(selected_device)
+            : values.current_device.id
+              ? values.current_device.name
+              : msgs.audio_device_default(),
+    );
+    const unsupported_device = $derived(
+        missing_device && values.current_device.id.startsWith("alsa:"),
+    );
+    function optionLabel(device: AudioDeviceOption) {
+        if (!device.is_default) return device.name;
+        if (!device.kind) return msgs.audio_device_default();
+        const name = device.name || msgs.audio_source_unavailable();
+        return device.kind === "input"
+            ? msgs.audio_default_input({ device: name })
+            : msgs.audio_default_output({ device: name });
+    }
     const model_label = $derived(
         selected_model?.label ??
             (app_state.obj.model_path
@@ -161,7 +182,9 @@
             msgs.audio_device_label(),
             msgs.settings_source_desc(),
             device_label,
-            "audio input source microphone current_device",
+            msgs.audio_group_inputs(),
+            msgs.audio_group_outputs(),
+            "audio input output playback source microphone current_device",
         ),
     );
     const segment_match = $derived(
@@ -257,22 +280,49 @@
         untrack(() => editor.reconcile(saved));
     });
     onMount(() => {
+        disposed = false;
         void loadDevices();
         void loadModels();
-        return () => clearTimeout(copy_timer);
+        const refresh = () => {
+            if (!document.hidden) void loadDevices(true);
+        };
+        const timer = setInterval(refresh, 2000);
+        window.addEventListener("focus", refresh);
+        document.addEventListener("visibilitychange", refresh);
+        return () => {
+            disposed = true;
+            clearTimeout(copy_timer);
+            clearInterval(timer);
+            window.removeEventListener("focus", refresh);
+            document.removeEventListener("visibilitychange", refresh);
+        };
     });
-    async function loadDevices() {
-        devices_loading = true;
-        device_error = "";
-        try {
-            const result = await commands.getAudioDevices();
-            if (result.status === "error") throw result.error;
-            devices = result.data;
-        } catch (error) {
-            device_error = String(error);
-        } finally {
-            devices_loading = false;
-        }
+    function loadDevices(background = false): Promise<void> {
+        if (devices_request) return devices_request;
+        if (!background) devices_loading = true;
+        devices_request = (async () => {
+            try {
+                const result = await commands.getAudioDevices();
+                if (disposed) return;
+                if (result.status === "error") throw result.error;
+                if (JSON.stringify(devices) !== JSON.stringify(result.data))
+                    devices = result.data;
+                device_error = null;
+            } catch (error) {
+                if (disposed) return;
+                device_error =
+                    error && typeof error === "object" && "kind" in error
+                        ? (error as AudioError)
+                        : {
+                              kind: "service_unavailable",
+                              details: String(error),
+                          };
+            } finally {
+                if (!disposed) devices_loading = false;
+                devices_request = null;
+            }
+        })();
+        return devices_request;
     }
     async function loadModels() {
         models_loading = true;
@@ -286,11 +336,12 @@
         }
     }
     function changeDevice(id: string) {
-        const device =
-            id === ""
-                ? { id: "", name: "default" }
-                : devices.find((device) => device.id === id);
-        if (device) editor.edit({ ...values, current_device: device });
+        const device = devices.find((device) => device.id === id);
+        if (device)
+            editor.edit({
+                ...values,
+                current_device: savedAudioDevice(device),
+            });
     }
     function toggle(key: keyof WhisperToggles, checked: boolean) {
         editor.edit({
@@ -428,7 +479,7 @@
                                 variant="ghost"
                                 size="sm"
                                 disabled={disabled || devices_loading}
-                                onclick={loadDevices}
+                                onclick={() => loadDevices()}
                                 >{msgs.settings_refresh()}</Button
                             >
                         </div>
@@ -436,7 +487,9 @@
                             type="single"
                             value={values.current_device.id}
                             onValueChange={changeDevice}
-                            disabled={disabled || devices_loading}
+                            disabled={disabled ||
+                                devices_loading ||
+                                Boolean(device_error)}
                         >
                             <Select.Trigger
                                 id="device-select"
@@ -449,13 +502,9 @@
                             </Select.Trigger>
                             <Select.Content
                                 bounded
-                                class="settings-device-menu"
+                                class="settings-device-menu [&_[data-select-viewport]]:[overflow-anchor:none]"
                                 collisionPadding={16}
                             >
-                                <Select.Item
-                                    value=""
-                                    label={msgs.audio_device_default()}
-                                />
                                 {#if (missing_device || device_error) && values.current_device.id && !devices.some((device) => device.id === values.current_device.id)}
                                     <Select.Item
                                         value={values.current_device.id}
@@ -463,12 +512,26 @@
                                         label={device_label}
                                     />
                                 {/if}
-                                {#each devices.filter((device) => device.id !== "") as device (device.id)}
-                                    <Select.Item
-                                        value={device.id}
-                                        label={device.name}
-                                        class="break-words whitespace-normal"
-                                    />
+                                {#each device_groups as group (group.kind)}
+                                    <Select.Group>
+                                        {#if group.kind}
+                                            <Select.GroupHeading
+                                                >{group.kind === "input"
+                                                    ? msgs.audio_group_inputs()
+                                                    : msgs.audio_group_outputs()}</Select.GroupHeading
+                                            >
+                                        {/if}
+                                        {#each group.devices as device (device.id)}
+                                            <Select.Item
+                                                value={device.id}
+                                                label={optionLabel(device)}
+                                                disabled={device.is_default &&
+                                                    device.kind !== null &&
+                                                    !device.name}
+                                                class="break-words whitespace-normal"
+                                            />
+                                        {/each}
+                                    </Select.Group>
                                 {/each}
                             </Select.Content>
                         </Select.Root>
@@ -482,13 +545,17 @@
                                 class="text-destructive text-sm"
                                 role="alert"
                             >
-                                {msgs.settings_devices_error()}
+                                {device_error.kind === "service_unavailable"
+                                    ? msgs.audio_service_unavailable()
+                                    : msgs.settings_devices_error()}
                             </p>{/if}
                         {#if missing_device}<p
                                 class="text-status-warn text-sm"
                                 role="status"
                             >
-                                {msgs.settings_device_missing()}
+                                {unsupported_device
+                                    ? msgs.audio_legacy_device()
+                                    : msgs.settings_device_missing()}
                             </p>{/if}
                     </div>
                 {/if}

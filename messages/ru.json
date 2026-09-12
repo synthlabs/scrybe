@@ -287,7 +287,7 @@
     "settings_advanced": "Дополнительно",
     "settings_clear_search": "Очистить поиск",
     "settings_no_results": "По вашему запросу настройки не найдены.",
-    "settings_source_desc": "Выберите микрофон или источник звука для субтитров.",
+    "settings_source_desc": "Выберите микрофон или звук, воспроизводимый через устройство компьютера. Устройства по умолчанию определяются при запуске субтитров.",
     "settings_segment_desc": "Сколько аудио Scrybe сохраняет в каждом сегменте субтитров до начала следующего.",
     "settings_seconds": "{seconds} с",
     "settings_refresh": "Обновить",
@@ -336,5 +336,16 @@
     "settings_preset_small": "Баланс скорости и качества распознавания.",
     "settings_preset_medium": "Более высокое качество распознавания с более медленной обработкой.",
     "settings_preset_turbo_q5": "Меньший по размеру вариант из двух моделей Large v3 Turbo.",
-    "settings_preset_turbo_q8": "Больший по размеру вариант из двух моделей Large v3 Turbo."
+    "settings_preset_turbo_q8": "Больший по размеру вариант из двух моделей Large v3 Turbo.",
+    "audio_group_inputs": "Микрофоны и входы",
+    "audio_group_outputs": "Звук компьютера",
+    "audio_default_input": "Вход по умолчанию — {device}",
+    "audio_default_output": "Звук компьютера по умолчанию — {device}",
+    "audio_source_unavailable": "Недоступен",
+    "audio_legacy_device": "Этот сохранённый источник звука больше не поддерживается. Выберите микрофон или устройство звука компьютера.",
+    "audio_service_unavailable": "Не удалось подключиться к звуковой службе. Убедитесь, что PulseAudio или PipeWire с pipewire-pulse запущены, затем нажмите «Обновить».",
+    "audio_capture_stopped": "Субтитры остановлены: источник звука стал недоступен.",
+    "audio_capture_recovery": "Подключите устройство или выберите другой источник в настройках, затем снова нажмите «Старт».",
+    "header_status_starting": "Запуск…",
+    "audio_cancel_start": "Отмена"
 }

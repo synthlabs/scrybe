@@ -25,5 +25,6 @@ fi
 if [[ "$os" == "Linux" ]]; then
     info "scrybe Linux extras"
 
+    check_apt "PulseAudio client library" "pkg-config --exists libpulse" "libpulse-dev"
     check_apt "ALSA" "pkg-config --exists alsa" "librust-alsa-sys-dev"
 fi

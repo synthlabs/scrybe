@@ -3,8 +3,8 @@ use hf_hub::api::sync::Api;
 use overlay::{start_overlay_test, stop_overlay_test, update_overlay_test, OverlayTestState};
 use rust_embed::RustEmbed;
 use scrybe_core::{
-    audio::{self, AudioManager},
-    devices::AudioDevice,
+    audio::{self, AudioError, AudioManager, Cancellation},
+    devices::AudioDeviceOption,
     metrics::{rms_level, AudioMetricsState, InferenceTimingStats},
     segments::{
         GateTelemetryState, SegmentAccumulator, SegmentEmissionDecision, SegmentEmissionGate,
@@ -17,7 +17,10 @@ use specta_typescript::Typescript;
 use std::{
     collections::HashMap,
     env,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 #[cfg(target_os = "macos")]
@@ -158,6 +161,7 @@ struct WhisperSetupResult {
 #[serde(default)]
 struct InternalState {
     transcribe_running: bool,
+    transcribe_starting: bool,
     active_transcription_run_id: Option<String>,
     audio_step_size: u64,
     version: String,
@@ -170,6 +174,7 @@ impl Default for InternalState {
     fn default() -> Self {
         Self {
             transcribe_running: false,
+            transcribe_starting: false,
             active_transcription_run_id: None,
             audio_step_size: DEFAULT_AUDIO_STEP_SIZE,
             version: "".to_owned(),
@@ -182,17 +187,27 @@ impl Default for InternalState {
 
 impl InternalState {
     fn claim_transcription_run(&mut self, run_id: String) -> bool {
-        if self.transcribe_running {
+        if self.transcribe_running || self.transcribe_starting {
             return false;
         }
 
-        self.transcribe_running = true;
+        self.transcribe_starting = true;
         self.active_transcription_run_id = Some(run_id);
+        true
+    }
+
+    fn mark_capture_ready(&mut self, run_id: &str) -> bool {
+        if !self.is_transcription_run_active(run_id) {
+            return false;
+        }
+        self.transcribe_starting = false;
+        self.transcribe_running = true;
         true
     }
 
     fn stop_transcription(&mut self) {
         self.transcribe_running = false;
+        self.transcribe_starting = false;
         self.active_transcription_run_id = None;
     }
 
@@ -201,7 +216,8 @@ impl InternalState {
     }
 
     fn is_transcription_run_active(&self, run_id: &str) -> bool {
-        self.transcribe_running && self.active_transcription_run_id.as_deref() == Some(run_id)
+        (self.transcribe_running || self.transcribe_starting)
+            && self.active_transcription_run_id.as_deref() == Some(run_id)
     }
 
     fn clear_transcription_run_if_current(&mut self, run_id: &str) {
@@ -209,6 +225,16 @@ impl InternalState {
             self.stop_transcription();
         }
     }
+}
+
+#[derive(Default)]
+struct CaptureRuntime(Mutex<Option<Cancellation>>);
+
+#[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
+struct AudioCaptureFailure {
+    run_id: String,
+    device_id: String,
+    error: AudioError,
 }
 
 #[cfg(target_os = "windows")]
@@ -313,6 +339,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .typ::<scrybe_core::whisper::VadSensitivity>()
         .typ::<scrybe_core::whisper::WhisperSegment>()
         .typ::<AudioMetricsState>()
+        .typ::<AudioCaptureFailure>()
         .typ::<scrybe_core::segments::GateTelemetryState>()
         .typ::<scrybe_core::segments::GateEvaluationTelemetryEntry>()
         .typ::<scrybe_core::segments::SegmentEmissionDecisionKind>()
@@ -423,13 +450,12 @@ fn update_state(
 
 #[tauri::command]
 #[specta::specta]
-fn get_audio_devices(
-    _state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
-) -> Result<Vec<AudioDevice>, String> {
-    match audio::get_devices() {
-        Ok(devices) => Ok(devices),
-        Err(err) => Err(err.to_string()),
-    }
+async fn get_audio_devices() -> Result<Vec<AudioDeviceOption>, AudioError> {
+    tauri::async_runtime::spawn_blocking(audio::get_devices)
+        .await
+        .map_err(|error| {
+            AudioError::new(audio::AudioErrorKind::ServiceUnavailable, error.to_string())
+        })?
 }
 
 #[tauri::command]
@@ -471,7 +497,10 @@ fn get_transcribe_running(
 
 #[tauri::command]
 #[specta::specta]
-fn stop_transcribe(state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>) {
+fn stop_transcribe(
+    app: AppHandle,
+    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
+) {
     debug!(
         "{:?} stop_transcribe",
         SystemTime::now()
@@ -483,6 +512,9 @@ fn stop_transcribe(state_syncer: tauri::State<'_, tauri_svelte_synced_store::Sta
     let mut state = internal_state_ref.lock().unwrap();
 
     state.stop_transcription();
+    if let Some(cancelled) = app.state::<CaptureRuntime>().0.lock().unwrap().take() {
+        cancelled.store(true, Ordering::Release);
+    }
 }
 
 fn transcription_run_is_active(state_syncer: &StateSyncer, run_id: &str) -> bool {
@@ -497,12 +529,32 @@ fn clear_transcription_run_if_current(state_syncer: &StateSyncer, run_id: &str) 
     state.clear_transcription_run_if_current(run_id);
 }
 
+struct TranscriptionRunGuard {
+    syncer: StateSyncer,
+    run_id: String,
+}
+
+impl Drop for TranscriptionRunGuard {
+    fn drop(&mut self) {
+        clear_transcription_run_if_current(&self.syncer, &self.run_id);
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
-fn start_transcribe<'a>(
+async fn start_transcribe(
     app: AppHandle,
     state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
 ) -> Result<(), String> {
+    begin_transcription(app, state_syncer.inner().clone())?
+        .await
+        .map_err(|_| "The audio worker stopped before capture started.".to_owned())?
+}
+
+fn begin_transcription(
+    app: AppHandle,
+    state_syncer: StateSyncer,
+) -> Result<tokio::sync::oneshot::Receiver<Result<(), String>>, String> {
     let settings_runtime = app.state::<SettingsRuntime>();
     let _settings_operation = settings_runtime
         .operation
@@ -532,6 +584,10 @@ fn start_transcribe<'a>(
     }
 
     let run_id = Uuid::new_v4().to_string();
+    let device = state_syncer
+        .snapshot::<types::AppState>("app_state")
+        .current_device;
+    let cancelled = Arc::new(AtomicBool::new(false));
     {
         let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
         let mut state = internal_state_ref.lock().unwrap();
@@ -539,38 +595,100 @@ fn start_transcribe<'a>(
             info!("transcribe already running");
             return Err("Transcription is already running.".to_owned());
         }
+        if let Some(previous) = app
+            .state::<CaptureRuntime>()
+            .0
+            .lock()
+            .unwrap()
+            .replace(cancelled.clone())
+        {
+            previous.store(true, Ordering::Release);
+        }
     }
     state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
     state_syncer.update("audio_metrics", AudioMetricsState::default(), true);
 
     let app_handle_ref = app.clone();
-    let state_syncer_ref = state_syncer.inner().clone();
+    let state_syncer_ref = state_syncer.clone();
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
 
     std::thread::spawn(move || {
+        let _run = TranscriptionRunGuard {
+            syncer: state_syncer_ref.clone(),
+            run_id: run_id.clone(),
+        };
         let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
 
         let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut audio_manager = match AudioManager::new_with_device(
-            writer.clone(),
-            state_syncer_ref
-                .snapshot::<types::AppState>("app_state")
-                .current_device,
-        ) {
-            Ok(am) => am,
-            Err(err) => {
-                error!("unable to create audio manager: {}", err);
-                clear_transcription_run_if_current(&state_syncer_ref, &run_id);
+        let failure_app = app_handle_ref.clone();
+        let failure_syncer = state_syncer_ref.clone();
+        let failure_run = run_id.clone();
+        let failure_device = device.id.clone();
+        let failure_cancel = cancelled.clone();
+        let startup_failure = Arc::new(Mutex::new(None::<AudioError>));
+        let pending_failure = startup_failure.clone();
+        let on_error = Arc::new(move |error: AudioError| {
+            let state_ref = failure_syncer.get::<InternalState>("internal_state");
+            let mut state = state_ref.lock().unwrap();
+            if !state.is_transcription_run_active(&failure_run) {
                 return;
             }
+            let was_starting = state.transcribe_starting;
+            state.stop_transcription();
+            failure_cancel.store(true, Ordering::Release);
+            if was_starting {
+                *pending_failure.lock().unwrap() = Some(error);
+                return;
+            }
+            let _ = failure_app.emit(
+                "audio_capture_failed",
+                AudioCaptureFailure {
+                    run_id: failure_run.clone(),
+                    device_id: failure_device.clone(),
+                    error,
+                },
+            );
+        });
+        let fail_start = |error: AudioError| {
+            let state_ref = state_syncer_ref.get::<InternalState>("internal_state");
+            let mut state = state_ref.lock().unwrap();
+            let message = if let Some(error) = startup_failure.lock().unwrap().take() {
+                error.to_string()
+            } else if state.is_transcription_run_active(&run_id) {
+                error.to_string()
+            } else {
+                "Audio capture was cancelled.".into()
+            };
+            state.clear_transcription_run_if_current(&run_id);
+            message
         };
-
-        info!("Begin recording...");
-
-        if let Err(err) = audio_manager.play_stream() {
-            error!("unable to play stream: {}", err);
-            clear_transcription_run_if_current(&state_syncer_ref, &run_id);
+        let mut audio_manager =
+            match AudioManager::new_cancellable(writer.clone(), device, cancelled, on_error) {
+                Ok(manager) => manager,
+                Err(error) => {
+                    let _ = ready_tx.send(Err(fail_start(error)));
+                    return;
+                }
+            };
+        if let Err(error) = audio_manager.play_stream() {
+            let _ = ready_tx.send(Err(fail_start(error)));
             return;
         }
+        {
+            let state_ref = state_syncer_ref.get::<InternalState>("internal_state");
+            let mut state = state_ref.lock().unwrap();
+            if !state.mark_capture_ready(&run_id) {
+                let reason = startup_failure
+                    .lock()
+                    .unwrap()
+                    .take()
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "Audio capture was cancelled.".into());
+                let _ = ready_tx.send(Err(reason));
+                return;
+            }
+        }
+        let _ = ready_tx.send(Ok(()));
 
         let mut segment_accumulator = SegmentAccumulator::new(
             Uuid::new_v4().to_string(),
@@ -763,8 +881,7 @@ fn start_transcribe<'a>(
         clear_transcription_run_if_current(&state_syncer_ref, &run_id);
     });
 
-    info!("done with transcribe command");
-    Ok(())
+    Ok(ready_rx)
 }
 
 fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::Error> {
@@ -978,6 +1095,11 @@ impl inbound::Scrubber<tauri::Wry> for ScrybeScrubber {
 }
 
 fn cleanup_before_exit(app: &AppHandle) {
+    if let Some(runtime) = app.try_state::<CaptureRuntime>() {
+        if let Some(cancelled) = runtime.0.lock().unwrap().take() {
+            cancelled.store(true, Ordering::Release);
+        }
+    }
     if let Some(state_syncer) = app.try_state::<StateSyncer>() {
         let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
         match internal_state_ref.lock() {
@@ -1042,6 +1164,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(Arc::new(Mutex::new(None::<WhisperManager>)))
         .manage(SettingsRuntime::default())
+        .manage(CaptureRuntime::default())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
             app.emit("single-instance", argv).unwrap();
@@ -1287,6 +1410,32 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn starting_is_reserved_but_not_listening_until_capture_is_ready() {
+        let mut state = InternalState::default();
+        assert!(state.claim_transcription_run("one".into()));
+        assert!(state.transcribe_starting);
+        assert!(!state.transcribe_running);
+        assert!(!state.mark_capture_ready("stale"));
+        assert!(state.mark_capture_ready("one"));
+        assert!(!state.transcribe_starting);
+        assert!(state.transcribe_running);
+    }
+
+    #[test]
+    fn stopped_startup_cannot_activate_or_clear_a_newer_run() {
+        let mut state = InternalState::default();
+        assert!(state.claim_transcription_run("one".into()));
+        state.stop_transcription();
+        assert!(state.claim_transcription_run("two".into()));
+        assert!(!state.mark_capture_ready("one"));
+        state.clear_transcription_run_if_current("one");
+        assert!(state.transcribe_starting);
+        assert!(state.mark_capture_ready("two"));
+        state.reset_runtime_only_state();
+        assert!(!state.transcribe_starting && !state.transcribe_running);
+    }
 
     #[test]
     fn starting_a_new_run_after_stop_invalidates_the_old_run() {

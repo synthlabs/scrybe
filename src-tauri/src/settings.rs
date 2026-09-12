@@ -6,8 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::StoreExt;
 
 use crate::{
-    create_whisper_manager, download_preset_file, download_vad_model, get_audio_devices,
-    has_nvidia_gpu,
+    create_whisper_manager, download_preset_file, download_vad_model, has_nvidia_gpu,
     types::{AdvancedSettings, AppState},
     InternalState, RuntimeDependencyState, SharedWhisperManager, StateSyncer, StateSyncerConfig,
     VadRuntimeState, WebsocketManager, WhisperManager,
@@ -203,14 +202,14 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
     })?;
     let syncer = app.state::<StateSyncer>();
     let current = SettingsSnapshot::from(&syncer.snapshot::<AppState>("app_state"));
-    let running = syncer
-        .snapshot::<InternalState>("internal_state")
-        .transcribe_running;
+    let internal = syncer.snapshot::<InternalState>("internal_state");
+    let running = internal.transcribe_running || internal.transcribe_starting;
     if request.values.current_device.id != current.values.current_device.id
         && !request.values.current_device.id.is_empty()
     {
-        let devices = get_audio_devices(app.state::<StateSyncer>())
-            .map_err(|error| SettingsError::new(SettingsErrorKind::InvalidDevice, error))?;
+        let devices = scrybe_core::audio::get_devices().map_err(|error| {
+            SettingsError::new(SettingsErrorKind::InvalidDevice, error.to_string())
+        })?;
         request.values.current_device = devices
             .into_iter()
             .find(|device| device.id == request.values.current_device.id)
@@ -219,7 +218,8 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
                     SettingsErrorKind::InvalidDevice,
                     "The selected audio source is no longer available.",
                 )
-            })?;
+            })?
+            .into();
     }
     let prepared = prepare_change(
         request,

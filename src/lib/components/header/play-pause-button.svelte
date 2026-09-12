@@ -10,15 +10,16 @@
     import { internal_state } from "$lib/stores/state.svelte";
     import { settings_editor } from "$lib/stores/settings-editor.svelte";
 
+    let starting = $derived(internal_state.obj.transcribe_starting);
     let debounce = $state(false);
     let listening = $derived(internal_state.obj.transcribe_running);
 
     const toggle = async () => {
-        if (debounce) return;
-        const action = listening ? "stop" : "start";
+        if (debounce && !starting) return;
+        const action = listening || starting ? "stop" : "start";
         debounce = true;
         try {
-            if (listening) {
+            if (listening || starting) {
                 Logger.info("Currently running, stopping...");
                 await invoke("stop_transcribe");
             } else {
@@ -27,7 +28,8 @@
             }
         } catch (e) {
             Logger.error("toggle transcribe failed", e);
-            showHomeActionError(action, e);
+            if (String(e) !== "Audio capture was cancelled.")
+                showHomeActionError(action, e);
         } finally {
             setTimeout(() => (debounce = false), 1000);
         }
@@ -38,15 +40,18 @@
     variant="outline"
     size="sm"
     onclick={toggle}
-    disabled={debounce || (!listening && settings_editor.busy)}
+    disabled={(debounce && !starting) ||
+        (!listening && !starting && settings_editor.busy)}
     aria-pressed={listening}
-    aria-busy={debounce}
+    aria-busy={debounce || starting}
     class="border-border text-muted-foreground hover:bg-accent hover:text-foreground min-w-29 bg-transparent shadow-none"
-    aria-label={listening
-        ? msgs.header_stop_captions()
-        : msgs.header_start_captions()}
+    aria-label={starting
+        ? msgs.audio_cancel_start()
+        : listening
+          ? msgs.header_stop_captions()
+          : msgs.header_start_captions()}
 >
-    {#if debounce}
+    {#if debounce || starting}
         <LoaderCircle class="size-4 animate-spin motion-reduce:animate-none" />
     {:else if listening}
         <Pause class="size-4" />
@@ -54,6 +59,10 @@
         <Play class="size-4" />
     {/if}
     <span>
-        {listening ? msgs.header_stop_captions() : msgs.header_start_captions()}
+        {starting
+            ? msgs.audio_cancel_start()
+            : listening
+              ? msgs.header_stop_captions()
+              : msgs.header_start_captions()}
     </span>
 </Button>

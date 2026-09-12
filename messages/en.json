@@ -287,7 +287,7 @@
     "settings_advanced": "Advanced",
     "settings_clear_search": "Clear Search",
     "settings_no_results": "No settings match your search.",
-    "settings_source_desc": "Choose the microphone or audio source to caption.",
+    "settings_source_desc": "Choose a microphone or the audio playing through a computer audio device. System defaults are resolved when captions start.",
     "settings_segment_desc": "How much audio Scrybe keeps in each caption segment before starting the next one.",
     "settings_seconds": "{seconds} s",
     "settings_refresh": "Refresh",
@@ -336,5 +336,16 @@
     "settings_preset_small": "A balance of speed and recognition quality.",
     "settings_preset_medium": "Higher recognition quality, with slower processing.",
     "settings_preset_turbo_q5": "The smaller download of the two Large v3 Turbo options.",
-    "settings_preset_turbo_q8": "The larger download of the two Large v3 Turbo options."
+    "settings_preset_turbo_q8": "The larger download of the two Large v3 Turbo options.",
+    "audio_group_inputs": "Microphones & Inputs",
+    "audio_group_outputs": "Computer Audio",
+    "audio_default_input": "System Default Input — {device}",
+    "audio_default_output": "System Default Computer Audio — {device}",
+    "audio_source_unavailable": "Unavailable",
+    "audio_legacy_device": "This saved audio source is no longer supported. Choose a microphone or computer audio device.",
+    "audio_service_unavailable": "Could not connect to your audio service. Check that PulseAudio or PipeWire with pipewire-pulse is running, then try Refresh.",
+    "audio_capture_stopped": "Captions stopped because the audio source became unavailable.",
+    "audio_capture_recovery": "Reconnect the device or choose another source in Settings, then try Start again.",
+    "header_status_starting": "Starting…",
+    "audio_cancel_start": "Cancel"
 }

@@ -21,7 +21,7 @@ export const commands = {
     async getTranscribeRunning(): Promise<boolean> {
         return await TAURI_INVOKE("get_transcribe_running");
     },
-    async getAudioDevices(): Promise<Result<AudioDevice[], string>> {
+    async getAudioDevices(): Promise<Result<AudioDeviceOption[], AudioError>> {
         try {
             return {
                 status: "ok",
@@ -123,7 +123,26 @@ export type AppState = {
     whisper_params: WhisperParams;
     advanced_settings: AdvancedSettings;
 };
+export type AudioCaptureFailure = {
+    run_id: string;
+    device_id: string;
+    error: AudioError;
+};
 export type AudioDevice = { name: string; id: string };
+export type AudioDeviceOption = {
+    id: string;
+    name: string;
+    kind: AudioSourceKind | null;
+    is_default: boolean;
+};
+export type AudioError = { kind: AudioErrorKind; details: string };
+export type AudioErrorKind =
+    | "service_unavailable"
+    | "device_unavailable"
+    | "unsupported_device"
+    | "stream_failed"
+    | "timeout"
+    | "cancelled";
 export type AudioFormat = { name: string; id: string };
 export type AudioMetricsState = {
     segment_sample_len: number;
@@ -143,6 +162,7 @@ export type AudioMetricsState = {
     vad_skip_rate: number;
     vad_speech_ratio: number;
 };
+export type AudioSourceKind = "input" | "output";
 export type GateEvaluationTelemetryEntry = {
     sequence: number;
     segment_id: string;
@@ -171,6 +191,7 @@ export type HomeRightRailSettings = {
 };
 export type InternalState = {
     transcribe_running: boolean;
+    transcribe_starting: boolean;
     active_transcription_run_id: string | null;
     audio_step_size: number;
     version: string;

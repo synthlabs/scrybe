@@ -57,6 +57,39 @@ make install-internal TAURI_PACKAGING_INSTALL_ARTIFACT=/path/to/scrybe-0.2.16-1-
 Use a `.deb` artifact on Debian-family hosts or an NSIS `.exe` on Windows. Tauri
 bundles are under `target/release/bundle/`; Arch packages are under `package/`.
 
+### Audio sources on Linux
+
+Scrybe requires PulseAudio or PipeWire with its PulseAudio compatibility service
+(`pipewire-pulse`). Settings lists **Microphones & Inputs** and **Computer Audio**;
+computer audio captures sound playing through the selected output. Choose one
+source at a time. Each group has a system default that resolves when you press
+Start and stays on that device until you stop. Available devices refresh while
+Settings is visible. If a source disconnects, capture stops and explains the error.
+
+Saved ALSA selections from older versions require choosing a source again. The
+empty/default selection continues to use the system input. macOS retains its
+existing device menu and capture backend.
+
+Linux development needs the libpulse headers (`libpulse-dev` on Debian/Ubuntu,
+`libpulse` on Arch). Packaged builds declare the client-library dependency; the
+desktop's audio service must already be running.
+
+Run `sh scripts/verify-audio-devices.sh --backend pipewire` or
+`sh scripts/verify-audio-devices.sh --backend pulseaudio` for repeatable checks.
+These require the named server binaries, `pactl`, `pacat`, and `dbus-daemon`.
+They start private servers and use synthetic audio without changing desktop
+routing. Evidence, including source-specific recordings, is saved under `/tmp`.
+The tests cover routing, defaults, device removal, server shutdown, startup
+cancellation, and resource cleanup.
+
+For a desktop acceptance check, build `cargo build -p scrybe_core --bin audio_probe`,
+then run `target/debug/audio_probe list` and compare the names with sound settings.
+`python3 scripts/audio-devices.integration.py --desktop` compares the catalog with
+the running audio server automatically.
+With a known signal playing or a microphone in use, run
+`target/debug/audio_probe capture --id '<device ID>' --seconds 3` to check capture
+statistics. Audio is only saved if you supply `--output /path/to/recording.wav`.
+
 ### Arch Linux and CachyOS
 
 Scrybe automatically applies its NVIDIA explicit-sync workaround on Linux Wayland

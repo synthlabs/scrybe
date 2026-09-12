@@ -16,6 +16,7 @@ INTERNAL_FILES := internal/frontend/index.ts internal/rust/commands.rs internal/
 MISSING_INTERNAL_FILES = $(filter-out $(wildcard $(INTERNAL_FILES)),$(INTERNAL_FILES))
 
 NODE_TESTS := \
+	scripts/audio-devices.test.mjs \
 	scripts/settings-editor.test.mjs \
 	scripts/overlay-editor.test.mjs \
 	scripts/i18n-detect.test.mjs \

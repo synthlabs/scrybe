@@ -22,19 +22,18 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ],
-        "targets": [
-            "deb",
-            "rpm",
-            "nsis",
-            "app",
-            "dmg"
-        ],
+        "targets": ["deb", "rpm", "nsis", "app", "dmg"],
         "windows": {
             "nsis": {
-                "languages": [
-                    "English",
-                    "Russian"
-                ]
+                "languages": ["English", "Russian"]
+            }
+        },
+        "linux": {
+            "deb": {
+                "depends": ["libpulse0"]
+            },
+            "rpm": {
+                "depends": ["pulseaudio-libs"]
             }
         }
     },

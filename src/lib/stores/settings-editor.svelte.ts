@@ -40,7 +40,8 @@ class SettingsEditor {
     }
     get requires_stop() {
         return (
-            internal_state.obj.transcribe_running &&
+            (internal_state.obj.transcribe_running ||
+                internal_state.obj.transcribe_starting) &&
             (this.model !== null ||
                 this.values.current_device.id !==
                     app_state.obj.current_device.id)

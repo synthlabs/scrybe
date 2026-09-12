@@ -9,6 +9,7 @@ url='https://github.com/synthlabs/scrybe'
 license=('AGPL-3.0-only')
 depends=(
   'alsa-lib'
+  'libpulse'
   'cairo'
   'dbus'
   'gdk-pixbuf2'

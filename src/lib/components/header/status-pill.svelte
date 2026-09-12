@@ -2,6 +2,7 @@
     import { m as msgs } from "$lib/paraglide/messages";
     import { internal_state } from "$lib/stores/state.svelte";
 
+    let starting = $derived(internal_state.obj.transcribe_starting);
     let listening = $derived(internal_state.obj.transcribe_running);
 </script>
 
@@ -24,6 +25,10 @@
         {/if}
     </span>
     <span>
-        {listening ? msgs.header_status_listening() : msgs.header_status_idle()}
+        {starting
+            ? msgs.header_status_starting()
+            : listening
+              ? msgs.header_status_listening()
+              : msgs.header_status_idle()}
     </span>
 </div>

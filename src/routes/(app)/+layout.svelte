@@ -11,8 +11,9 @@
     import { ErrorToast } from "$utils/inbound";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import type { WhisperSegment } from "$lib/bindings";
+    import type { WhisperSegment, AudioCaptureFailure } from "$lib/bindings";
 
+    import { showActionError } from "$lib/home-errors";
     import StatusPill from "$lib/components/header/status-pill.svelte";
     import PlayPauseButton from "$lib/components/header/play-pause-button.svelte";
     import OverlayTestNotice from "$lib/components/overlay/test-notice.svelte";
@@ -48,9 +49,34 @@
         app_state.sync();
     }
 
+    let unsub_audio: UnlistenFn | undefined;
+    let disposed = false;
+    const failed_runs = new Set<string>();
     let unsub_segment: UnlistenFn | undefined;
 
     onMount(async () => {
+        unsub_audio = await listen<AudioCaptureFailure>(
+            "audio_capture_failed",
+            (event) => {
+                const failure = event.payload;
+                const active = internal_state.obj.active_transcription_run_id;
+                if (
+                    failed_runs.has(failure.run_id) ||
+                    (active && active !== failure.run_id)
+                )
+                    return;
+                failed_runs.add(failure.run_id);
+                showActionError(
+                    msgs.audio_capture_stopped(),
+                    msgs.audio_capture_recovery(),
+                    failure.error.details,
+                );
+            },
+        );
+        if (disposed) {
+            unsub_audio();
+            return;
+        }
         unsub_segment = await listen<WhisperSegment>(
             "segment_update",
             (event) => {
@@ -88,6 +114,8 @@
     });
 
     onDestroy(() => {
+        disposed = true;
+        unsub_audio?.();
         unsub_segment?.();
     });
 
