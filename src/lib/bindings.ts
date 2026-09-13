@@ -4,19 +4,24 @@
 /** user-defined commands **/
 
 export const commands = {
-    async startTranscribe(): Promise<Result<null, string>> {
+    async startTranscribe(
+        request: SessionRequest | null,
+    ): Promise<Result<null, SessionError>> {
         try {
             return {
                 status: "ok",
-                data: await TAURI_INVOKE("start_transcribe"),
+                data: await TAURI_INVOKE("start_transcribe", { request }),
             };
         } catch (e) {
             if (e instanceof Error) throw e;
             else return { status: "error", error: e as any };
         }
     },
-    async stopTranscribe(): Promise<void> {
-        await TAURI_INVOKE("stop_transcribe");
+    async stopTranscribe(request: SessionRequest | null): Promise<void> {
+        await TAURI_INVOKE("stop_transcribe", { request });
+    },
+    async newSession(request: SessionRequest | null): Promise<SessionReset> {
+        return await TAURI_INVOKE("new_session", { request });
     },
     async getTranscribeRunning(): Promise<boolean> {
         return await TAURI_INVOKE("get_transcribe_running");
@@ -273,10 +278,25 @@ export type SegmentSuppressionReason =
     | "AmbiguousHallucination"
     | "DuplicateNormalizedText"
     | "PendingDrasticChange";
+export type SessionError = {
+    run_id: string;
+    phase: StartupPhase;
+    kind: SessionErrorKind;
+    details: string;
+};
+export type SessionErrorKind =
+    | "timeout"
+    | "cancelled"
+    | "busy"
+    | "unavailable"
+    | "failed";
+export type SessionRequest = { client_id: string; sequence: number };
+export type SessionReset = { revision: number };
 export type SettingsApplyPhase = "downloading" | "loading" | "applying";
 export type SettingsError = { kind: SettingsErrorKind; details: string };
 export type SettingsErrorKind =
     | "busy"
+    | "model_busy"
     | "running"
     | "invalid_device"
     | "invalid_value"
@@ -295,6 +315,12 @@ export type SettingsValues = {
     whisper_params: WhisperParams;
     advanced_settings: AdvancedSettings;
 };
+export type StartupPhase =
+    | "preparing"
+    | "waiting_for_previous_run"
+    | "waiting_for_model"
+    | "opening_device"
+    | "starting_stream";
 export type StateUpdate = {
     version: number | null;
     name: string;

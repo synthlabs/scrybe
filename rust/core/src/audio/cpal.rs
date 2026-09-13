@@ -1,13 +1,22 @@
 use super::{
-    mono_from_interleaved, resample_audio, AudioError, AudioErrorKind, FailureHandler,
-    WHISPER_SAMPLE_RATE,
+    check_startup, mono_from_interleaved, resample_audio, AudioError, AudioErrorKind, Cancellation,
+    FailureHandler, WHISPER_SAMPLE_RATE,
 };
 use crate::devices::{AudioDevice, AudioDeviceOption, AudioSourceKind, DEFAULT_OUTPUT_ID};
 use anyhow::anyhow;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, FromSample, Host, Sample, Stream, SupportedStreamConfig};
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{atomic::Ordering, Arc, Mutex},
+    time::Instant,
+};
 use tracing::{debug, info};
+
+pub(super) fn capture_error(error: anyhow::Error) -> AudioError {
+    error
+        .downcast::<AudioError>()
+        .unwrap_or_else(|error| AudioError::new(AudioErrorKind::StreamFailed, error.to_string()))
+}
 
 fn is_default_audio_device_id(id: &str) -> bool {
     id.is_empty()
@@ -114,9 +123,13 @@ impl CpalAudioManager {
     pub fn new(
         buffer: Arc<Mutex<Vec<f32>>>,
         device: AudioDevice,
+        cancelled: Cancellation,
         on_error: FailureHandler,
+        deadline: Instant,
     ) -> Result<Self, anyhow::Error> {
+        check_startup(&cancelled, deadline)?;
         let raw_device = get_raw_device(device.id)?;
+        check_startup(&cancelled, deadline)?;
         debug!("input device: {:?}", raw_device.description()?);
 
         let host = cpal::default_host();
@@ -133,6 +146,7 @@ impl CpalAudioManager {
             }
         };
 
+        check_startup(&cancelled, deadline)?;
         debug!("stream config: {:?}", config);
 
         let err_fn = move |err: cpal::StreamError| {
@@ -149,7 +163,13 @@ impl CpalAudioManager {
             cpal::SampleFormat::I8 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
-                    Self::write_input_data::<i8, i8>(data, buffer.clone(), sample_rate, channels)
+                    Self::write_input_data::<i8, i8>(
+                        data,
+                        buffer.clone(),
+                        sample_rate,
+                        channels,
+                        &cancelled,
+                    )
                 },
                 err_fn,
                 None,
@@ -157,7 +177,13 @@ impl CpalAudioManager {
             cpal::SampleFormat::I16 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
-                    Self::write_input_data::<i16, i16>(data, buffer.clone(), sample_rate, channels)
+                    Self::write_input_data::<i16, i16>(
+                        data,
+                        buffer.clone(),
+                        sample_rate,
+                        channels,
+                        &cancelled,
+                    )
                 },
                 err_fn,
                 None,
@@ -165,7 +191,13 @@ impl CpalAudioManager {
             cpal::SampleFormat::I32 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
-                    Self::write_input_data::<i32, i32>(data, buffer.clone(), sample_rate, channels)
+                    Self::write_input_data::<i32, i32>(
+                        data,
+                        buffer.clone(),
+                        sample_rate,
+                        channels,
+                        &cancelled,
+                    )
                 },
                 err_fn,
                 None,
@@ -173,7 +205,13 @@ impl CpalAudioManager {
             cpal::SampleFormat::F32 => raw_device.build_input_stream(
                 &config.clone().into(),
                 move |data, _: &_| {
-                    Self::write_input_data::<f32, f32>(data, buffer.clone(), sample_rate, channels)
+                    Self::write_input_data::<f32, f32>(
+                        data,
+                        buffer.clone(),
+                        sample_rate,
+                        channels,
+                        &cancelled,
+                    )
                 },
                 err_fn,
                 None,
@@ -204,10 +242,14 @@ impl CpalAudioManager {
         buffer: Arc<Mutex<Vec<f32>>>,
         sample_rate: u32,
         channels: u16,
+        cancelled: &Cancellation,
     ) where
         T: Sample,
         U: Sample + hound::Sample + FromSample<T>,
     {
+        if cancelled.load(Ordering::Acquire) {
+            return;
+        }
         // Convert the input samples to f32
         let samples: Vec<f32> = input
             .iter()
@@ -223,7 +265,9 @@ impl CpalAudioManager {
         }
 
         if let Ok(mut guard) = buffer.lock() {
-            guard.append(&mut resampled_audio);
+            if !cancelled.load(Ordering::Acquire) {
+                guard.append(&mut resampled_audio);
+            }
         }
     }
 
@@ -242,5 +286,24 @@ impl CpalAudioManager {
             bits_per_sample: (config.sample_format().sample_size() * 8) as _,
             sample_format: Self::_sample_format(config.sample_format()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn startup_error_kinds_survive_the_native_backend_boundary() {
+        for kind in [AudioErrorKind::Timeout, AudioErrorKind::Cancelled] {
+            assert_eq!(
+                capture_error(AudioError::new(kind, "startup").into()).kind,
+                kind
+            );
+        }
+        assert_eq!(
+            capture_error(anyhow!("native failure")).kind,
+            AudioErrorKind::StreamFailed
+        );
     }
 }

@@ -5,6 +5,13 @@ class Session {
     segments_by_id = new SvelteMap<string, WhisperSegment>();
     current_segment_id = $state<string | null>(null);
     started_at = $state<number | null>(null);
+    private reset_revision = 0;
+
+    reset(revision: number): void {
+        if (revision <= this.reset_revision) return;
+        this.reset_revision = revision;
+        this.clear();
+    }
 
     get segments(): WhisperSegment[] {
         return [...this.segments_by_id.values()].sort(

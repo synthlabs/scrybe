@@ -8,8 +8,8 @@ use tauri_plugin_store::StoreExt;
 use crate::{
     create_whisper_manager, download_preset_file, download_vad_model, has_nvidia_gpu,
     types::{AdvancedSettings, AppState},
-    InternalState, RuntimeDependencyState, SharedWhisperManager, StateSyncer, StateSyncerConfig,
-    VadRuntimeState, WebsocketManager, WhisperManager,
+    InternalState, RuntimeDependencyState, SessionRuntime, SharedWhisperManager, StateSyncer,
+    StateSyncerConfig, VadRuntimeState, WebsocketManager, WhisperManager,
 };
 
 #[derive(Default)]
@@ -78,6 +78,7 @@ pub struct SettingsRequest {
 #[serde(rename_all = "snake_case")]
 pub enum SettingsErrorKind {
     Busy,
+    ModelBusy,
     Running,
     InvalidDevice,
     InvalidValue,
@@ -192,6 +193,17 @@ fn prepare_model(app: &AppHandle, path: &str) -> Result<PreparedModel, SettingsE
     }
 }
 
+fn try_settings_manager<T>(
+    manager: &Mutex<T>,
+) -> Result<std::sync::MutexGuard<'_, T>, SettingsError> {
+    manager.try_lock().map_err(|_| {
+        SettingsError::new(
+            SettingsErrorKind::ModelBusy,
+            "The transcription model is still busy. Try again, or restart Scrybe if it continues.",
+        )
+    })
+}
+
 fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapshot, SettingsError> {
     let runtime = app.state::<SettingsRuntime>();
     let _operation = runtime.operation.try_lock().map_err(|_| {
@@ -220,6 +232,12 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
                 )
             })?
             .into();
+    }
+    if request.model.is_some() && app.state::<SessionRuntime>().has_worker() && !running {
+        return Err(SettingsError::new(
+            SettingsErrorKind::ModelBusy,
+            "The previous session is still stopping. Try again, or restart Scrybe if it continues.",
+        ));
     }
     let prepared = prepare_change(
         request,
@@ -256,6 +274,22 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
         |path| prepare_model(app, path),
     )?;
 
+    let manager = app.state::<SharedWhisperManager>();
+    let needs_manager = prepared.model.is_some()
+        || prepared
+            .snapshot
+            .values
+            .advanced_settings
+            .hallucination_protection_enabled
+            != current
+                .values
+                .advanced_settings
+                .hallucination_protection_enabled;
+    let mut manager_guard = if needs_manager {
+        Some(try_settings_manager(&manager)?)
+    } else {
+        None
+    };
     progress(app, SettingsApplyPhase::Applying);
     let _commit = runtime.commit.lock().unwrap();
     let previous = syncer.snapshot::<AppState>("app_state");
@@ -271,19 +305,19 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
         return Err(SettingsError::new(SettingsErrorKind::Save, error));
     }
 
-    let manager = app.state::<SharedWhisperManager>();
+    let mut retired_manager = None;
     let mut next_runtime = None;
     let mut next_vad = None;
     if let Some(model) = prepared.model {
-        *manager.lock().unwrap() = Some(model.manager);
+        retired_manager = manager_guard.as_mut().unwrap().replace(model.manager);
         next_runtime = Some(model.runtime);
         next_vad = Some(model.vad);
     } else if next.advanced_settings.hallucination_protection_enabled
         != previous.advanced_settings.hallucination_protection_enabled
     {
         next_vad = Some(
-            if manager
-                .lock()
+            if manager_guard
+                .as_ref()
                 .unwrap()
                 .as_ref()
                 .is_some_and(WhisperManager::vad_available)
@@ -296,6 +330,12 @@ fn apply(app: &AppHandle, mut request: SettingsRequest) -> Result<SettingsSnapsh
     }
     if !next.advanced_settings.hallucination_protection_enabled {
         next_vad = Some(VadRuntimeState::disabled());
+    }
+    drop(manager_guard);
+    if let Some(retired) = retired_manager {
+        let _ = std::thread::Builder::new()
+            .name("scrybe-model-cleanup".into())
+            .spawn(move || drop(retired));
     }
     let ws = app.state::<WebsocketManager>();
     syncer.update("app_state", next.clone(), true);
@@ -340,6 +380,17 @@ pub async fn apply_settings(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn occupied_model_rejects_settings_without_waiting_or_mutating() {
+        let manager = Mutex::new(7);
+        let guard = manager.lock().unwrap();
+        let error = try_settings_manager(&manager).unwrap_err();
+        assert!(matches!(error.kind, SettingsErrorKind::ModelBusy));
+        assert_eq!(*guard, 7);
+        drop(guard);
+        assert_eq!(*try_settings_manager(&manager).unwrap(), 7);
+    }
 
     fn current() -> SettingsSnapshot {
         SettingsSnapshot::from(&AppState {

@@ -64,7 +64,97 @@ for (const locale of ["en", "ru"]) {
             assert.equal(presentation.source, `home.${action}`);
         }
         showHomeActionError("start", "Audio capture was cancelled.");
+        showHomeActionError("start", { kind: "cancelled", details: "Stopped" });
         assert.equal(calls.length, 4);
+    });
+
+    test(`${locale}: startup failures preserve phase recovery and report diagnostics`, () => {
+        const messages = JSON.parse(
+            readFileSync(
+                new URL(`../../messages/${locale}.json`, import.meta.url),
+                "utf8",
+            ),
+        );
+        const { ErrorController } = load(
+            "../../utils/js/inbound/controller.ts",
+            {},
+        );
+        const logs = [];
+        const controller = new ErrorController({
+            log: (error) => logs.push(error),
+        });
+        const { showSessionStartError } = load("../../src/lib/home-errors.ts", {
+            "$lib/paraglide/messages": {
+                m: Object.fromEntries(
+                    Object.entries(messages).map(([key, value]) => [
+                        key,
+                        () => value,
+                    ]),
+                ),
+            },
+            "$lib/errors": {
+                notifyError: (error, presentation) =>
+                    controller.capture(error, presentation),
+            },
+        });
+        const phases = {
+            preparing: "home_error_start_timeout_recovery",
+            waiting_for_previous_run: "home_error_previous_session_recovery",
+            waiting_for_model: "home_error_model_busy_recovery",
+            opening_device: "home_error_start_timeout_recovery",
+            starting_stream: "home_error_start_timeout_recovery",
+        };
+        for (const [phase, recovery] of Object.entries(phases)) {
+            const failure = {
+                run_id: `run-${phase}`,
+                phase,
+                kind: "timeout",
+                details: "Private native diagnostic",
+            };
+            const incident = showSessionStartError(failure);
+            assert.equal(incident.source, "home.start");
+            assert.equal(incident.title(), messages.home_error_start_timeout);
+            assert.equal(incident.recovery(), messages[recovery]);
+            assert.deepEqual(JSON.parse(incident.error.message), failure);
+            assert.equal(controller.snapshot().notifications.length, 1);
+            assert.equal(controller.snapshot().notifications[0].count, 1);
+            controller.openReport(incident);
+            assert.deepEqual(
+                JSON.parse(controller.snapshot().report.error.message),
+                failure,
+            );
+            controller.closeReport();
+        }
+        for (const kind of ["busy", "unavailable", "failed"]) {
+            const failure = {
+                run_id: `run-${kind}`,
+                phase: "preparing",
+                kind,
+                details: "Unavailable",
+            };
+            const incident = showSessionStartError(failure);
+            assert.equal(incident.title(), messages.home_error_start);
+            assert.equal(
+                incident.recovery(),
+                messages.home_error_start_recovery,
+            );
+            assert.deepEqual(JSON.parse(incident.error.message), failure);
+            controller.dismiss(incident.id);
+        }
+        const count = logs.length;
+        showSessionStartError({
+            run_id: "cancelled",
+            phase: "opening_device",
+            kind: "cancelled",
+            details: "Stopped",
+        });
+        showSessionStartError("Audio capture was cancelled.");
+        assert.equal(
+            logs.length,
+            count,
+            "Cancellation must not enter error capture or handled error logging",
+        );
+        assert.equal(controller.snapshot().notifications.length, 0);
     });
 }
 

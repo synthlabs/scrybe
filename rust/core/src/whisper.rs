@@ -1,5 +1,10 @@
 #[cfg(feature = "whisper-runtime")]
-use std::time::{Instant, SystemTime};
+use crate::audio::Cancellation;
+#[cfg(feature = "whisper-runtime")]
+use std::{
+    sync::atomic::Ordering,
+    time::{Instant, SystemTime},
+};
 
 #[cfg(feature = "whisper-runtime")]
 use tracing::debug;
@@ -11,6 +16,23 @@ use whisper_rs::{
 
 #[cfg(feature = "whisper-runtime")]
 use crate::audio::WHISPER_SAMPLE_RATE;
+
+#[cfg(feature = "whisper-runtime")]
+fn is_cancelled(cancelled: Option<&Cancellation>) -> bool {
+    cancelled.is_some_and(|cancelled| cancelled.load(Ordering::Acquire))
+}
+
+#[cfg(feature = "whisper-runtime")]
+unsafe extern "C" fn abort_inference(data: *mut std::ffi::c_void) -> bool {
+    // Installed only with a live AtomicBool; the callback does not access Whisper state.
+    let cancelled =
+        unsafe { &*data.cast::<std::sync::atomic::AtomicBool>() }.load(Ordering::Acquire);
+    #[cfg(test)]
+    if cancelled {
+        cancellation_tests::NATIVE_ABORT_OBSERVED.store(true, Ordering::Release);
+    }
+    cancelled
+}
 
 const VAD_MIN_SPEECH_DURATION_MS: i32 = 250;
 const VAD_MIN_SILENCE_DURATION_MS: i32 = 100;
@@ -212,6 +234,30 @@ impl WhisperManager {
         params: WhisperParams,
         protection: HallucinationProtectionConfig,
     ) -> Result<WhisperProcessResult, anyhow::Error> {
+        self.process_samples_inner(samples, params, protection, None)
+            .map(|result| result.expect("non-cancellable inference cannot be cancelled"))
+    }
+
+    pub fn process_samples_with_protection_cancellable(
+        &mut self,
+        samples: Vec<f32>,
+        params: WhisperParams,
+        protection: HallucinationProtectionConfig,
+        cancelled: &Cancellation,
+    ) -> Result<Option<WhisperProcessResult>, anyhow::Error> {
+        self.process_samples_inner(samples, params, protection, Some(cancelled))
+    }
+
+    fn process_samples_inner(
+        &mut self,
+        samples: Vec<f32>,
+        params: WhisperParams,
+        protection: HallucinationProtectionConfig,
+        cancelled: Option<&Cancellation>,
+    ) -> Result<Option<WhisperProcessResult>, anyhow::Error> {
+        if is_cancelled(cancelled) {
+            return Ok(None);
+        }
         let mut evidence = WhisperProcessEvidence {
             protection_enabled: protection.enabled,
             vad_available: self.vad_ctx.is_some(),
@@ -235,10 +281,10 @@ impl WhisperManager {
                     evidence.vad_ms = elapsed_ms(vad_started.elapsed());
                     evidence.vad_speech_detected = Some(false);
                     evidence.vad_speech_ratio = Some(0.0);
-                    return Ok(WhisperProcessResult {
+                    return Ok((!is_cancelled(cancelled)).then_some(WhisperProcessResult {
                         items: Vec::new(),
                         evidence,
-                    });
+                    }));
                 }
                 Ok(None) => (samples, Vec::new()),
                 Err(err) => {
@@ -252,14 +298,20 @@ impl WhisperManager {
             (samples, Vec::new())
         };
 
+        if is_cancelled(cancelled) {
+            return Ok(None);
+        }
         let whisper_started = Instant::now();
-        let (items, no_speech_probability) =
-            self.transcribe_samples(&inference_samples, params, &mapping)?;
+        let result = self.transcribe_samples(&inference_samples, params, &mapping, cancelled);
+        if is_cancelled(cancelled) {
+            return Ok(None);
+        }
+        let (items, no_speech_probability) = result?;
         evidence.whisper_ms = elapsed_ms(whisper_started.elapsed());
         evidence.whisper_ran = true;
         evidence.no_speech_probability = no_speech_probability;
 
-        Ok(WhisperProcessResult { items, evidence })
+        Ok(Some(WhisperProcessResult { items, evidence }))
     }
 
     fn transcribe_samples(
@@ -267,8 +319,18 @@ impl WhisperManager {
         samples: &[f32],
         params: WhisperParams,
         mapping: &[VadTimeMapping],
+        cancelled: Option<&Cancellation>,
     ) -> Result<(Vec<WhisperText>, Option<f32>), anyhow::Error> {
         let mut full_params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        if let Some(cancelled) = cancelled {
+            // The borrowed Arc keeps this atomic alive until the synchronous native call returns.
+            unsafe {
+                full_params.set_abort_callback(Some(abort_inference));
+                full_params.set_abort_callback_user_data(
+                    std::sync::Arc::as_ptr(cancelled).cast_mut().cast(),
+                );
+            }
+        }
 
         debug!("params: {:#?}", params);
 
@@ -289,7 +351,13 @@ impl WhisperManager {
         let start = SystemTime::now();
 
         let mut state = self.ctx.create_state().expect("failed to create state");
+        if is_cancelled(cancelled) {
+            return Ok((Vec::new(), None));
+        }
         state.full(full_params, samples)?;
+        if is_cancelled(cancelled) {
+            return Ok((Vec::new(), None));
+        }
         let detected_language =
             whisper_rs::get_lang_str(state.full_lang_id_from_state()).map(str::to_owned);
 
@@ -570,5 +638,78 @@ mod compatibility_tests {
         let restored: WhisperSegment = serde_json::from_str(&wire).unwrap();
         assert_eq!(restored.items[0].detected_language.as_deref(), Some("ru"));
         assert_eq!(restored.items[0].text, "Привет");
+    }
+}
+
+#[cfg(all(test, feature = "whisper-runtime"))]
+mod cancellation_tests {
+    use super::*;
+    use std::sync::{atomic::AtomicBool, Arc};
+
+    pub(super) static NATIVE_ABORT_OBSERVED: AtomicBool = AtomicBool::new(false);
+
+    #[test]
+    #[ignore = "requires SCRYBE_TEST_MODEL; run scripts/session-inference-cancel.py"]
+    fn native_inference_stops_after_cancellation() {
+        let model =
+            std::env::var("SCRYBE_TEST_MODEL").expect("Set SCRYBE_TEST_MODEL to a local model");
+        let mut manager = WhisperManager::new(&model, false).unwrap();
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/transcription/basic_en_short.wav");
+        let mut reader = hound::WavReader::open(fixture).unwrap();
+        let sample_rate = reader.spec().sample_rate;
+        assert_eq!(reader.spec().channels, 1);
+        let speech: Vec<f32> = reader
+            .samples::<i16>()
+            .map(|sample| sample.unwrap() as f32 / i16::MAX as f32)
+            .collect();
+        let speech = crate::audio::resample_audio(&speech, sample_rate, WHISPER_SAMPLE_RATE, 1);
+        let samples = speech
+            .iter()
+            .copied()
+            .cycle()
+            .take(30 * WHISPER_SAMPLE_RATE as usize)
+            .collect();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let signal = cancelled.clone();
+        NATIVE_ABORT_OBSERVED.store(false, Ordering::Release);
+        let cancel = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            let at = Instant::now();
+            signal.store(true, Ordering::Release);
+            at
+        });
+        let result = manager.process_samples_with_protection_cancellable(
+            samples,
+            WhisperParams::default(),
+            HallucinationProtectionConfig {
+                enabled: false,
+                ..Default::default()
+            },
+            &cancelled,
+        );
+        let returned = Instant::now();
+        let elapsed = returned.saturating_duration_since(cancel.join().unwrap());
+        assert!(
+            NATIVE_ABORT_OBSERVED.load(Ordering::Acquire),
+            "Native inference did not observe cancellation"
+        );
+        assert!(
+            result.unwrap().is_none(),
+            "Cancelled inference returned captions"
+        );
+        println!("Native inference cancelled in {elapsed:?}; no captions returned");
+    }
+
+    #[test]
+    fn native_abort_callback_observes_cancellation_without_owning_the_token() {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let data = Arc::as_ptr(&cancelled).cast_mut().cast();
+        assert!(!unsafe { abort_inference(data) });
+        cancelled.store(true, Ordering::Release);
+        assert!(unsafe { abort_inference(data) });
+        assert_eq!(Arc::strong_count(&cancelled), 1);
+        assert!(is_cancelled(Some(&cancelled)));
+        assert!(!is_cancelled(None));
     }
 }

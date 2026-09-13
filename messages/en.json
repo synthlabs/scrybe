@@ -215,7 +215,7 @@
     "home_help_gate_time": "Filtering time in milliseconds.",
     "home_error_start": "Could not start captions.",
     "home_error_stop": "Could not stop captions.",
-    "home_error_new_session": "Could not start a new session.",
+    "home_error_new_session": "Could not reset the session.",
     "home_error_copy": "Could not copy the transcript.",
     "home_error_start_recovery": "Try Start again.",
     "home_error_stop_recovery": "Try Stop again.",
@@ -398,5 +398,10 @@
     "inbound_not_provided": "(not provided)",
     "inbound_done_help": "Thanks. A private Discord thread was created for this report.",
     "inbound_load_failed": "Could not load report details. Try again.",
-    "inbound_technical_details": "Technical Details"
+    "inbound_technical_details": "Technical Details",
+    "home_error_start_timeout": "Captions did not start within 5 seconds.",
+    "home_error_start_timeout_recovery": "Check your audio source in Settings, then try Start again.",
+    "home_error_previous_session_recovery": "The previous session is still stopping. Try Start again, or restart Scrybe if it continues.",
+    "home_error_model_busy_recovery": "The transcription model is still busy. Try Start again, or restart Scrybe if it continues.",
+    "settings_error_model_busy": "Transcription is still busy. Try again, or restart Scrybe if it continues."
 }

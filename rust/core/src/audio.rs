@@ -3,6 +3,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
+use std::time::{Duration, Instant};
 
 // Keep the shared CPAL backend type-checked by Linux test runs.
 #[cfg(any(not(target_os = "linux"), test))]
@@ -12,6 +13,7 @@ mod cpal;
 mod pulse;
 
 pub const WHISPER_SAMPLE_RATE: u32 = 16_000;
+pub const CAPTURE_START_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub fn avg_threshold(samples: &[f32]) -> f32 {
     if samples.is_empty() {
@@ -115,6 +117,7 @@ pub struct AudioManager {
     #[cfg(not(target_os = "linux"))]
     backend: cpal::CpalAudioManager,
     cancelled: Cancellation,
+    deadline: Instant,
 }
 
 impl AudioManager {
@@ -136,32 +139,70 @@ impl AudioManager {
         cancelled: Cancellation,
         on_error: FailureHandler,
     ) -> Result<Self, AudioError> {
+        Self::new_with_deadline(
+            buffer,
+            device,
+            cancelled,
+            on_error,
+            Instant::now() + CAPTURE_START_TIMEOUT,
+        )
+    }
+
+    pub fn new_with_deadline(
+        buffer: Arc<Mutex<Vec<f32>>>,
+        device: AudioDevice,
+        cancelled: Cancellation,
+        on_error: FailureHandler,
+        deadline: Instant,
+    ) -> Result<Self, AudioError> {
+        check_startup(&cancelled, deadline)?;
         #[cfg(target_os = "linux")]
-        let backend = pulse::PulseCapture::new(buffer, device, cancelled.clone(), on_error)?;
+        let backend =
+            pulse::PulseCapture::new(buffer, device, cancelled.clone(), on_error, deadline)?;
         #[cfg(not(target_os = "linux"))]
-        let backend = cpal::CpalAudioManager::new(buffer, device, on_error)
-            .map_err(|e| AudioError::new(AudioErrorKind::StreamFailed, e.to_string()))?;
-        Ok(Self { backend, cancelled })
+        let backend =
+            cpal::CpalAudioManager::new(buffer, device, cancelled.clone(), on_error, deadline)
+                .map_err(cpal::capture_error)?;
+        let manager = Self {
+            backend,
+            cancelled,
+            deadline,
+        };
+        check_startup(&manager.cancelled, deadline)?;
+        Ok(manager)
     }
 
     pub fn play_stream(&mut self) -> Result<(), AudioError> {
-        if self.cancelled.load(Ordering::Acquire) {
-            return Err(AudioError::new(
-                AudioErrorKind::Cancelled,
-                "Audio capture was cancelled.",
-            ));
-        }
+        check_startup(&self.cancelled, self.deadline)?;
         #[cfg(target_os = "linux")]
         {
-            self.backend.play()
+            self.backend.play()?;
+            check_startup(&self.cancelled, self.deadline)
         }
         #[cfg(not(target_os = "linux"))]
         {
             self.backend
                 .play_stream()
-                .map_err(|e| AudioError::new(AudioErrorKind::StreamFailed, e.to_string()))
+                .map_err(|e| AudioError::new(AudioErrorKind::StreamFailed, e.to_string()))?;
+            check_startup(&self.cancelled, self.deadline)
         }
     }
+}
+
+fn check_startup(cancelled: &Cancellation, deadline: Instant) -> Result<(), AudioError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(AudioError::new(
+            AudioErrorKind::Cancelled,
+            "Audio capture was cancelled.",
+        ));
+    }
+    if Instant::now() >= deadline {
+        return Err(AudioError::new(
+            AudioErrorKind::Timeout,
+            "The audio stream did not start within five seconds.",
+        ));
+    }
+    Ok(())
 }
 
 impl Drop for AudioManager {
@@ -173,6 +214,25 @@ impl Drop for AudioManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn startup_checks_cancellation_and_an_absolute_deadline() {
+        let cancellation = Arc::new(AtomicBool::new(false));
+        assert!(check_startup(&cancellation, Instant::now() + CAPTURE_START_TIMEOUT).is_ok());
+        assert_eq!(
+            check_startup(&cancellation, Instant::now())
+                .unwrap_err()
+                .kind,
+            AudioErrorKind::Timeout
+        );
+        cancellation.store(true, Ordering::Release);
+        assert_eq!(
+            check_startup(&cancellation, Instant::now())
+                .unwrap_err()
+                .kind,
+            AudioErrorKind::Cancelled
+        );
+    }
 
     #[test]
     fn avg_threshold_is_zero_for_empty_samples() {

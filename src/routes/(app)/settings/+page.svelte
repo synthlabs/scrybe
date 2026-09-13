@@ -162,6 +162,7 @@
     ];
     const error_messages: Record<SettingsErrorKind, () => string> = {
         busy: msgs.settings_error_busy,
+        model_busy: msgs.settings_error_model_busy,
         running: msgs.settings_stop_first,
         invalid_device: msgs.settings_error_device,
         invalid_value: msgs.settings_error_value,

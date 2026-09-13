@@ -5,33 +5,15 @@
     import Eraser from "@lucide/svelte/icons/eraser";
     import PanelRightClose from "@lucide/svelte/icons/panel-right-close";
     import PanelRightOpen from "@lucide/svelte/icons/panel-right-open";
-    import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
     import { showHomeActionError } from "$lib/home-errors";
     import { m as msgs } from "$lib/paraglide/messages";
     import { session, flat_text } from "$lib/stores/session.svelte";
-    import { app_state, internal_state } from "$lib/stores/state.svelte";
-    import { settings_editor } from "$lib/stores/settings-editor.svelte";
+    import { app_state } from "$lib/stores/state.svelte";
+    import { session_actions } from "$lib/stores/session-actions.svelte";
 
-    let listening = $derived(internal_state.obj.transcribe_running);
     let transcript_empty = $derived(session.segments.length === 0);
     let details_open = $derived(app_state.obj.home_right_rail.open);
-    let busy = $state(false);
-
-    const new_session = async () => {
-        if (busy) return;
-        busy = true;
-        try {
-            if (listening) await invoke("stop_transcribe");
-            session.clear();
-            await invoke("start_transcribe");
-        } catch (e) {
-            showHomeActionError("new_session", e);
-        } finally {
-            setTimeout(() => (busy = false), 600);
-        }
-    };
-
     const copy = async () => {
         const text = flat_text(session.segments);
         if (!text) return;
@@ -70,9 +52,9 @@
     <Button
         variant="ghost"
         size="sm"
-        onclick={new_session}
-        disabled={busy || settings_editor.busy}
-        aria-busy={busy}
+        onclick={() => session_actions.reset()}
+        disabled={session_actions.stopping}
+        aria-busy={session_actions.pending === "reset"}
         class="text-muted-foreground hover:text-foreground px-2"
     >
         <Plus class="size-4" />

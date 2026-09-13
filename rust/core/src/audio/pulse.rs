@@ -294,8 +294,8 @@ impl PulseCapture {
         device: AudioDevice,
         cancelled: Cancellation,
         on_error: FailureHandler,
+        deadline: Instant,
     ) -> Result<Self, AudioError> {
-        let deadline = Instant::now() + TIMEOUT;
         let (ready_tx, ready_rx) = mpsc::channel();
         let (play, commands) = mpsc::channel();
         let cancel = cancelled.clone();

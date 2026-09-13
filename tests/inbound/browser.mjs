@@ -232,6 +232,9 @@ try {
         const callbacks = new Map(), listeners = new Map(); let sequence = 0;
         window.fixtureBoot = Math.random();
         window.submissions=[]; window.nativeSequence=1;
+        window.starts=[]; window.resetRevision=0;
+        window.idleSession=()=>{const state=window.fixtureStates.internal_state.obj;state.transcribe_running=false;state.transcribe_starting=false;state.active_transcription_run_id=null;};
+        window.completeStart=(index,error)=>{const start=window.starts[index];if(window.fixtureStates.internal_state.obj.active_transcription_run_id===start.id)window.idleSession();error?start.reject(error):start.resolve();};
         window.initialCapture={id:'1',error:{kind:'error',message:'Startup diagnostic',target:'startup',timestamp:'1'}}; window.calls = []; window.applied = JSON.parse(localStorage.getItem('fixture-settings') || 'null');
         window.fixtureDevices = Array.from({length: 45}, (_,index) => ({id:'mic-'+index,name:index === 0 ? 'Studio Microphone' : 'Audio source '+index+' — long USB audio device name',kind:index < 25 ? 'input' : 'output',is_default:false}));
         window.fixtureDevices.unshift({id:'',name:'Studio Microphone',kind:'input',is_default:true},{id:'default:output',name:'Speakers',kind:'output',is_default:true});
@@ -246,7 +249,7 @@ try {
             unregisterCallback(id){callbacks.delete(id);},
             async invoke(command,args){
                 window.calls.push({command,args});
-                if(command === window.fixtureFailure) throw {kind:window.fixtureErrorKind || 'model_load',details:'Fixture failure'};
+                if(command === window.fixtureFailure) throw window.fixtureError ?? {kind:window.fixtureErrorKind || 'model_load',details:'Fixture failure'};
                 if(command === 'plugin:event|listen'){listeners.set(args.handler,args.event);return args.handler;}
                 if(command === 'plugin:event|unlisten'){listeners.delete(args.eventId);return null;}
                 if(command === 'plugin:updater|check') return null;
@@ -288,8 +291,13 @@ try {
                 if(command === 'update_state'){
                     window.fixtureStates.app_state.obj=JSON.parse(args.state.value); return true;
                 }
-                if(command === 'start_transcribe'){window.fixtureStates.internal_state.obj.transcribe_running=true;return null;}
-                if(command === 'stop_transcribe'){window.fixtureStates.internal_state.obj.transcribe_running=false;window.fixtureStates.internal_state.obj.transcribe_starting=false;return null;}
+                if(command === 'start_transcribe'){
+                    const state=window.fixtureStates.internal_state.obj;
+                    if(window.deferStart){const id='run-'+window.starts.length;state.transcribe_starting=true;state.active_transcription_run_id=id;return new Promise((resolve,reject)=>window.starts.push({id,resolve,reject}));}
+                    state.transcribe_running=true;state.transcribe_starting=false;return null;
+                }
+                if(command === 'stop_transcribe'){window.idleSession();return null;}
+                if(command === 'new_session'){window.idleSession();const reset={revision:++window.resetRevision};window.sendFixtureEvent('session_reset',reset);return reset;}
                 return null;
             }
         };
@@ -402,6 +410,148 @@ try {
         false,
     );
     await clearNotifications();
+
+    await evaluate(
+        `(async()=>{window.sessionActions=(await import('/src/lib/stores/session-actions.svelte.ts')).session_actions;window.deferStart=true})()`,
+    );
+    const startReady = () =>
+        evaluate(
+            `!window.sessionActions.pending && !document.querySelector('button[aria-label="Start"]')?.disabled`,
+        );
+    await click('button[aria-label="Start"]');
+    await until(
+        () =>
+            evaluate(
+                `window.starts.length===1 && !!document.querySelector('button[aria-label="Cancel"]:not(:disabled)')`,
+            ),
+        "Start could not be cancelled",
+    );
+    await click('button[aria-label="Cancel"]');
+    await until(startReady, "Cancel did not release Start");
+    await click('button[aria-label="Start"]');
+    await until(
+        () => evaluate(`window.starts.length===2`),
+        "Manual retry did not start",
+    );
+    await evaluate(
+        `window.completeStart(0,{run_id:'run-0',phase:'opening_device',kind:'timeout',details:'Stale failure'})`,
+    );
+    await delay(150);
+    assert.equal(
+        await notificationCount(),
+        0,
+        "A superseded attempt must not be captured",
+    );
+    assert.equal(await evaluate(`window.sessionActions.pending`), "start");
+    const timeout = {
+        run_id: "run-1",
+        phase: "waiting_for_previous_run",
+        kind: "timeout",
+        details: "Previous worker did not finish",
+    };
+    await evaluate(`window.completeStart(1,${JSON.stringify(timeout)})`);
+    await until(startReady, "Timeout did not release Start");
+    await until(
+        async () => (await notificationCount()) === 1,
+        "Timeout notification missing",
+    );
+    await delay(250);
+    assert.equal(await notificationCount(), 1, "Timeout was captured twice");
+    assert.equal(
+        await evaluate(
+            `window.errorModule.errors.snapshot().notifications[0].count`,
+        ),
+        1,
+    );
+    assert.equal(
+        await evaluate(
+            `document.querySelector('[data-inbound-toast]').textContent.includes('The previous session is still stopping.')`,
+        ),
+        true,
+    );
+    assert.equal(
+        await evaluate(
+            `document.querySelector('[data-inbound-toast]').textContent.includes('Previous worker did not finish')`,
+        ),
+        false,
+    );
+    assert.equal(
+        await evaluate(
+            `window.calls.filter(c=>c.command==='plugin:log|log' && c.args.level===5).every(c=>c.args.keyValues?.['inbound.handled']==='true')`,
+        ),
+        true,
+    );
+    await reportToast();
+    await advanceTo("error");
+    assert.deepEqual(
+        JSON.parse(
+            await evaluate(
+                `window.errorModule.errors.snapshot().report.error.message`,
+            ),
+        ),
+        timeout,
+    );
+    assert.equal(
+        await evaluate(
+            `document.querySelector('[data-inbound-preview]').textContent.includes('waiting_for_previous_run')`,
+        ),
+        true,
+    );
+    await emit(
+        "session-later",
+        "Later failure must not replace the selected timeout",
+    );
+    assert.deepEqual(
+        JSON.parse(
+            await evaluate(
+                `window.errorModule.errors.snapshot().report.error.message`,
+            ),
+        ),
+        timeout,
+    );
+    await screenshot("session-timeout-report");
+    await closeReport();
+    await clearNotifications();
+    const errorLogsBeforeCancellation = await evaluate(
+        `window.calls.filter(c=>c.command==='plugin:log|log' && c.args.level===5).length`,
+    );
+    await click('button[aria-label="Start"]');
+    await until(
+        () => evaluate(`window.starts.length===3`),
+        "Cancellation fixture did not start",
+    );
+    await evaluate(
+        `window.completeStart(2,{run_id:'run-2',phase:'opening_device',kind:'cancelled',details:'Cancelled'})`,
+    );
+    await until(startReady, "Cancelled result did not release Start");
+    assert.equal(await notificationCount(), 0);
+    assert.equal(
+        await evaluate(
+            `window.calls.filter(c=>c.command==='plugin:log|log' && c.args.level===5).length`,
+        ),
+        errorLogsBeforeCancellation,
+    );
+    await click('button[aria-label="Start"]');
+    await until(
+        () => evaluate(`window.starts.length===4`),
+        "Reset fixture did not start",
+    );
+    await evaluate(`window.sessionActions.reset()`);
+    await until(startReady, "Reset did not release Start");
+    await evaluate(
+        `window.completeStart(3,{run_id:'run-3',phase:'opening_device',kind:'failed',details:'Late reset failure'});window.deferStart=false`,
+    );
+    await delay(150);
+    assert.equal(
+        await notificationCount(),
+        0,
+        "Reset attempt emitted a stale notification",
+    );
+    assert.equal(
+        await evaluate(`window.starts.length`),
+        4,
+        "New Session must remain idle",
+    );
 
     // A caught action logs its diagnostics without creating a second toast.
     await evaluate(`window.fixtureFailure='start_transcribe'`);
@@ -521,16 +671,45 @@ try {
     await closeReport();
 
     // Settings errors keep their inline recovery and open the same report host.
+    const savedSettings = await evaluate(
+        `JSON.stringify(window.fixtureStates.app_state.obj)`,
+    );
     await evaluate(
-        `(async()=>{window.fixtureFailure='apply_settings';window.settingsModule.settings_editor.edit({...window.settingsModule.settings_editor.values,audio_segment_size:22});await window.settingsModule.settings_editor.apply()})()`,
+        `(async()=>{window.fixtureFailure='apply_settings';window.fixtureErrorKind='model_busy';window.settingsModule.settings_editor.edit({...window.settingsModule.settings_editor.values,audio_segment_size:22});await window.settingsModule.settings_editor.apply()})()`,
     );
     assert.equal(await notificationCount(), 0);
+    assert.equal(
+        await evaluate(`window.settingsModule.settings_editor.busy`),
+        false,
+    );
+    assert.equal(
+        await evaluate(`window.settingsModule.settings_editor.dirty`),
+        true,
+    );
+    assert.equal(
+        await evaluate(`JSON.stringify(window.fixtureStates.app_state.obj)`),
+        savedSettings,
+    );
+    assert.equal(
+        await evaluate(
+            `document.querySelector('[data-settings-error]').textContent.includes('Transcription is still busy.')`,
+        ),
+        true,
+    );
     await click("[data-settings-error] button");
     assert.equal(
         await evaluate(
             `window.errorModule.errors.snapshot().report.error.target`,
         ),
         "settings.apply",
+    );
+    assert.equal(
+        JSON.parse(
+            await evaluate(
+                `window.errorModule.errors.snapshot().report.error.message`,
+            ),
+        ).kind,
+        "model_busy",
     );
     await closeReport();
     assert.equal(
@@ -541,7 +720,7 @@ try {
         "Focus should return to inline report action",
     );
     await evaluate(
-        `window.fixtureFailure=undefined;window.settingsModule.settings_editor.discard()`,
+        `window.fixtureFailure=undefined;window.fixtureErrorKind=undefined;window.settingsModule.settings_editor.discard()`,
     );
     await click("#settings-report");
     assert.equal(

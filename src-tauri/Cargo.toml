@@ -58,7 +58,7 @@ version = "=2.0.0-rc.21"
 [dependencies.tauri-svelte-synced-store]
 git = "https://github.com/synthlabs/tauri-svelte-synced-store.git"
 [dependencies.tokio]
-features = ["macros", "sync", "rt-multi-thread"]
+features = ["macros", "sync", "rt-multi-thread", "time"]
 version = "1.42.0"
 [dependencies.tracing]
 features = ["log"]
@@ -74,6 +74,7 @@ required-features = ["gen_bindings"]
 [features]
 cuda = ["scrybe_core/cuda"]
 gen_bindings = []
+session-test-hooks = []
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]

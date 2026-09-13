@@ -12,7 +12,11 @@
     import { updaterError } from "$lib/errors";
     import { m as msgs } from "$lib/paraglide/messages";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import type { WhisperSegment, AudioCaptureFailure } from "$lib/bindings";
+    import type {
+        WhisperSegment,
+        AudioCaptureFailure,
+        SessionReset,
+    } from "$lib/bindings";
 
     import { showActionError } from "$lib/home-errors";
     import StatusPill from "$lib/components/header/status-pill.svelte";
@@ -50,12 +54,20 @@
         app_state.sync();
     }
 
+    let unsub_reset: UnlistenFn | undefined;
     let unsub_audio: UnlistenFn | undefined;
     let disposed = false;
     const failed_runs = new Set<string>();
     let unsub_segment: UnlistenFn | undefined;
 
     onMount(async () => {
+        unsub_reset = await listen<SessionReset>("session_reset", (event) =>
+            session.reset(event.payload.revision),
+        );
+        if (disposed) {
+            unsub_reset();
+            return;
+        }
         unsub_audio = await listen<AudioCaptureFailure>(
             "audio_capture_failed",
             (event) => {
@@ -119,6 +131,7 @@
     onDestroy(() => {
         disposed = true;
         unsub_audio?.();
+        unsub_reset?.();
         unsub_segment?.();
     });
 

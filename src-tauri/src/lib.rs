@@ -3,7 +3,7 @@ use hf_hub::api::sync::Api;
 use overlay::{start_overlay_test, stop_overlay_test, update_overlay_test, OverlayTestState};
 use rust_embed::RustEmbed;
 use scrybe_core::{
-    audio::{self, AudioError, AudioManager, Cancellation},
+    audio::{self, AudioError, AudioManager},
     devices::AudioDeviceOption,
     metrics::{rms_level, AudioMetricsState, InferenceTimingStats},
     segments::{
@@ -17,15 +17,12 @@ use specta_typescript::Typescript;
 use std::{
     collections::HashMap,
     env,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
-use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_specta::collect_commands;
 use tauri_svelte_synced_store::{StateSyncer, StateSyncerConfig};
 use tracing::{debug, error, info};
@@ -35,6 +32,11 @@ use ws::WebsocketManager;
 
 mod internal;
 mod model_selection;
+mod session;
+use session::{
+    RunControl, SessionError, SessionErrorKind, SessionRequest, SessionReset, SessionRuntime,
+    StartupPhase, START_POLL, START_TIMEOUT,
+};
 mod settings;
 use settings::{apply_settings, SettingsRuntime, SettingsValues};
 mod types;
@@ -219,16 +221,7 @@ impl InternalState {
         (self.transcribe_running || self.transcribe_starting)
             && self.active_transcription_run_id.as_deref() == Some(run_id)
     }
-
-    fn clear_transcription_run_if_current(&mut self, run_id: &str) {
-        if self.active_transcription_run_id.as_deref() == Some(run_id) {
-            self.stop_transcription();
-        }
-    }
 }
-
-#[derive(Default)]
-struct CaptureRuntime(Mutex<Option<Cancellation>>);
 
 #[derive(Clone, Debug, Serialize, Deserialize, specta::Type)]
 struct AudioCaptureFailure {
@@ -347,6 +340,7 @@ pub fn specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         .commands(collect_commands![
             start_transcribe,
             stop_transcribe,
+            new_session,
             get_transcribe_running,
             get_audio_devices,
             list_model_presets,
@@ -495,393 +489,541 @@ fn get_transcribe_running(
     state.transcribe_running
 }
 
+fn publish_stopped(syncer: &StateSyncer) {
+    let state = syncer.get::<InternalState>("internal_state");
+    state.lock().unwrap().stop_transcription();
+}
+
 #[tauri::command]
 #[specta::specta]
 fn stop_transcribe(
     app: AppHandle,
-    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
+    state_syncer: tauri::State<'_, StateSyncer>,
+    request: Option<SessionRequest>,
 ) {
-    debug!(
-        "{:?} stop_transcribe",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis()
-    );
-    let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
-    let mut state = internal_state_ref.lock().unwrap();
+    app.state::<SessionRuntime>()
+        .stop(request.as_ref(), || publish_stopped(&state_syncer));
+}
 
-    state.stop_transcription();
-    if let Some(cancelled) = app.state::<CaptureRuntime>().0.lock().unwrap().take() {
-        cancelled.store(true, Ordering::Release);
+#[tauri::command]
+#[specta::specta]
+fn new_session(
+    app: AppHandle,
+    state_syncer: tauri::State<'_, StateSyncer>,
+    request: Option<SessionRequest>,
+) -> SessionReset {
+    app.state::<SessionRuntime>()
+        .reset(request.as_ref(), |reset| {
+            publish_stopped(&state_syncer);
+            state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
+            state_syncer.update("audio_metrics", AudioMetricsState::default(), true);
+            let _ = app.emit("session_reset", reset);
+            broadcast_session_event(
+                &app,
+                WebsocketManager::to_ws_response("session_reset".to_owned(), reset),
+            );
+        })
+}
+
+fn broadcast_session_event(app: &AppHandle, response: types::WebsocketResponse) {
+    if let Ok(message) = serde_json::to_string(&response) {
+        app.state::<WebsocketManager>()
+            .inner()
+            .clone()
+            .broadcast(message);
     }
 }
 
-fn transcription_run_is_active(state_syncer: &StateSyncer, run_id: &str) -> bool {
-    state_syncer
-        .snapshot::<InternalState>("internal_state")
-        .is_transcription_run_active(run_id)
-}
-
-fn clear_transcription_run_if_current(state_syncer: &StateSyncer, run_id: &str) {
-    let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
-    let mut state = internal_state_ref.lock().unwrap();
-    state.clear_transcription_run_if_current(run_id);
+fn publish_segment(app: &AppHandle, segment: &scrybe_core::whisper::WhisperSegment) {
+    let _ = app.emit("segment_update", segment);
+    broadcast_session_event(
+        app,
+        WebsocketManager::to_ws_response("segment_update".to_owned(), segment),
+    );
 }
 
 struct TranscriptionRunGuard {
+    app: AppHandle,
     syncer: StateSyncer,
-    run_id: String,
+    run: RunControl,
 }
 
 impl Drop for TranscriptionRunGuard {
     fn drop(&mut self) {
-        clear_transcription_run_if_current(&self.syncer, &self.run_id);
+        session_test_stall("cleanup");
+        self.app
+            .state::<SessionRuntime>()
+            .worker_finished(&self.run, || publish_stopped(&self.syncer));
     }
 }
+
+#[cfg(feature = "session-test-hooks")]
+fn session_test_stall(phase: &str) {
+    if std::env::var("SCRYBE_SESSION_TEST_STALL").as_deref() != Ok(phase) {
+        return;
+    }
+    info!(phase, "session test stall entered");
+    loop {
+        if std::env::var_os("SCRYBE_SESSION_TEST_RELEASE")
+            .is_some_and(|path| std::path::Path::new(&path).exists())
+        {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[cfg(not(feature = "session-test-hooks"))]
+fn session_test_stall(_: &str) {}
 
 #[tauri::command]
 #[specta::specta]
 async fn start_transcribe(
     app: AppHandle,
-    state_syncer: tauri::State<'_, tauri_svelte_synced_store::StateSyncer>,
-) -> Result<(), String> {
-    begin_transcription(app, state_syncer.inner().clone())?
+    state_syncer: tauri::State<'_, StateSyncer>,
+    request: Option<SessionRequest>,
+) -> Result<(), SessionError> {
+    let mut run = RunControl::new(Uuid::new_v4().to_string(), Instant::now() + START_TIMEOUT);
+    run.request = request;
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let syncer = state_syncer.inner().clone();
+    let device;
+    {
+        let settings = app.state::<SettingsRuntime>();
+        let _operation = settings.operation.try_lock().map_err(|_| {
+            SessionError::new(
+                &run,
+                StartupPhase::Preparing,
+                SessionErrorKind::Busy,
+                "Settings are being applied. Try again when they finish.",
+            )
+        })?;
+        device = syncer
+            .snapshot::<types::AppState>("app_state")
+            .current_device;
+        app.state::<SessionRuntime>().reserve(run.clone(), tx, || {
+            let state = syncer.get::<InternalState>("internal_state");
+            state
+                .lock()
+                .unwrap()
+                .claim_transcription_run(run.id.clone());
+        })?;
+    }
+    info!(run_id = %run.id, device_id = %device.id, "session startup requested");
+    let supervisor_app = app.clone();
+    let supervisor_syncer = syncer.clone();
+    let supervisor_run = run.clone();
+    match tauri::async_runtime::spawn(async move {
+        supervise_start(
+            supervisor_app,
+            supervisor_syncer,
+            supervisor_run,
+            device,
+            rx,
+        )
         .await
-        .map_err(|_| "The audio worker stopped before capture started.".to_owned())?
+    })
+    .await
+    {
+        Ok(result) => result,
+        Err(error) => {
+            app.state::<SessionRuntime>().fail(
+                &run,
+                SessionErrorKind::Failed,
+                error.to_string(),
+                |_| publish_stopped(&syncer),
+            );
+            Err(SessionError::new(
+                &run,
+                StartupPhase::Preparing,
+                SessionErrorKind::Failed,
+                error.to_string(),
+            ))
+        }
+    }
 }
 
-fn begin_transcription(
+async fn supervise_start(
     app: AppHandle,
-    state_syncer: StateSyncer,
-) -> Result<tokio::sync::oneshot::Receiver<Result<(), String>>, String> {
-    let settings_runtime = app.state::<SettingsRuntime>();
-    let _settings_operation = settings_runtime
-        .operation
-        .try_lock()
-        .map_err(|_| "Settings are being applied. Try again when they finish.".to_owned())?;
-    debug!(
-        "{:?} start_transcribe",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis()
-    );
-
-    {
-        let wm_state_ref = app.state::<SharedWhisperManager>();
-        if wm_state_ref.lock().unwrap().is_none() {
-            let runtime_dependency = state_syncer
-                .snapshot::<InternalState>("internal_state")
-                .runtime_dependency;
-            let reason = if runtime_dependency.reason.is_empty() {
-                "Whisper is not available.".to_owned()
-            } else {
-                runtime_dependency.reason
-            };
-            return Err(reason);
+    syncer: StateSyncer,
+    run: RunControl,
+    device: scrybe_core::devices::AudioDevice,
+    mut reply: tokio::sync::oneshot::Receiver<Result<(), SessionError>>,
+) -> Result<(), SessionError> {
+    let launcher = tauri::async_runtime::spawn(launch_transcription(
+        app.clone(),
+        syncer.clone(),
+        run.clone(),
+        device,
+    ));
+    let result = match tokio::time::timeout_at(run.deadline.into(), &mut reply).await {
+        Ok(result) => result,
+        Err(_) => {
+            app.state::<SessionRuntime>()
+                .timeout(&run, || publish_stopped(&syncer));
+            reply.await
+        }
+    };
+    launcher.abort();
+    let result = result.unwrap_or_else(|_| {
+        Err(SessionError::new(
+            &run,
+            StartupPhase::Preparing,
+            SessionErrorKind::Failed,
+            "The startup supervisor lost its response.",
+        ))
+    });
+    match &result {
+        Ok(()) => info!(run_id = %run.id, "session capture ready"),
+        Err(error) => {
+            info!(run_id = %run.id, phase = ?error.phase, kind = ?error.kind, details = %error.details, "session startup ended")
         }
     }
+    result
+}
 
-    let run_id = Uuid::new_v4().to_string();
-    let device = state_syncer
-        .snapshot::<types::AppState>("app_state")
-        .current_device;
-    let cancelled = Arc::new(AtomicBool::new(false));
-    {
-        let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
-        let mut state = internal_state_ref.lock().unwrap();
-        if !state.claim_transcription_run(run_id.clone()) {
-            info!("transcribe already running");
-            return Err("Transcription is already running.".to_owned());
-        }
-        if let Some(previous) = app
-            .state::<CaptureRuntime>()
-            .0
-            .lock()
-            .unwrap()
-            .replace(cancelled.clone())
-        {
-            previous.store(true, Ordering::Release);
-        }
-    }
-    state_syncer.update("gate_telemetry", GateTelemetryState::default(), true);
-    state_syncer.update("audio_metrics", AudioMetricsState::default(), true);
-
-    let app_handle_ref = app.clone();
-    let state_syncer_ref = state_syncer.clone();
-    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
-
-    std::thread::spawn(move || {
-        let _run = TranscriptionRunGuard {
-            syncer: state_syncer_ref.clone(),
-            run_id: run_id.clone(),
-        };
-        let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
-
-        let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
-        let failure_app = app_handle_ref.clone();
-        let failure_syncer = state_syncer_ref.clone();
-        let failure_run = run_id.clone();
-        let failure_device = device.id.clone();
-        let failure_cancel = cancelled.clone();
-        let startup_failure = Arc::new(Mutex::new(None::<AudioError>));
-        let pending_failure = startup_failure.clone();
-        let on_error = Arc::new(move |error: AudioError| {
-            let state_ref = failure_syncer.get::<InternalState>("internal_state");
-            let mut state = state_ref.lock().unwrap();
-            if !state.is_transcription_run_active(&failure_run) {
-                return;
-            }
-            let was_starting = state.transcribe_starting;
-            state.stop_transcription();
-            failure_cancel.store(true, Ordering::Release);
-            if was_starting {
-                *pending_failure.lock().unwrap() = Some(error);
-                return;
-            }
-            let _ = failure_app.emit(
-                "audio_capture_failed",
-                AudioCaptureFailure {
-                    run_id: failure_run.clone(),
-                    device_id: failure_device.clone(),
-                    error,
-                },
-            );
-        });
-        let fail_start = |error: AudioError| {
-            let state_ref = state_syncer_ref.get::<InternalState>("internal_state");
-            let mut state = state_ref.lock().unwrap();
-            let message = if let Some(error) = startup_failure.lock().unwrap().take() {
-                error.to_string()
-            } else if state.is_transcription_run_active(&run_id) {
-                error.to_string()
-            } else {
-                "Audio capture was cancelled.".into()
-            };
-            state.clear_transcription_run_if_current(&run_id);
-            message
-        };
-        let mut audio_manager =
-            match AudioManager::new_cancellable(writer.clone(), device, cancelled, on_error) {
-                Ok(manager) => manager,
-                Err(error) => {
-                    let _ = ready_tx.send(Err(fail_start(error)));
-                    return;
-                }
-            };
-        if let Err(error) = audio_manager.play_stream() {
-            let _ = ready_tx.send(Err(fail_start(error)));
+async fn launch_transcription(
+    app: AppHandle,
+    syncer: StateSyncer,
+    run: RunControl,
+    device: scrybe_core::devices::AudioDevice,
+) {
+    let runtime = app.state::<SessionRuntime>();
+    while runtime.has_worker() {
+        if !runtime.phase(&run, StartupPhase::WaitingForPreviousRun) {
             return;
         }
-        {
-            let state_ref = state_syncer_ref.get::<InternalState>("internal_state");
-            let mut state = state_ref.lock().unwrap();
-            if !state.mark_capture_ready(&run_id) {
-                let reason = startup_failure
-                    .lock()
-                    .unwrap()
-                    .take()
-                    .map(|error| error.to_string())
-                    .unwrap_or_else(|| "Audio capture was cancelled.".into());
-                let _ = ready_tx.send(Err(reason));
+        tokio::time::sleep(START_POLL).await;
+    }
+    loop {
+        if !runtime.phase(&run, StartupPhase::WaitingForModel) {
+            return;
+        }
+        let available = {
+            let manager = app.state::<SharedWhisperManager>();
+            let available = match manager.try_lock() {
+                Ok(guard) => Some(guard.is_some()),
+                Err(std::sync::TryLockError::WouldBlock) => None,
+                Err(std::sync::TryLockError::Poisoned(_)) => Some(false),
+            };
+            available
+        };
+        match available {
+            Some(true) => break,
+            Some(false) => {
+                runtime.fail(
+                    &run,
+                    SessionErrorKind::Unavailable,
+                    "The transcription model is unavailable. Check Settings.",
+                    |_| publish_stopped(&syncer),
+                );
                 return;
             }
+            None => tokio::time::sleep(START_POLL).await,
         }
-        let _ = ready_tx.send(Ok(()));
+    }
+    if !runtime.phase(&run, StartupPhase::OpeningDevice) || !runtime.claim_worker(&run) {
+        return;
+    }
+    let worker_app = app.clone();
+    let worker_syncer = syncer.clone();
+    let worker_run = run.clone();
+    if let Err(error) = std::thread::Builder::new()
+        .name("scrybe-session".into())
+        .spawn(move || {
+            transcribe(worker_app, worker_syncer, worker_run, device);
+        })
+    {
+        runtime.fail(&run, SessionErrorKind::Failed, error.to_string(), |_| {
+            publish_stopped(&syncer)
+        });
+        runtime.worker_finished(&run, || publish_stopped(&syncer));
+    }
+}
 
-        let mut segment_accumulator = SegmentAccumulator::new(
-            Uuid::new_v4().to_string(),
-            Duration::from_secs(
-                state_syncer_ref
-                    .snapshot::<types::AppState>("app_state")
-                    .audio_segment_size,
-            ),
+fn transcribe(
+    app_handle_ref: AppHandle,
+    state_syncer_ref: StateSyncer,
+    run: RunControl,
+    device: scrybe_core::devices::AudioDevice,
+) {
+    let _run = TranscriptionRunGuard {
+        app: app_handle_ref.clone(),
+        syncer: state_syncer_ref.clone(),
+        run: run.clone(),
+    };
+    let wm_state_ref = app_handle_ref.state::<SharedWhisperManager>();
+    let runtime = app_handle_ref.state::<SessionRuntime>();
+    let writer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
+    let failure_app = app_handle_ref.clone();
+    let failure_syncer = state_syncer_ref.clone();
+    let failure_run = run.clone();
+    let failure_device = device.id.clone();
+    let on_error = Arc::new(move |error: AudioError| {
+        failure_app.state::<SessionRuntime>().fail(
+            &failure_run,
+            SessionErrorKind::Failed,
+            error.to_string(),
+            |starting| {
+                publish_stopped(&failure_syncer);
+                if !starting {
+                    let _ = failure_app.emit(
+                        "audio_capture_failed",
+                        AudioCaptureFailure {
+                            run_id: failure_run.id.clone(),
+                            device_id: failure_device.clone(),
+                            error,
+                        },
+                    );
+                }
+            },
         );
-        let mut segment_emission_gate = SegmentEmissionGate::new();
-        let mut segment_start_time = SystemTime::now();
-        let mut samples: Vec<f32> = Vec::new();
-        let mut audio_metrics = AudioMetricsState::default();
-        let mut inference_timing_stats = InferenceTimingStats::default();
-        loop {
-            let internal_state_ref = state_syncer_ref.snapshot::<InternalState>("internal_state");
-            let app_state_ref = state_syncer_ref.snapshot::<types::AppState>("app_state");
+    });
+    let fail_start = |error: AudioError| {
+        let kind = match error.kind {
+            audio::AudioErrorKind::Timeout => SessionErrorKind::Timeout,
+            audio::AudioErrorKind::Cancelled => SessionErrorKind::Cancelled,
+            _ => SessionErrorKind::Failed,
+        };
+        runtime.fail(&run, kind, error.to_string(), |_| {
+            publish_stopped(&state_syncer_ref)
+        });
+    };
+    session_test_stall("opening_device");
+    if run.cancelled() {
+        return;
+    }
+    let mut audio_manager = match AudioManager::new_with_deadline(
+        writer.clone(),
+        device,
+        run.cancelled.clone(),
+        on_error,
+        run.deadline,
+    ) {
+        Ok(manager) => manager,
+        Err(error) => {
+            fail_start(error);
+            return;
+        }
+    };
+    if !runtime.phase(&run, StartupPhase::StartingStream) {
+        return;
+    }
+    session_test_stall("starting_stream");
+    if let Err(error) = audio_manager.play_stream() {
+        fail_start(error);
+        return;
+    }
+    if !runtime.ready(&run, || {
+        let state = state_syncer_ref.get::<InternalState>("internal_state");
+        state.lock().unwrap().mark_capture_ready(&run.id);
+        drop(state);
+        state_syncer_ref.update("gate_telemetry", GateTelemetryState::default(), true);
+        state_syncer_ref.update("audio_metrics", AudioMetricsState::default(), true);
+    }) {
+        return;
+    }
 
-            let whisper_params = app_state_ref.whisper_params.clone();
-            let protection = HallucinationProtectionConfig {
-                enabled: app_state_ref
-                    .advanced_settings
-                    .hallucination_protection_enabled,
-                sensitivity: app_state_ref.advanced_settings.vad_sensitivity,
-            };
-            debug!(
-                "app state syncing: segment_size={}, whisper_params={:?}",
-                app_state_ref.audio_segment_size, whisper_params
-            );
-            debug!(
-                "internal state syncing: step_size={}, transcribe_running={}",
-                internal_state_ref.audio_step_size, internal_state_ref.transcribe_running
-            );
+    let mut segment_accumulator = SegmentAccumulator::new(
+        Uuid::new_v4().to_string(),
+        Duration::from_secs(
+            state_syncer_ref
+                .snapshot::<types::AppState>("app_state")
+                .audio_segment_size,
+        ),
+    );
+    let mut segment_emission_gate = SegmentEmissionGate::new();
+    let mut segment_start_time = SystemTime::now();
+    let mut samples: Vec<f32> = Vec::new();
+    let mut audio_metrics = AudioMetricsState::default();
+    let mut inference_timing_stats = InferenceTimingStats::default();
+    loop {
+        let internal_state_ref = state_syncer_ref.snapshot::<InternalState>("internal_state");
+        let app_state_ref = state_syncer_ref.snapshot::<types::AppState>("app_state");
 
-            if !internal_state_ref.is_transcription_run_active(&run_id) {
-                info!("stopping transcription");
-                break;
-            }
+        let whisper_params = app_state_ref.whisper_params.clone();
+        let protection = HallucinationProtectionConfig {
+            enabled: app_state_ref
+                .advanced_settings
+                .hallucination_protection_enabled,
+            sensitivity: app_state_ref.advanced_settings.vad_sensitivity,
+        };
+        debug!(
+            "app state syncing: segment_size={}, whisper_params={:?}",
+            app_state_ref.audio_segment_size, whisper_params
+        );
+        debug!(
+            "internal state syncing: step_size={}, transcribe_running={}",
+            internal_state_ref.audio_step_size, internal_state_ref.transcribe_running
+        );
 
-            debug!("waiting for {}ms", internal_state_ref.audio_step_size);
-            std::thread::sleep(std::time::Duration::from_millis(
-                internal_state_ref.audio_step_size,
-            ));
-
-            if !transcription_run_is_active(&state_syncer_ref, &run_id) {
-                info!("stopping transcription");
-                break;
-            }
-
-            debug!("copying buffer");
-            audio_metrics.input_rms = if let Ok(mut guard) = writer.lock() {
-                let input_rms = rms_level(&guard);
-                debug!(
-                    "guard len pre-trim {}, avg threshold {}, rms {}",
-                    guard.len(),
-                    audio::avg_threshold(&guard),
-                    input_rms
-                );
-                let vad_ready = protection.enabled
-                    && internal_state_ref.vad_runtime.status == VadRuntimeStatus::Ready;
-                if !vad_ready {
-                    audio::trim_silence(&mut guard, 0.01);
-                }
-                debug!("guard len post-trim {}", guard.len());
-                samples.append(&mut guard);
-                input_rms
-            } else {
-                0.0
-            };
-            audio_metrics.segment_sample_len = samples.len() as u64;
-
-            // 8037 normal samples in 500ms
-            if samples.len() > 4000 {
-                debug!("got enough samples, getting whisper manager");
-
-                let mut whisper_manager_ref = wm_state_ref.lock().unwrap();
-                let Some(whisper_manager) = whisper_manager_ref.as_mut() else {
-                    error!("whisper manager is unavailable");
-                    clear_transcription_run_if_current(&state_syncer_ref, &run_id);
-                    break;
-                };
-
-                let inference_started = Instant::now();
-                let process_result = match whisper_manager.process_samples_with_protection(
-                    samples.clone(),
-                    whisper_params,
-                    protection,
-                ) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        inference_timing_stats.record(
-                            inference_started.elapsed().as_secs_f64() * 1000.0,
-                            &mut audio_metrics,
-                        );
-                        error!("ERROR {}", err);
-                        state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
-                        continue;
-                    }
-                };
-                if process_result.evidence.whisper_ran {
-                    inference_timing_stats
-                        .record(process_result.evidence.whisper_ms, &mut audio_metrics);
-                }
-                if process_result.evidence.protection_enabled
-                    && process_result.evidence.vad_available
-                {
-                    audio_metrics.last_vad_ms = process_result.evidence.vad_ms;
-                    audio_metrics.vad_total_evaluations += 1;
-                    if process_result.evidence.vad_speech_detected == Some(false) {
-                        audio_metrics.vad_total_skips += 1;
-                    }
-                    audio_metrics.vad_skip_rate = audio_metrics.vad_total_skips as f64
-                        / audio_metrics.vad_total_evaluations as f64;
-                    audio_metrics.vad_speech_ratio =
-                        process_result.evidence.vad_speech_ratio.unwrap_or(0.0) as f64;
-                }
-                if let Some(vad_error) = process_result.evidence.vad_error.as_ref() {
-                    let mut internal_state =
-                        state_syncer_ref.snapshot::<InternalState>("internal_state");
-                    internal_state.vad_runtime = VadRuntimeState::degraded(vad_error);
-                    state_syncer_ref.update("internal_state", internal_state, true);
-                }
-
-                let current_segment = segment_accumulator.replace_items(process_result.items);
-
-                if !transcription_run_is_active(&state_syncer_ref, &run_id) {
-                    info!("stopping transcription");
-                    break;
-                }
-
-                let evaluation = segment_emission_gate
-                    .evaluate_with_evidence(current_segment, &process_result.evidence);
-                let gate_emitted = match &evaluation.decision {
-                    SegmentEmissionDecision::Emit(_) => true,
-                    SegmentEmissionDecision::Suppress(_) => false,
-                };
-                audio_metrics.gate_total_evaluations += 1;
-                if gate_emitted {
-                    audio_metrics.gate_total_emits += 1;
-                }
-                audio_metrics.gate_emit_rate = audio_metrics.gate_total_emits as f64
-                    / audio_metrics.gate_total_evaluations as f64;
-                {
-                    let telemetry_ref =
-                        state_syncer_ref.get::<GateTelemetryState>("gate_telemetry");
-                    let mut telemetry = telemetry_ref.lock().unwrap();
-                    telemetry.push(evaluation.telemetry);
-                }
-
-                match evaluation.decision {
-                    SegmentEmissionDecision::Emit(segment) => {
-                        app_handle_ref
-                            .emit("segment_update", segment)
-                            .expect("failed to emit event");
-                    }
-                    SegmentEmissionDecision::Suppress(reason) => {
-                        debug!("suppressing segment update: {:?}", reason);
-                    }
-                }
-            }
-            debug!(
-                "{:#?} elapsed since start",
-                segment_start_time.elapsed().unwrap()
-            );
-
-            segment_accumulator
-                .set_segment_size(Duration::from_secs(app_state_ref.audio_segment_size));
-            if let Some(next_segment) = segment_accumulator.rollover_if_elapsed(
-                segment_start_time.elapsed().unwrap(),
-                Uuid::new_v4().to_string(),
-            ) {
-                debug!("trimming samples, total {}", samples.len(),);
-                samples.clear();
-                audio_metrics.segment_sample_len = 0;
-
-                segment_start_time = SystemTime::now();
-                if !transcription_run_is_active(&state_syncer_ref, &run_id) {
-                    info!("stopping transcription");
-                    break;
-                }
-
-                app_handle_ref
-                    .emit("segment_update", next_segment.clone())
-                    .expect("failed to emit event");
-                segment_emission_gate.reset_with_emitted(&next_segment);
-            }
-            state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true);
+        if run.cancelled() {
+            info!("stopping transcription");
+            break;
         }
 
-        clear_transcription_run_if_current(&state_syncer_ref, &run_id);
-    });
+        debug!("waiting for {}ms", internal_state_ref.audio_step_size);
+        std::thread::sleep(std::time::Duration::from_millis(
+            internal_state_ref.audio_step_size,
+        ));
 
-    Ok(ready_rx)
+        if run.cancelled() {
+            info!("stopping transcription");
+            break;
+        }
+
+        debug!("copying buffer");
+        audio_metrics.input_rms = if let Ok(mut guard) = writer.lock() {
+            let input_rms = rms_level(&guard);
+            debug!(
+                "guard len pre-trim {}, avg threshold {}, rms {}",
+                guard.len(),
+                audio::avg_threshold(&guard),
+                input_rms
+            );
+            let vad_ready = protection.enabled
+                && internal_state_ref.vad_runtime.status == VadRuntimeStatus::Ready;
+            if !vad_ready {
+                audio::trim_silence(&mut guard, 0.01);
+            }
+            debug!("guard len post-trim {}", guard.len());
+            samples.append(&mut guard);
+            input_rms
+        } else {
+            0.0
+        };
+        audio_metrics.segment_sample_len = samples.len() as u64;
+
+        // 8037 normal samples in 500ms
+        if samples.len() > 4000 {
+            debug!("got enough samples, getting whisper manager");
+
+            let mut whisper_manager_ref = wm_state_ref.lock().unwrap();
+            let Some(whisper_manager) = whisper_manager_ref.as_mut() else {
+                error!("whisper manager is unavailable");
+                drop(whisper_manager_ref);
+                runtime.fail(
+                    &run,
+                    SessionErrorKind::Unavailable,
+                    "The transcription model is unavailable.",
+                    |_| publish_stopped(&state_syncer_ref),
+                );
+                break;
+            };
+
+            session_test_stall("inference");
+            if run.cancelled() {
+                break;
+            }
+            let inference_started = Instant::now();
+            let process_result = whisper_manager.process_samples_with_protection_cancellable(
+                samples.clone(),
+                whisper_params,
+                protection,
+                &run.cancelled,
+            );
+            drop(whisper_manager_ref);
+            if run.cancelled() {
+                break;
+            }
+            let process_result = match process_result {
+                Ok(Some(result)) => result,
+                Ok(None) => break,
+                Err(err) => {
+                    inference_timing_stats.record(
+                        inference_started.elapsed().as_secs_f64() * 1000.0,
+                        &mut audio_metrics,
+                    );
+                    error!("ERROR {}", err);
+                    runtime.publish(&run, || {
+                        state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true)
+                    });
+                    continue;
+                }
+            };
+            if process_result.evidence.whisper_ran {
+                inference_timing_stats
+                    .record(process_result.evidence.whisper_ms, &mut audio_metrics);
+            }
+            if process_result.evidence.protection_enabled && process_result.evidence.vad_available {
+                audio_metrics.last_vad_ms = process_result.evidence.vad_ms;
+                audio_metrics.vad_total_evaluations += 1;
+                if process_result.evidence.vad_speech_detected == Some(false) {
+                    audio_metrics.vad_total_skips += 1;
+                }
+                audio_metrics.vad_skip_rate = audio_metrics.vad_total_skips as f64
+                    / audio_metrics.vad_total_evaluations as f64;
+                audio_metrics.vad_speech_ratio =
+                    process_result.evidence.vad_speech_ratio.unwrap_or(0.0) as f64;
+            }
+            if let Some(vad_error) = process_result.evidence.vad_error.as_ref() {
+                runtime.publish(&run, || {
+                    let state = state_syncer_ref.get::<InternalState>("internal_state");
+                    state.lock().unwrap().vad_runtime = VadRuntimeState::degraded(vad_error);
+                });
+            }
+
+            let current_segment = segment_accumulator.replace_items(process_result.items);
+
+            if run.cancelled() {
+                info!("stopping transcription");
+                break;
+            }
+
+            let evaluation = segment_emission_gate
+                .evaluate_with_evidence(current_segment, &process_result.evidence);
+            let gate_emitted = match &evaluation.decision {
+                SegmentEmissionDecision::Emit(_) => true,
+                SegmentEmissionDecision::Suppress(_) => false,
+            };
+            audio_metrics.gate_total_evaluations += 1;
+            if gate_emitted {
+                audio_metrics.gate_total_emits += 1;
+            }
+            audio_metrics.gate_emit_rate =
+                audio_metrics.gate_total_emits as f64 / audio_metrics.gate_total_evaluations as f64;
+            runtime.publish(&run, || {
+                let telemetry_ref = state_syncer_ref.get::<GateTelemetryState>("gate_telemetry");
+                let mut telemetry = telemetry_ref.lock().unwrap();
+                telemetry.push(evaluation.telemetry);
+            });
+
+            match evaluation.decision {
+                SegmentEmissionDecision::Emit(segment) => {
+                    runtime.publish(&run, || publish_segment(&app_handle_ref, &segment));
+                }
+                SegmentEmissionDecision::Suppress(reason) => {
+                    debug!("suppressing segment update: {:?}", reason);
+                }
+            }
+        }
+        debug!(
+            "{:#?} elapsed since start",
+            segment_start_time.elapsed().unwrap()
+        );
+
+        segment_accumulator.set_segment_size(Duration::from_secs(app_state_ref.audio_segment_size));
+        if let Some(next_segment) = segment_accumulator.rollover_if_elapsed(
+            segment_start_time.elapsed().unwrap(),
+            Uuid::new_v4().to_string(),
+        ) {
+            debug!("trimming samples, total {}", samples.len(),);
+            samples.clear();
+            audio_metrics.segment_sample_len = 0;
+
+            segment_start_time = SystemTime::now();
+            if run.cancelled() {
+                info!("stopping transcription");
+                break;
+            }
+
+            runtime.publish(&run, || publish_segment(&app_handle_ref, &next_segment));
+            segment_emission_gate.reset_with_emitted(&next_segment);
+        }
+        runtime.publish(&run, || {
+            state_syncer_ref.update("audio_metrics", audio_metrics.clone(), true)
+        });
+    }
 }
 
 fn download_preset_file(preset: &types::ModelPreset) -> Result<String, anyhow::Error> {
@@ -1095,32 +1237,18 @@ impl inbound::Scrubber<tauri::Wry> for ScrybeScrubber {
 }
 
 fn cleanup_before_exit(app: &AppHandle) {
-    if let Some(runtime) = app.try_state::<CaptureRuntime>() {
-        if let Some(cancelled) = runtime.0.lock().unwrap().take() {
-            cancelled.store(true, Ordering::Release);
-        }
+    if let Some(runtime) = app.try_state::<SessionRuntime>() {
+        runtime.close();
     }
-    if let Some(state_syncer) = app.try_state::<StateSyncer>() {
-        let internal_state_ref = state_syncer.get::<InternalState>("internal_state");
-        match internal_state_ref.lock() {
-            Ok(mut internal_state) => internal_state.stop_transcription(),
-            Err(err) => error!("failed to lock internal state during shutdown: {}", err),
-        };
-    }
-
-    if let Some(manager_ref) = app.try_state::<SharedWhisperManager>() {
-        let whisper_manager = match manager_ref.lock() {
-            Ok(mut guard) => guard.take(),
-            Err(err) => {
-                error!("failed to lock whisper manager during shutdown: {}", err);
-                None
+    // Native destruction must not run on the window event thread.
+    if let Some(manager) = app.try_state::<SharedWhisperManager>() {
+        if let Ok(mut guard) = manager.try_lock() {
+            if let Some(manager) = guard.take() {
+                let _ = std::thread::Builder::new()
+                    .name("scrybe-model-cleanup".into())
+                    .spawn(move || drop(manager));
             }
-        };
-
-        if whisper_manager.is_some() {
-            info!("dropping whisper manager before exit");
         }
-        drop(whisper_manager);
     }
 }
 
@@ -1170,7 +1298,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(Arc::new(Mutex::new(None::<WhisperManager>)))
         .manage(SettingsRuntime::default())
-        .manage(CaptureRuntime::default())
+        .manage(SessionRuntime::default())
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             info!("{}, {argv:?}, {cwd}", app.package_info().name);
             app.emit("single-instance", argv).unwrap();
@@ -1263,21 +1391,6 @@ pub fn run() {
             app.manage(ws_manager.clone());
 
             let ws_manager_ref = ws_manager.clone();
-            app.listen("segment_update", move |event| {
-                debug!("got segment update: {:?}", event.payload());
-                let response = types::WebsocketResponse {
-                    kind: "segment_update".to_owned(),
-                    data: event.payload().to_string(),
-                    is_error: false,
-                };
-
-                match serde_json::to_string(&response) {
-                    Ok(msg) => ws_manager_ref.clone().broadcast(msg),
-                    Err(err) => error!("error creating websocket response: {}", err),
-                };
-            });
-
-            let ws_manager_ref = ws_manager.clone();
 
             let _server_handle = tauri::async_runtime::spawn(async move {
                 let static_files = warp::path("app")
@@ -1355,13 +1468,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
 
-            let window = win_builder.build().unwrap();
+            let _window = win_builder.build().unwrap();
 
             #[cfg(target_os = "macos")]
             {
                 use objc2_app_kit::{NSColor, NSWindow};
                 unsafe {
-                    let ns_window = &*(window.ns_window().unwrap() as *mut NSWindow);
+                    let ns_window = &*(_window.ns_window().unwrap() as *mut NSWindow);
                     let bg_color = NSColor::colorWithRed_green_blue_alpha(
                         26.0 / 255.0,
                         30.0 / 255.0,
@@ -1378,7 +1491,7 @@ pub fn run() {
                 use windows::Win32::Graphics::Dwm::{
                     DwmSetWindowAttribute, DWMWA_CAPTION_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
                 };
-                let hwnd = window.hwnd().unwrap();
+                let hwnd = _window.hwnd().unwrap();
                 unsafe {
                     let use_dark_mode: i32 = 1;
                     let _ = DwmSetWindowAttribute(
@@ -1398,8 +1511,8 @@ pub fn run() {
                 }
             }
 
-            #[cfg(debug_assertions)]
-            window.open_devtools();
+            #[cfg(all(debug_assertions, not(feature = "session-test-hooks")))]
+            _window.open_devtools();
 
             Ok(())
         })
@@ -1430,13 +1543,12 @@ mod tests {
     }
 
     #[test]
-    fn stopped_startup_cannot_activate_or_clear_a_newer_run() {
+    fn stopped_startup_cannot_activate_a_newer_run() {
         let mut state = InternalState::default();
         assert!(state.claim_transcription_run("one".into()));
         state.stop_transcription();
         assert!(state.claim_transcription_run("two".into()));
         assert!(!state.mark_capture_ready("one"));
-        state.clear_transcription_run_if_current("one");
         assert!(state.transcribe_starting);
         assert!(state.mark_capture_ready("two"));
         state.reset_runtime_only_state();
@@ -1466,18 +1578,5 @@ mod tests {
         assert!(!state.claim_transcription_run("second".to_owned()));
         assert!(state.is_transcription_run_active("first"));
         assert!(!state.is_transcription_run_active("second"));
-    }
-
-    #[test]
-    fn clearing_stale_run_does_not_stop_newer_run() {
-        let mut state = InternalState::default();
-
-        assert!(state.claim_transcription_run("old".to_owned()));
-        state.stop_transcription();
-        assert!(state.claim_transcription_run("new".to_owned()));
-
-        state.clear_transcription_run_if_current("old");
-
-        assert!(state.is_transcription_run_active("new"));
     }
 }

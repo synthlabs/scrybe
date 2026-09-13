@@ -58,6 +58,9 @@
         ws.onmessage = (event) => {
             const response: WebsocketResponse = JSON.parse(event.data);
             switch (response.kind) {
+                case "session_reset":
+                    segment = { id: "", index: 0, items: [] };
+                    break;
                 case "segment_update":
                     segment = JSON.parse(response.data);
                     break;
