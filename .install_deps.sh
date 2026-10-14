@@ -15,7 +15,7 @@ if [[ "$os" == "Darwin" ]]; then
 
     if [[ ! -f "${ROOT}/.cargo/config.toml" ]] || ! grep -q CMAKE_OSX_DEPLOYMENT_TARGET "${ROOT}/.cargo/config.toml"; then
         miss ".cargo/config.toml CMAKE_OSX_DEPLOYMENT_TARGET" \
-            "pull latest — needed to compile whisper.cpp against Xcode 17 SDK"
+            "pull latest - needed to compile whisper.cpp against Xcode 17 SDK"
         MISSING+=(".cargo/config.toml")
     else
         ok ".cargo/config.toml CMAKE_OSX_DEPLOYMENT_TARGET"

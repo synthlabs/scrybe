@@ -283,6 +283,7 @@
 {#snippet sectionTrigger(label: string, open: boolean)}
     <span class="text-foreground text-sm font-medium">{label}</span>
     <ChevronDown
+        data-disclosure-chevron
         class="text-muted-foreground ml-auto size-4 transition-transform duration-(--scrybe-duration-standard) ease-out {open
             ? 'rotate-180'
             : ''}"

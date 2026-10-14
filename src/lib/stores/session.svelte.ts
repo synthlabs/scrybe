@@ -75,7 +75,7 @@ export const fmt_duration = (ms: number): string => {
 };
 
 export const fmt_started = (epoch_ms: number | null): string => {
-    if (epoch_ms === null) return "—";
+    if (epoch_ms === null) return "-";
     const d = new Date(epoch_ms);
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };

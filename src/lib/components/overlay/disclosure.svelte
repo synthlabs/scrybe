@@ -38,8 +38,8 @@
                 variant="ghost"
                 class={`focus-visible:ring-0 focus-visible:ring-offset-0 [&_svg]:size-5 ${props.class ?? ""}`}
             >
-                <!-- The chevron must stay the first svg: the motion probes read it. -->
                 {title}<ChevronDown
+                    data-disclosure-chevron
                     class={`ml-auto shrink-0 transition-transform duration-(--scrybe-duration-standard) ease-out ${open ? "rotate-180" : ""}`}
                 />
                 {#if Icon}

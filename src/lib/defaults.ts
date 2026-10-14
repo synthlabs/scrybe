@@ -7,7 +7,7 @@ import type {
 import { DEFAULT_OVERLAY_CONFIG } from "./overlay/layout-math.js";
 
 // These mirror the Rust `Default` impls in src-tauri/src/types.rs and
-// rust/core/src/whisper.rs. They MUST stay in sync — if a sync() ever fires
+// rust/core/src/whisper.rs. They MUST stay in sync - if a sync() ever fires
 // before SyncedState receives the backend's emit response, the frontend's
 // snapshot is what gets persisted to disk, so zero placeholders would corrupt
 // real persisted state.

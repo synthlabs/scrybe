@@ -1,126 +1,151 @@
-name: 'test-on-push'
+name: tests
+
 on:
-  push:
-    branches-ignore:
-      - main
+    pull_request:
+    push:
+        branches: [main]
+
+permissions:
+    contents: read
 
 jobs:
-  test-tauri:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: 'windows-latest'
-            args: ''
-          - platform: 'macos-14'
-            args: '--target universal-apple-darwin'
-          - platform: 'ubuntu-latest'
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: 'recursive'
-
-      - name: setup node
-        uses: actions/setup-node@v6
-        with:
-          node-version: latest
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 10.26.1
-          run_install: true
-
-      - name: Packaging integration tests (Linux)
-        if: startsWith(matrix.platform, 'ubuntu')
-        shell: bash
-        run: make test-packaging
-
-      - name: Installer tests (Windows)
-        if: startsWith(matrix.platform, 'windows')
-        shell: pwsh
-        run: ./utils/packaging/tauri/install.test.ps1
-
-      - name: Updater tests
-        run: node scripts/updater-toast.test.mjs
-
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            ./src-tauri -> target
-            ./rust/core -> target
-      
-      - name: Install MSVC dev tools (windows only)
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        if: startsWith(matrix.platform, 'windows')
-        with:
-          arch: x64
-
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        if: startsWith(matrix.platform, 'ubuntu')
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-          
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Install gcloud SDK (macOS)
-        if: startsWith(matrix.platform, 'macos')
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: install system dependencies (unix)
-        if: "!startsWith(matrix.platform, 'windows')"
-        shell: bash
-        run: ./utils/scripts/install_deps.sh --ci
-
-      - name: install system dependencies (windows)
-        if: startsWith(matrix.platform, 'windows')
-        shell: pwsh
-        run: ./utils/scripts/install_deps.ps1 -CI
-
-      - name: Install CUDA
-        uses: Jimver/cuda-toolkit@master
-        id: cuda-toolkit
-        if: startsWith(matrix.platform, 'windows')
-        with:
-          log-file-suffix: '${{matrix.os}}.txt'
-
-      - name: Set short SHA
-        id: short-sha
-        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - name: Set version id
-        id: tauri-version
-        run: echo "VERSION=$(cat ./src-tauri/tauri.conf.json | grep version | cut -d\" -f 4)" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - name: Var check
-        run: echo "SHORT_SHA=${{ steps.short-sha.outputs.SHORT_SHA }}, VERSION=${{ steps.tauri-version.outputs.VERSION }}"
-        shell: bash
-
-      - uses: tauri-apps/tauri-action@v0
+    verify:
+        strategy:
+            fail-fast: false
+            matrix:
+                platform: [ubuntu-latest, macos-14, windows-latest]
+        runs-on: ${{ matrix.platform }}
+        timeout-minutes: 90
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          INBOUND_WEBHOOK_SCRYBE: ${{ secrets.INBOUND_WEBHOOK_SCRYBE }}
-        with:
-          args: ${{ matrix.args }}
+            ENABLE_INTERNAL: "0"
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+            UV_PYTHON: "3.13"
+            CARGO_TERM_COLOR: always
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  submodules: recursive
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: "24"
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10.26.1
+
+            - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+              with:
+                  version: "0.13.0"
+                  python-version: "3.13"
+
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: rustfmt
+
+            - uses: swatinem/rust-cache@v2
+              with:
+                  workspaces: ". -> target"
+
+            - name: Free Linux build space
+              if: runner.os == 'Linux'
+              uses: jlumbroso/free-disk-space@main
+              with:
+                  tool-cache: false
+                  android: true
+                  dotnet: true
+                  haskell: true
+                  large-packages: true
+                  docker-images: true
+                  swap-storage: true
+
+            - name: Install Linux build dependencies
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential cmake pkg-config libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils libpulse-dev libasound2-dev
+
+            - name: Install macOS build dependencies
+              if: runner.os == 'macOS'
+              run: brew install cmake
+
+            - name: Set up MSVC
+              if: runner.os == 'Windows'
+              uses: TheMrMilchmann/setup-msvc-dev@v3
+              with:
+                  arch: x64
+
+            - name: Install CUDA
+              if: runner.os == 'Windows'
+              uses: Jimver/cuda-toolkit@master
+              with:
+                  log-file-suffix: windows.txt
+
+            - name: Create Windows CUDA resource directory
+              if: runner.os == 'Windows'
+              run: New-Item -ItemType Directory -Force -Path target/windows-cuda-redist/resources/cuda | Out-Null
+
+            - name: Install locked JavaScript dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install locked Python dependencies
+              run: uv sync --locked --group test --python 3.13
+
+            - name: Install Chromium and system dependencies
+              if: runner.os == 'Linux'
+              run: pnpm exec playwright install --with-deps chromium
+
+            # Mirrors `pnpm verify` with per-platform limits; keep the two in sync.
+            - name: Check
+              run: pnpm check
+
+            - name: Build frontend
+              run: pnpm build
+
+            - name: Unit tests
+              run: pnpm test:unit
+
+            - name: Shared tests
+              run: pnpm test:shared
+
+            - name: Python tests
+              run: pnpm test:python
+
+            - name: Rust tests
+              if: runner.os != 'Windows'
+              run: pnpm test:rust
+
+            - name: Rust test build
+              if: runner.os == 'Windows'
+              run: pnpm test:rust:build
+
+            - name: Packaging tests
+              if: runner.os != 'macOS'
+              run: pnpm test:packaging
+
+            - name: Browser tests
+              if: runner.os == 'Linux'
+              run: pnpm test:browser
+
+            - name: Internal hook
+              if: runner.os != 'Windows'
+              run: pnpm test:internal
+
+            - name: Internal hook build
+              if: runner.os == 'Windows'
+              run: pnpm test:internal --no-run
+
+            - name: Formatting and whitespace
+              run: cargo fmt --all --check && git diff --check && git -C utils diff --check
+
+            - name: Save test reports and failure artifacts
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-results-${{ matrix.platform }}
+                  path: |
+                      target/test-results/*.json
+                      target/test-results/*.xml
+                      target/test-results/browser/
+                      target/test-results/python/
+                  if-no-files-found: ignore

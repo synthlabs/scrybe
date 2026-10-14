@@ -296,6 +296,17 @@ fn typescript_exporter() -> Typescript {
 }
 
 #[cfg(debug_assertions)]
+fn binding_exports_enabled() -> bool {
+    #[cfg(feature = "session-test-hooks")]
+    if std::env::var_os("SCRYBE_TEST_SKIP_BINDING_EXPORT").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        return false;
+    }
+    true
+}
+
+#[cfg(debug_assertions)]
 fn export_bindings(builder: &tauri_specta::Builder<tauri::Wry>, path: std::path::PathBuf) {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).expect("Failed to create bindings output directory");
@@ -1308,14 +1319,16 @@ pub fn run() {
 
     let handlers = specta_builder();
 
-    #[cfg(debug_assertions)] // <- Only export on non-release builds
-    export_bindings(&handlers, repo_root().join("src/lib/bindings.ts"));
+    #[cfg(debug_assertions)]
+    if binding_exports_enabled() {
+        export_bindings(&handlers, repo_root().join("src/lib/bindings.ts"));
 
-    #[cfg(all(debug_assertions, internal_enabled))]
-    export_bindings(
-        &internal::specta_builder(),
-        repo_root().join("internal/frontend/bindings.ts"),
-    );
+        #[cfg(internal_enabled)]
+        export_bindings(
+            &internal::specta_builder(),
+            repo_root().join("internal/frontend/bindings.ts"),
+        );
+    }
 
     let app = builder
         .invoke_handler(handlers.invoke_handler())
@@ -1529,6 +1542,41 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn binding_export_gate_requires_test_hooks_and_exact_opt_out() {
+        if let Ok(expected) = std::env::var("SCRYBE_TEST_EXPECT_BINDING_EXPORT") {
+            assert_eq!(binding_exports_enabled(), expected == "1");
+            return;
+        }
+        for (flag, expected) in [
+            (None, true),
+            (Some("0"), true),
+            (Some("1"), !cfg!(feature = "session-test-hooks")),
+        ] {
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+            child
+                .args([
+                    "--exact",
+                    "tests::binding_export_gate_requires_test_hooks_and_exact_opt_out",
+                ])
+                .env(
+                    "SCRYBE_TEST_EXPECT_BINDING_EXPORT",
+                    if expected { "1" } else { "0" },
+                )
+                .env_remove("SCRYBE_TEST_SKIP_BINDING_EXPORT");
+            if let Some(value) = flag {
+                child.env("SCRYBE_TEST_SKIP_BINDING_EXPORT", value);
+            }
+            let output = child.output().unwrap();
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            assert!(
+                output.status.success() && stdout.contains("test result: ok. 1 passed"),
+                "Binding export flag {flag:?}: {stdout}"
+            );
+        }
+    }
 
     #[test]
     fn starting_is_reserved_but_not_listening_until_capture_is_ready() {
