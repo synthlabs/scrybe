@@ -24,19 +24,22 @@ Currently most programs available to add subtitles to your own broadcasts requir
 
 With GNU Make and `toke` available on `PATH`, these optional shortcuts cover common workflows:
 
-| Command                        | Description                                                 |
-| ------------------------------ | ----------------------------------------------------------- |
-| `make dev`                     | Run the desktop app in development mode.                    |
-| `make dev-internal`            | Run with the internal frontend and Rust checkout enabled.   |
-| `make build`                   | Build the production desktop application.                   |
-| `make build-internal`          | Build with the internal frontend and Rust checkout enabled. |
-| `make install`                 | Build and install the production desktop application.       |
-| `make install-internal`        | Build and install with the internal checkout enabled.       |
-| `make check`                   | Run frontend and Rust checks.                               |
-| `make test`                    | Run packaging, Node, and Rust test suites.                  |
-| `make test-packaging`          | Run packaging integration and installer tests.              |
-| `make validate-transcription`  | Validate transcription against the configured local model.  |
-| `make validate-hallucinations` | Validate hallucination filtering with configured models.    |
+| Command                 | Description                                                               |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `make dev`              | Run the desktop app in development mode.                                  |
+| `make dev-internal`     | Run with the internal frontend and Rust checkout enabled.                 |
+| `make build`            | Build the production desktop application.                                 |
+| `make build-internal`   | Build with the internal frontend and Rust checkout enabled.               |
+| `make install`          | Build and install the production desktop application.                     |
+| `make install-internal` | Build and install with the internal checkout enabled.                     |
+| `make check`            | Run frontend and Rust checks.                                             |
+| `make test`             | Run the sequential portable test suites.                                  |
+| `make verify`           | Check/build the frontend, run tests, and check Rust formatting and diffs. |
+| `make test-packaging`   | Run packaging integration and installer tests.                            |
+| `make test-inference`   | Run inference checks with explicit local model inputs.                    |
+
+Use `pnpm test` and `pnpm verify` directly without Make or `toke`.
+See [the test guide](tests/README.md) for setup, focused commands, and specialized suites.
 
 Builds produce an NSIS installer on Windows, a DEB on Debian-family Linux, and an
 x86_64 pacman package on Arch-family Linux. Other platforms retain Tauri's normal
@@ -74,17 +77,18 @@ Linux development needs the libpulse headers (`libpulse-dev` on Debian/Ubuntu,
 `libpulse` on Arch). Packaged builds declare the client-library dependency; the
 desktop's audio service must already be running.
 
-Run `sh scripts/verify-audio-devices.sh --backend pipewire` or
-`sh scripts/verify-audio-devices.sh --backend pulseaudio` for repeatable checks.
+Build `cargo build --locked -p scrybe_core --bin audio_probe`, then run
+`pnpm test:audio --audio-backend pipewire` or
+`pnpm test:audio --audio-backend pulseaudio` for repeatable checks.
 These require the named server binaries, `pactl`, `pacat`, and `dbus-daemon`.
 They start private servers and use synthetic audio without changing desktop
-routing. Evidence, including source-specific recordings, is saved under `/tmp`.
+routing. Logs and measurements are saved under `target/test-results/`.
 The tests cover routing, defaults, device removal, server shutdown, startup
 cancellation, and resource cleanup.
 
 For a desktop acceptance check, build `cargo build -p scrybe_core --bin audio_probe`,
 then run `target/debug/audio_probe list` and compare the names with sound settings.
-`python3 scripts/audio-devices.integration.py --desktop` compares the catalog with
+`python3 scripts/diagnostics/audio.py` compares the catalog with
 the running audio server automatically.
 With a known signal playing or a microphone in use, run
 `target/debug/audio_probe capture --id '<device ID>' --seconds 3` to check capture
@@ -98,8 +102,8 @@ Existing `__NV_DISABLE_EXPLICIT_SYNC` values are preserved; setting it to `0` op
 out. The shared helper's detection and safety contract are documented in
 [`synth-tauri-runtime`](utils/rust/synth-tauri-runtime/README.md).
 
-Run `bash scripts/verify-linux-startup.sh` for automated checks. On an NVIDIA Wayland
-desktop, use `bash scripts/verify-linux-startup.sh --dev` or `--installed` to launch
+Run `pnpm verify` for automated checks. On an NVIDIA Wayland
+desktop, use `bash scripts/diagnostics/linux-startup.sh --dev` or `--installed` to launch
 with the override unset, then confirm a responsive window and the workaround log.
 Use `--desktop` to launch the installed desktop entry with the override unset.
 Also verify a normal launch from the desktop menu after installing the new build.
@@ -126,8 +130,8 @@ To update, update your source checkout and submodules, then rerun `make install`
 app's **Update via package manager** action opens these instructions. Other builds
 retain in-app updates. AUR publishing is planned separately.
 
-Run `bash scripts/verify-packaging.sh` for app and packaging checks, or
-`bash scripts/verify-packaging.sh --arch` to build and verify both package variants
+Run `pnpm verify` for app and packaging checks, or
+`bash scripts/diagnostics/packaging.sh --arch` to build and verify both package variants
 through Podman. The latter installs only inside the container and leaves the internal
 package in `package/`; both commands verify that dependency lockfiles stay unchanged.
 

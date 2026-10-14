@@ -649,7 +649,7 @@ mod cancellation_tests {
     pub(super) static NATIVE_ABORT_OBSERVED: AtomicBool = AtomicBool::new(false);
 
     #[test]
-    #[ignore = "requires SCRYBE_TEST_MODEL; run scripts/session-inference-cancel.py"]
+    #[ignore = "requires SCRYBE_TEST_MODEL; run pnpm test:inference"]
     fn native_inference_stops_after_cancellation() {
         let model =
             std::env::var("SCRYBE_TEST_MODEL").expect("Set SCRYBE_TEST_MODEL to a local model");

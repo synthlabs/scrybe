@@ -1,8 +1,8 @@
 {
     "identifier": "com.scrybe.live",
     "build": {
-        "beforeBuildCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-tauri.ps1",
-        "beforeBundleCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-windows-cuda-redist.ps1"
+        "beforeBuildCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build/windows-tauri.ps1",
+        "beforeBundleCommand": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build/windows-cuda-redist.ps1"
     },
     "bundle": {
         "resources": {

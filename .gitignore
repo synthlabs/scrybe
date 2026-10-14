@@ -1,5 +1,11 @@
 .DS_Store
 node_modules
+.venv/
+.venv-native/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vitest/
 /build
 /.svelte-kit
 /package
@@ -34,6 +40,5 @@ project.inlang/cache
 
 mockups/*
 plans/*
-scripts/*
 docs/*
 

@@ -685,6 +685,7 @@
                                         !editor.choices_open)}
                             >
                                 {msgs.settings_change_model()}<ChevronDown
+                                    data-disclosure-chevron
                                     class={`size-4 transition-transform duration-(--scrybe-duration-standard) ease-out ${searching || editor.choices_open ? "rotate-180" : ""}`}
                                 />
                             </Button>

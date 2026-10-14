@@ -15,17 +15,6 @@ TAURI_PACKAGING_PASSTHROUGH_VARS := ENABLE_INTERNAL
 INTERNAL_FILES := internal/frontend/index.ts internal/rust/commands.rs internal/rust/mod.rs
 MISSING_INTERNAL_FILES = $(filter-out $(wildcard $(INTERNAL_FILES)),$(INTERNAL_FILES))
 
-NODE_TESTS := \
-	scripts/audio-devices.test.mjs \
-	scripts/settings-editor.test.mjs \
-	scripts/overlay-editor.test.mjs \
-	scripts/i18n-detect.test.mjs \
-	scripts/overlay-canvas-text.test.mjs \
-	scripts/overlay-layout-math.test.mjs \
-	scripts/overlay-timing.test.mjs \
-	scripts/overlay-ws-contract.test.mjs \
-	scripts/updater-toast.test.mjs
-
 .PHONY: check-internal
 check-internal:
 	$(if $(strip $(MISSING_INTERNAL_FILES)),$(error Missing internal checkout files: $(MISSING_INTERNAL_FILES)),@echo Internal checkout ready)
@@ -53,25 +42,50 @@ check:
 	$(TOKE) -v $(CARGO) check -p scrybe_core
 	$(TOKE) -v $(CARGO) check -p scrybe
 
-.PHONY: test
-test: test-packaging
-	$(TOKE) -v $(CARGO) test -p synth-tauri-runtime
-	$(TOKE) -v $(NODE) --test $(NODE_TESTS)
-	$(TOKE) -v $(CARGO) test -p scrybe_core
-	$(TOKE) -v $(CARGO) test -p scrybe
+.PHONY: test verify
+test:
+	$(TOKE) -v $(PNPM) test
+
+verify:
+	$(TOKE) -v $(PNPM) verify
 
 .PHONY: test-packaging
 test-packaging:
-ifeq ($(OS),Windows_NT)
-	$(POWERSHELL) -NoProfile -ExecutionPolicy Bypass -File utils/packaging/tauri/install.test.ps1
-else
-	bash scripts/packaging-integration.test.sh
-endif
+	$(TOKE) -v $(PNPM) run test:packaging
 
-.PHONY: validate-transcription
-validate-transcription:
-	$(TOKE) -v $(PNPM) run validate:transcription
+.PHONY: test-unit test-shared test-python test-rust
+.PHONY: test-browser
+test-browser:
+	$(TOKE) -v $(PNPM) run test:browser
 
-.PHONY: validate-hallucinations
-validate-hallucinations:
-	$(TOKE) -v $(PNPM) run validate:hallucinations
+test-unit:
+	$(TOKE) -v $(PNPM) run test:unit
+
+test-shared:
+	$(TOKE) -v $(PNPM) run test:shared
+
+test-python:
+	$(TOKE) -v $(PNPM) run test:python
+
+test-rust:
+	$(TOKE) -v $(PNPM) run test:rust
+
+.PHONY: test-internal
+test-internal:
+	$(TOKE) -v $(PNPM) run test:internal
+
+.PHONY: test-webkit test-native test-audio test-inference test-packaging-artifacts
+test-webkit:
+	$(TOKE) -v $(PNPM) run test:webkit
+
+test-native:
+	$(TOKE) -v $(PNPM) run test:native
+
+test-audio:
+	$(TOKE) -v $(PNPM) run test:audio
+
+test-inference:
+	$(TOKE) -v $(PNPM) run test:inference
+
+test-packaging-artifacts:
+	$(TOKE) -v $(PNPM) run test:packaging:artifacts

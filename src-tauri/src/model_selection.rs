@@ -1,6 +1,4 @@
-use crate::types::{
-    BASE_MODEL_PRESET_ID, LARGE_V3_TURBO_Q5_MODEL_PRESET_ID, TINY_MODEL_PRESET_ID,
-};
+use crate::types::{BASE_MODEL_PRESET_ID, LARGE_V3_TURBO_Q5_MODEL_PRESET_ID, TINY_MODEL_PRESET_ID};
 use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 
 const BYTES_PER_GIB: u64 = 1024 * 1024 * 1024;
