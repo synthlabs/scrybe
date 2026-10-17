@@ -108,6 +108,22 @@ jobs:
             - name: Shared tests
               run: pnpm test:shared
 
+            - name: Screenshot tooling tests
+              run: pnpm test:screenshots
+
+            - name: Check macOS screenshot helper
+              if: runner.os == 'macOS'
+              run: swiftc -typecheck scripts/screenshots/macos.swift
+
+            - name: Build Windows screenshot helper
+              if: runner.os == 'Windows'
+              run: |
+                  $tokens = $null
+                  $errors = $null
+                  [System.Management.Automation.Language.Parser]::ParseFile("${{ github.workspace }}/scripts/screenshots/windows.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+                  if ($errors.Count) { throw ($errors | Out-String) }
+                  dotnet build scripts/screenshots/windows-capture/Capture.csproj -c Release -o target/screenshots/ci-helper -p:BaseIntermediateOutputPath="${{ github.workspace }}/target/screenshots/ci-obj/"
+
             - name: Python tests
               run: pnpm test:python
 

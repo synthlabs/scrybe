@@ -16,6 +16,7 @@
         "test:rust": "cargo test --locked -p scrybe_core -p scrybe -p synth-tauri-runtime -p inbound -- --test-threads=1",
         "test:rust:build": "cargo test --locked -p scrybe_core -p scrybe -p synth-tauri-runtime -p inbound --no-run",
         "test:packaging": "node tests/packaging/run.mjs",
+        "test:screenshots": "node --test tests/screenshots/tooling.test.mjs",
         "test:browser": "playwright test --config playwright.config.ts",
         "test:internal": "node internal/internal-test.mjs",
         "test:webkit": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv-native/bin/python -m pytest tests/python/webkit --junitxml=target/test-results/webkit.xml",
@@ -25,7 +26,7 @@
         "test:packaging:artifacts": "node tests/packaging/artifacts.mjs",
         "setup:inference-fixtures": "uv run --locked python -m tests.support.python.inference",
         "setup:vad": "uv run --locked python -m tests.support.python.models",
-        "test": "pnpm test:unit && pnpm test:shared && pnpm test:python && pnpm test:rust && pnpm test:packaging && pnpm test:browser && pnpm test:internal",
+        "test": "pnpm test:unit && pnpm test:shared && pnpm test:screenshots && pnpm test:python && pnpm test:rust && pnpm test:packaging && pnpm test:browser && pnpm test:internal",
         "verify": "pnpm check && pnpm build && pnpm test && cargo fmt --all --check && git diff --check && git -C utils diff --check"
     },
     "devDependencies": {

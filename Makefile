@@ -36,6 +36,24 @@ include utils/packaging/tauri/tauri.mk
 # Keep checkout paths with spaces intact.
 TAURI_PACKAGING_SHARED_DIR := $(CURDIR)/utils/packaging/tauri
 
+.PHONY: screenshot update-readme-screenshot test-screenshots screenshot-smoke
+screenshot: export SCRYBE_SCREENSHOT_PAGE = $(or $(PAGE),home)
+screenshot: export SCRYBE_SCREENSHOT_LOCALE = $(or $(LOCALE),en)
+screenshot: export SCRYBE_SCREENSHOT_WIDTH = $(or $(WIDTH),1300)
+screenshot: export SCRYBE_SCREENSHOT_HEIGHT = $(or $(HEIGHT),900)
+screenshot:
+	$(NODE) scripts/screenshots/run.mjs
+
+update-readme-screenshot: export SCRYBE_SCREENSHOT_IMAGE = $(IMAGE)
+update-readme-screenshot:
+	$(NODE) scripts/screenshots/update-readme.mjs
+
+test-screenshots:
+	$(NODE) --test tests/screenshots/tooling.test.mjs
+
+screenshot-smoke:
+	$(NODE) scripts/screenshots/smoke.mjs
+
 .PHONY: check
 check:
 	$(TOKE) -v $(PNPM) run check

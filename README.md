@@ -9,7 +9,8 @@
 Currently most programs available to add subtitles to your own broadcasts require sending your audio to a third-party service. This is a basic attempt at a fully local, livestream-native subtitling program.
 
 <p align="center">
-  <img src="screenshots/scrybe_0j1h8WKu9n.png" height="500">
+  <!-- scrybe-main-screenshot -->
+  <img src="screenshots/scrybe.png" height="500">
 </p>
 
 </span>
@@ -59,6 +60,56 @@ make install-internal TAURI_PACKAGING_INSTALL_ARTIFACT=/path/to/scrybe-0.2.16-1-
 
 Use a `.deb` artifact on Debian-family hosts or an NSIS `.exe` on Windows. Tauri
 bundles are under `target/release/bundle/`; Arch packages are under `package/`.
+
+### README screenshots
+
+Capture the real desktop app, review the generated PNG, then explicitly select an
+image for the README:
+
+```sh
+make screenshot
+make screenshot PAGE=all
+make screenshot PAGE=settings LOCALE=ru WIDTH=1440 HEIGHT=1000
+make update-readme-screenshot IMAGE="/path/to/reviewed.png"
+```
+
+`PAGE` accepts `home` (default), `settings`, `overlay`, `about`, or `all`.
+`LOCALE` accepts `en` (default) or `ru`. `WIDTH` and `HEIGHT` specify logical
+content pixels, defaulting to 1300×900; the minimum is 880×560 and the complete
+window must fit the display work area. Title bars are included, shadows and the
+pointer are excluded, and native pixel density is preserved.
+
+The command builds the public release app, opens a fresh temporary profile, waits
+for normal model setup (which can download models), and leaves audio stopped.
+Home shows the blank landing page. Close any app using `127.0.0.1:3030` first;
+the command reports an occupied port without stopping that app. Screenshots and
+logs are printed under `target/screenshots/<unique-run>/`. Generation leaves the
+README and its images unchanged.
+
+Prerequisites beyond the normal app build tools:
+
+| Desktop           | Screenshot tools and permissions                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Linux KDE Wayland | System Python with GI/AT-SPI 2 and GTK 3, `qdbus6`, Spectacle with `--no-shadow`, and an active accessibility-enabled KDE session.                     |
+| Linux X11         | System Python with GI/AT-SPI 2 and GTK 3, `xdotool`, `xprop`, ImageMagick 7 (`magick`), and a window manager exposing frame extents.                   |
+| macOS             | Xcode command-line tools (`swiftc`), Accessibility and Screen Recording permission for the terminal/helper.                                            |
+| Windows 10 1903+  | Windows PowerShell, .NET 8 SDK, and an interactive desktop with UI Automation access. Normal Windows build prerequisites, including CUDA, still apply. |
+
+Linux defaults to `/usr/bin/python3`; set `SCRYBE_SCREENSHOT_PYTHON` to another
+Python with the same GI bindings if needed. The adapters are intended for the
+platforms above; native acceptance must be run on each platform before its support
+is considered verified.
+
+The update command validates the selected PNG, archives the previous referenced
+image under `screenshots/archive/<UTC-timestamp>-<filename>`, and copies the reviewed
+image to `screenshots/scrybe.png`. The selected source is retained. Identical images
+do nothing; failed updates restore the previous files. Review the resulting diff
+and archive before committing.
+
+Run `make test-screenshots` for portable tooling tests. `make screenshot-smoke`
+captures all pages in both languages at default and custom dimensions; repeat it
+at the display scales you intend to support and inspect the images. It does not
+update the README. See [the test guide](tests/README.md) for acceptance checks.
 
 ### Audio sources on Linux
 

@@ -1,7 +1,7 @@
 # Scrybe tests
 
 `pnpm test` runs the portable suites sequentially: app unit, shared JavaScript,
-portable Python and update-mode builds, selected Rust packages, mocked packaging,
+screenshot tooling, portable Python and update-mode builds, selected Rust packages, mocked packaging,
 Chromium, then the internal hook. A failure stops the sequence.
 
 `pnpm verify` runs frontend checks/build, `pnpm test`, full workspace Rust formatting,
@@ -46,6 +46,7 @@ Python plugins do not join the locked test environment.
 | ------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `pnpm test:unit`                | 72 app cases in 12 Vitest files                                                                   |
 | `pnpm test:shared`              | 10 existing shared Inbound controller cases                                                       |
+| `pnpm test:screenshots`         | 19 portable native-capture orchestration and README image update cases                            |
 | `pnpm test:python`              | Three portable probe startup failure cases and two update-install build modes                     |
 | `pnpm test:rust`                | All tests in `scrybe_core`, `scrybe`, `synth-tauri-runtime`, and `inbound`                        |
 | `pnpm test:browser`             | 39 Chromium cases with mocked Tauri commands and motion probes                                    |
@@ -186,6 +187,42 @@ pnpm test:packaging:artifacts --binary target/release/scrybe.exe --staged-dir ta
 ```
 
 ## Operations and explicit generation
+
+### Native README screenshot tooling
+
+`pnpm test:screenshots` (or `make test-screenshots`) runs portable Node tests for
+PNG integrity, argument validation, literal spaced paths, isolated profile paths,
+process failures/timeouts/interruption, occupied ports, and transactional README
+updates. The update cases use temporary directories and cover legacy/stable image
+archives, archive-name collisions, idempotence, rejected input, concurrent updates,
+and rollback after each mutation. This suite is included in `pnpm test`.
+
+`make screenshot-smoke` is an explicit desktop acceptance script, separate from
+portable tests. It builds the public release app with a unique application identity
+for each run and navigates using external accessibility APIs. It captures all four
+pages in EN/RU at 1300×900 and 1000×650 logical content pixels, verifies content and
+native frame dimensions, and checks that the README, screenshot files, and binding
+files are unchanged. It also compares content hashes of the normal Scrybe profile
+directories before and after capture. It saves `smoke.json` alongside the generated PNGs and logs.
+The regular application profile is never loaded; temporary profiles are removed.
+Model downloads use the app's normal cache and startup behavior.
+
+Run that script on Linux KDE Wayland, Linux X11, macOS, and Windows 10 1903+ before
+declaring support verified. Repeat at the display scales being supported. Review
+each PNG for the correct selected page and locale, blank Home state, expanded
+sidebar, complete title bar, tight bounds, and absence of shadows, pointer, menus,
+loading states, or update notifications. Smaller displays must use dimensions that
+fit their work area for individual captures; the full smoke matrix needs room for
+the default window.
+
+Failure acceptance: deny/revoke accessibility or screen-capture permission, hide a
+required screenshot command from PATH, occupy port 3030 with another app, and
+interrupt a capture with Ctrl+C. Each run must fail clearly, retain logs, stop only
+its own process tree, and remove its temporary profile. A model-download/startup
+failure must not produce a successful capture. No platform can be marked verified
+from portable tests or source inspection alone.
+
+### Existing diagnostics
 
 Maintained build hooks live in `scripts/build/`; Tauri Windows configuration points
 to them. Diagnostics remain explicit:
